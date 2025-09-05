@@ -76,7 +76,7 @@ export default function Home({ usuario }) {
     console.log('Foto de perfil desde Firestore o Auth:', usuario?.fotoPerfil)
     // Partículas
     if (window.particlesJS) {
-      window.particlesJS.load('particles-js', '/particles.json', () => {
+      window.particlesJS.load('particles-js', 'particles.json', () => {
         console.log('Particles.js config cargado')
       })
       

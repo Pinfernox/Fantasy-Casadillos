@@ -4,6 +4,7 @@ import appFirebase from "../credenciales";
 import { getAuth, signOut } from 'firebase/auth'
 import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore'
 import ImagenProfile from '../assets/SinPerfil.jpg'
+import Fondo from '../assets/fondo.png'
 import "./Home.css";
 
 const db = getFirestore(appFirebase);
@@ -56,7 +57,7 @@ export default function Mercado({ usuario }) {
 
     // Partículas
     if (window.particlesJS) {
-      window.particlesJS.load('particles-js', '/particles.json', () => {
+      window.particlesJS.load('particles-js', 'particles.json', () => {
         console.log('Particles.js config cargado')
       })
       
@@ -128,7 +129,7 @@ export default function Mercado({ usuario }) {
 
       </header>
 
-            <div className="login-hero-Cabecera">
+            <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
 
         <div

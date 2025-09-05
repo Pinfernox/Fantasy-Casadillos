@@ -33,7 +33,7 @@ export const Login = () => {
 
   useEffect(() => {
     if (window.particlesJS) {
-      window.particlesJS.load("particles-js", "/particles.json", () => {
+      window.particlesJS.load("particles-js", "particles.json", () => {
         console.log("Particles.js config cargado")
       })
     }
@@ -69,6 +69,7 @@ export const Login = () => {
           fotoPerfil: ImagenProfile,
           puntuaciones: [0],
           onboarding: false,
+          equipocreado: false,
           creadoEn: new Date().toISOString(),
         };
 
@@ -177,6 +178,7 @@ export const Login = () => {
           fotoPerfil: ImagenProfile,
           puntuaciones: [0],
           onboarding: false,
+          equipocreado: false,
           creadoEn: new Date().toISOString()
         });
       }

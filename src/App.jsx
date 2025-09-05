@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import appFirebase from "./credenciales";
-
+import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./components/Login";
 import Home from "./components/Home";
 import Mercado from "./components/Mercado";
@@ -60,25 +59,28 @@ function App() {
   }
 
   return (
-    <Routes>
-        {/* Login */}
-        <Route path="/" element={usuario ? <Navigate to="/home" replace /> : <Login />} />
+    <Router>
+      <Routes>
+          {/* Login */}
+          <Route path="/" element={usuario ? <Navigate to="/home" replace /> : <Login />} />
 
-        {/* Home */}
-        <Route
-          path="/home"
-          element={usuario ? <Home usuario={usuario} /> : <Navigate to="/" replace />}
-        />
-        <Route 
-          path="/mercado" 
-          element={usuario ? <Mercado usuario={usuario}/> : <Navigate to="/" replace />} />
-        <Route 
-          path="/clasificacion" 
-          element={usuario ? <Clasificacion usuario={usuario}/> : <Navigate to="/" replace />} />
+          {/* Home */}
+          <Route
+            path="/home"
+            element={usuario ? <Home usuario={usuario} /> : <Navigate to="/" replace />}
+          />
+          <Route 
+            path="/mercado" 
+            element={usuario ? <Mercado usuario={usuario}/> : <Navigate to="/" replace />} />
+          <Route 
+            path="/clasificacion" 
+            element={usuario ? <Clasificacion usuario={usuario}/> : <Navigate to="/" replace />} />
 
-        {/* Ruta fallback */}
-        <Route path="*" element={<Navigate to={usuario ? "/home" : "/"} replace />} />
-    </Routes>
+          {/* Ruta fallback */}
+          <Route path="*" element={<Navigate to={usuario ? "/home" : "/"} replace />} />
+      </Routes>
+    </Router>
+
   );
 }
 
