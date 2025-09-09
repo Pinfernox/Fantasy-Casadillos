@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
 import appFirebase from "../credenciales";
-import { FORMATIONS } from './formations';
+import { FORMACIONES } from './formations';
 import { getAuth, signOut } from 'firebase/auth'
 import { getFirestore, doc, getDoc, updateDoc, collection, onSnapshot } from 'firebase/firestore'
 import ImagenProfile from '../assets/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
-//import particlesJS from 'particles.js';
-//import particlesConfig from '../assets/particles.json';
 import "./Home.css";
 
 const db = getFirestore(appFirebase);
@@ -18,6 +16,35 @@ export default function Home({ usuario }) {
   const [dinero, setDinero] = useState(null)
   const [menu, setMenu] = useState(false)
   const fotoURL = usuario?.fotoPerfil || ImagenProfile
+  //const formacion = usuario?.equipo?.formacion || "2-1-1";
+  const formacion = "1-1-1-1";
+  const titulares = usuario?.equipo?.titulares || [];
+  const banquillo = usuario?.equipo?.banquillo || [];
+  const capitan = usuario?.equipo?.capitan || "";
+  const formacionesDisponibles = Object.keys(FORMACIONES);
+    // Estado inicial: la formación actual del usuario
+  const [formacionActual, setFormacionActual] = useState(usuario?.equipo?.formacion || "2-1-1");
+  const [formacionSeleccionada, setFormacionSeleccionada] = useState(formacionActual);
+  const [guardando, setGuardando] = useState(false);
+
+  const handleSelect = (e) => {
+    setFormacionSeleccionada(e.target.value);
+  };
+
+  const guardarFormacion = async () => {
+    try {
+      setGuardando(true);
+      const userRef = doc(db, "usuarios", usuario.uid);
+      await updateDoc(userRef, {
+        "equipo.formacion": formacionSeleccionada
+      });
+      setFormacionActual(formacionSeleccionada);
+    } catch (error) {
+      console.error("Error al guardar formación:", error);
+    } finally {
+      setGuardando(false);
+    }
+  };
 
   const toggleMenu = () => {
     setMenu(!menu)
@@ -153,17 +180,58 @@ export default function Home({ usuario }) {
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
 
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-          <div className="campo">
-          
+          {/* Selector de formaciones */}
+          <div className="formacion-selector">
+            <label htmlFor="formacion-select">Formación:</label>
+            <select id="formacion-select" value={formacionSeleccionada} onChange={handleSelect}>
+              {formacionesDisponibles.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+                    {formacionSeleccionada !== formacionActual && (
+              <button onClick={guardarFormacion} disabled={guardando}>
+                {guardando ? "Guardando..." : "Guardar cambios"}
+              </button>
+            )}
           </div>
 
-        </div>
-      </div>
 
-      {/* CONTENIDO DEBAJO CON FONDO NEGRO */}
-      <div className="contenido-negro">
-        <h2>Contenido debajo del fondo</h2>
-        <p>Aquí puedes seguir añadiendo secciones.</p>
+          <div className="campo">
+            {/* Jugadores según formación */}
+            {FORMACIONES[formacionSeleccionada]?.map((pos, index) => {
+            const jugador = titulares[index];
+              return (
+                <div
+                  key={jugador?.id || index}
+                  className="jugador"
+                  style={{
+                    position: "absolute",
+                    top: pos.top,
+                    left: pos.left,
+                    transform: "translate(-50%, -50%)",
+                  }}
+                >
+                  <div className="jugador-wrapper">
+                    <img
+                      src={jugador?.foto || ImagenProfile}
+                      alt={jugador?.nombre || "Vacío"}
+                      className="jugador-img"
+                    />
+                    {/* Insignia de capitán */}
+                    {capitan === jugador?.id && (
+                      <div className="capitan-badge">C</div>
+                    )}
+                  </div>
+                  <p className="jugador-nombre">{jugador?.nombre || "Vacío"}</p>
+                </div>
+
+                      );
+                    })}
+          </div> 
+
+        </div>
       </div>
 
       {showOnboarding && (

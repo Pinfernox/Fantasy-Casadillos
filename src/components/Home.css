@@ -149,6 +149,8 @@ a {
   text-align: center;
   color: white;
   z-index: 2;
+  position: relative;
+  z-index: 1;
 }
 
 .campo {
@@ -160,9 +162,102 @@ a {
   background-size: cover;
   position: relative; /* necesario para colocar jugadores */
   border-radius: 20px;
+  height: auto;
+  display: block;
+}
+
+.jugador {
+  text-align: center;
+  .jugador {
+    position: absolute;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* tamaño proporcional */
+    width: clamp(50px, 10vw, 60px);
+    height: clamp(50px, 10vw, 60px);
+  }
+}
+
+.jugador-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.jugador-img {
+  width: clamp(50px, 10vw, 60px);
+  height: clamp(50px, 10vw, 60px);
+  border-radius: 50%;
+  border: 2px solid white;
+  object-fit: cover;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+.jugador-nombre {
+  font-family: 'Bebas Neue', sans-serif;
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: white;
+  text-align: center;
+  text-shadow: 
+    -1px -1px 0 black,
+     1px -1px 0 black,
+    -1px  1px 0 black,
+     1px  1px 0 black;  
+}
+
+.capitan-badge {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: linear-gradient(135deg, #FFD700, #FFA500, #FFD700);
+  color: black;
+  font-weight: bold;
+  border-radius: 40%;
+  padding: 4px 6px;
+  font-size: 12px;
+  border: 2px solid #b8860b; /* borde más oscuro para contraste */
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.7), 
+              inset 0 0 4px rgba(255, 255, 255, 0.6);
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.9);
 }
 
 
+/* ComboBox */
+.formacion-selector {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+}
+
+.formacion-selector label {
+  font-weight: bold;
+}
+
+.formacion-selector select {
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
+.formacion-selector button {
+  padding: 6px 12px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.formacion-selector button:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
 
 
 

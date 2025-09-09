@@ -61,7 +61,7 @@ export const Login = () => {
           rol: 'usuario',
           dinero: 100000000,
           equipo: {
-            formacion: "1-1-1-1",
+            formacion: "2-1-1",
             titulares: [null, null, null, null], 
             banquillo: [null, null],
             capitan: null
@@ -170,7 +170,7 @@ export const Login = () => {
           rol: 'usuario',
           dinero: 100000000,
           equipo: {
-            formacion: "1-1-1-1",
+            formacion: "2-1-1",
             titulares: [null, null, null, null], 
             banquillo: [null, null],
             capitan: null
