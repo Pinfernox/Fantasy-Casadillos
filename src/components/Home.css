@@ -15,7 +15,7 @@
 }
 
 .Cabecera {
-  background-color: black;
+  background-color: rgb(1, 1, 33);
   width: 100%;
   padding: 1em;
 
@@ -69,13 +69,28 @@ a {
   margin-bottom: 0.2rem;
 }
 
-/* Sección debajo del hero */
-.contenido-negro {
-  background-color: black;
+.crear-equipo-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 12px 20px;
+  font-size: 18px;
+  font-weight: bold;
+  background: linear-gradient(135deg, #28a745, #218838);
   color: white;
-  min-height: 100vh;
-  padding: 2rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0,0,0,0.4);
+  transition: transform 0.2s ease, background 0.2s ease;
 }
+
+.crear-equipo-btn:hover {
+  transform: translate(-50%, -50%) scale(1.05);
+  background: linear-gradient(135deg, #34d058, #28a745);
+}
+
 
 /* Perfil */
 .container-profile {
@@ -148,7 +163,6 @@ a {
   border: 0; /* por si Bootstrap agrega borde */
   text-align: center;
   color: white;
-  z-index: 2;
   position: relative;
   z-index: 1;
 }

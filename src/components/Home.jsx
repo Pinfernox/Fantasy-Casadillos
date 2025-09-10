@@ -3,7 +3,18 @@ import { Link } from 'react-router-dom';
 import appFirebase from "../credenciales";
 import { FORMACIONES } from './formations';
 import { getAuth, signOut } from 'firebase/auth'
-import { getFirestore, doc, getDoc, updateDoc, collection, onSnapshot } from 'firebase/firestore'
+import { 
+  getFirestore, 
+  doc, 
+  getDoc, 
+  updateDoc, 
+  collection, 
+  onSnapshot, 
+  getDocs, 
+  query, 
+  where
+} from 'firebase/firestore';
+import { arrayUnion } from "firebase/firestore";
 import ImagenProfile from '../assets/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
 import "./Home.css";
@@ -16,16 +27,18 @@ export default function Home({ usuario }) {
   const [dinero, setDinero] = useState(null)
   const [menu, setMenu] = useState(false)
   const fotoURL = usuario?.fotoPerfil || ImagenProfile
-  //const formacion = usuario?.equipo?.formacion || "2-1-1";
-  const formacion = "1-1-1-1";
+  const formacion = usuario?.equipo?.formacion || "2-1-1";
   const titulares = usuario?.equipo?.titulares || [];
   const banquillo = usuario?.equipo?.banquillo || [];
+  const [jugadores, setJugadores] = useState([]);
   const capitan = usuario?.equipo?.capitan || "";
   const formacionesDisponibles = Object.keys(FORMACIONES);
     // Estado inicial: la formación actual del usuario
   const [formacionActual, setFormacionActual] = useState(usuario?.equipo?.formacion || "2-1-1");
   const [formacionSeleccionada, setFormacionSeleccionada] = useState(formacionActual);
   const [guardando, setGuardando] = useState(false);
+  const [equipocreado, setEquipocreado] = useState(usuario?.equipocreado);
+
 
   const handleSelect = (e) => {
     setFormacionSeleccionada(e.target.value);
@@ -83,6 +96,61 @@ export default function Home({ usuario }) {
 
   };
 
+// --- Función para crear equipo ---
+  const crearEquipo = async () => {
+    try {
+      setGuardando(true);
+
+      // 1. Traer jugadores con stockLibre > 0
+      const jugadoresSnap = await getDocs(collection(db, "jugadores"));
+      let jugadoresDisponibles = [];
+      jugadoresSnap.forEach((docu) => {
+        const data = docu.data();
+        if (data.stockLibre > 0) {
+          jugadoresDisponibles.push({ id: docu.id, ...data });
+        }
+      });
+      console.log(jugadoresDisponibles.length)
+      if ("Jugadores disponibles", jugadoresDisponibles.length < 4) {
+        alert("No hay suficientes jugadores disponibles");
+        setGuardando(false);
+        return;
+      }
+
+      // 2. Escoger 4 aleatorios
+      let seleccionados = [];
+      for (let i = 0; i < 4; i++) {
+        const idx = Math.floor(Math.random() * jugadoresDisponibles.length);
+        seleccionados.push(jugadoresDisponibles[idx]);
+        jugadoresDisponibles.splice(idx, 1); // eliminar para no repetir
+      }
+
+      // 3. Actualizar jugadores seleccionados en Firestore
+      const updates = seleccionados.map(async (jug) => {
+        const ref = doc(db, "jugadores", jug.id);
+        return updateDoc(ref, {
+          stockLibre: jug.stockLibre - 1,
+          dueños: arrayUnion(usuario.uid),
+        });
+      });
+
+      await Promise.all(updates);
+
+      // 4. Actualizar usuario en Firestore
+      const userRef = doc(db, "usuarios", usuario.uid);
+      await updateDoc(userRef, {
+        "equipo.titulares": seleccionados.map((j) => j.id),
+        equipocreado: true,
+      });
+
+      setEquipocreado(true);
+    } catch (error) {
+      console.error("Error al crear equipo:", error);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   useEffect(() => {
     if (usuario && usuario?.onboarding === false) {
       setShowOnboarding(true);
@@ -118,7 +186,104 @@ export default function Home({ usuario }) {
         }
       })
     }
-  }, [usuario]);
+
+    const fetchJugadores = async () => {
+      if (!titulares || titulares.length === 0) return;
+
+      const jugadoresRef = collection(db, "jugadores");
+      // ⚠️ Firestore solo permite hasta 10 IDs en una query con "in"
+      const q = query(jugadoresRef, where("__name__", "in", titulares));
+      const snap = await getDocs(q);
+
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setJugadores(data);
+  };
+
+  fetchJugadores();
+  }, [usuario], [titulares]);
+
+
+  if (!equipocreado) {
+    return (
+    <div>
+      <header className="Cabecera">
+        <div className="container-profile">
+
+          <div className='img-profile-small'>
+            
+          <img
+            src={
+              fotoURL
+            }
+            onError={(e) => {
+              e.currentTarget.onerror = null
+              e.currentTarget.src = ImagenProfile
+            }}
+            onClick={() => signOut(auth)}
+            alt="Foto de perfil"
+          />
+            
+          </div>
+
+          <div className="info-profile">
+            <h2 className="nombre-usuario">
+              {abreviarNick(usuario?.nick || usuario?.displayName)}
+            </h2>
+            {dinero !== null && (
+              <p className="dinero-usuario">
+                💰<strong>{formatearDinero(dinero)}</strong>
+              </p>
+            )}
+          </div>
+        </div>
+
+        <button onClick={toggleMenu} className="Cabecera-button">
+          <svg className='Cabecera-svg' xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5"/>
+          </svg>
+        </button>
+
+        <nav className={`Cabecera-nav ${menu ? 'isActive' : ''}`}>
+          <ul className="Cabecera-ul">
+            <li className="Cabecera-li">
+              <Link to="/home" className="Cabecera-a">EQUIPO</Link>
+            </li>
+            <li className="Cabecera-li">
+              <Link to="/mercado" className="Cabecera-a">MERCADO</Link>
+            </li>
+            <li className="Cabecera-li">
+              <Link to="/clasificacion" className="Cabecera-a">CLASIFICACIÓN</Link>
+            </li>
+
+          </ul>
+        </nav>
+
+      </header>
+
+      <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
+        <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
+
+        <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <div className="campo">
+            <button
+              className="crear-equipo-btn"
+              onClick={crearEquipo}
+              disabled={guardando} >
+              {guardando ? "Creando equipo..." : "Crear equipo"}
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      {showOnboarding && (
+        <div className="onboarding-overlay">
+          <div className="loader">Cargando...</div>
+        </div>
+      )}
+    </div>
+    );
+  }
 
   return (
     <div>
@@ -201,7 +366,9 @@ export default function Home({ usuario }) {
           <div className="campo">
             {/* Jugadores según formación */}
             {FORMACIONES[formacionSeleccionada]?.map((pos, index) => {
-            const jugador = titulares[index];
+              const jugadorId = titulares[index];
+              const jugador = jugadores.find(j => j.id === jugadorId);
+
               return (
                 <div
                   key={jugador?.id || index}
@@ -211,24 +378,22 @@ export default function Home({ usuario }) {
                     top: pos.top,
                     left: pos.left,
                     transform: "translate(-50%, -50%)",
-                  }}
-                >
+                  }}>
                   <div className="jugador-wrapper">
                     <img
                       src={jugador?.foto || ImagenProfile}
                       alt={jugador?.nombre || "Vacío"}
                       className="jugador-img"
                     />
-                    {/* Insignia de capitán */}
                     {capitan === jugador?.id && (
                       <div className="capitan-badge">C</div>
                     )}
                   </div>
                   <p className="jugador-nombre">{jugador?.nombre || "Vacío"}</p>
                 </div>
+              );
+            })}
 
-                      );
-                    })}
           </div> 
 
         </div>
