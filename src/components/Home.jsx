@@ -18,6 +18,7 @@ import { arrayUnion } from "firebase/firestore";
 import ImagenProfile from '../assets/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
 import "./Home.css";
+import ModalPerfil from "./ModalPerfil"
 
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
@@ -38,6 +39,7 @@ export default function Home({ usuario }) {
   const [formacionSeleccionada, setFormacionSeleccionada] = useState(formacionActual);
   const [guardando, setGuardando] = useState(false);
   const [equipocreado, setEquipocreado] = useState(usuario?.equipocreado);
+  const [openModal, setOpenModal] = useState(false)
 
 
   const handleSelect = (e) => {
@@ -200,7 +202,7 @@ export default function Home({ usuario }) {
   };
 
   fetchJugadores();
-  }, [usuario], [titulares]);
+  }, [usuario], [titulares], );
 
 
   if (!equipocreado) {
@@ -219,7 +221,6 @@ export default function Home({ usuario }) {
               e.currentTarget.onerror = null
               e.currentTarget.src = ImagenProfile
             }}
-            onClick={() => signOut(auth)}
             alt="Foto de perfil"
           />
             
@@ -300,7 +301,7 @@ export default function Home({ usuario }) {
               e.currentTarget.onerror = null
               e.currentTarget.src = ImagenProfile
             }}
-            onClick={() => signOut(auth)}
+            onClick={() => setOpenModal(true)}
             alt="Foto de perfil"
           />
             
@@ -343,8 +344,13 @@ export default function Home({ usuario }) {
 
       <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
+        {openModal && 
+          (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal } />)
+        }
+
 
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+
           {/* Selector de formaciones */}
           <div className="formacion-selector">
             <label htmlFor="formacion-select">Formación:</label>

@@ -1,0 +1,166 @@
+/* capa semitransparente que bloquea todo */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  /* animación de entrada */
+  animation: overlayFadeIn 0.3s ease-out;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+hr {
+  border: none;
+  height: 3px;
+  background-color: white;
+  margin: 1rem 0;
+}
+/* ventana centrada */
+.modal-perfil {
+  position: relative;
+  background: rgb(1, 1, 33);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 30rem;
+  padding: 1rem 0 1.5rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  margin: 0 auto;
+  box-sizing: border-box; /* asegura que el padding no se sume al ancho */
+  /* animación */
+  animation: modalFadeIn 0.35s ease-out;
+  transform-origin: center;
+}
+
+.modal-perfil input {
+  padding-left: 0.4rem;
+}
+
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.85) translateY(20px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+
+/* cierre */
+.modal-close-btn {
+  position: absolute;
+  top: 8px; right: 12px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: white;
+}
+
+/* cabecera: avatar + info */
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1rem;
+}
+
+.modal-avatar {
+  position: relative;
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+}
+.modal-avatar input {
+  position: absolute;
+  width: 100%; height: 100%;
+  top: 0; left: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.modal-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* nombre + correo */
+.modal-userinfo h2 {
+  margin: 0; 
+  font-size: 1.2rem;
+  color: white;
+  font-weight: bold;
+}
+.modal-userinfo small {
+  display: block;
+  color: lightgray;
+  margin-top: 4px;
+}
+
+/* cuerpo con campos editables */
+.modal-body {
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+  color: white;
+}
+
+.field-group label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 4px;
+  width: 100%;
+}
+
+.field-group input {
+  width: 100%;
+}
+
+.field-group input:disabled{
+    background-color: lightgray;
+}
+
+.field-with-icon {
+  position: relative;
+}
+.field-with-icon input {
+  width: 100%;
+  padding-right: 28px; /* espacio para el icono */
+}
+.icon-pencil {
+  position: absolute;
+  right: 8px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  color: #555;
+
+}
+
+/* footer con botón guardar */
+.modal-footer {
+  text-align: center;
+  padding-top: 0.5rem;
+}
+.modal-save-btn {
+  background: #0069d9;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.4rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin: 1rem;
+}
+.modal-save-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
