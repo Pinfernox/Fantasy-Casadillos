@@ -7,6 +7,8 @@ import Login from "./components/Login";
 import Home from "./components/Home";
 import Mercado from "./components/Mercado";
 import Clasificacion from "./components/Clasificacion";
+import EquipoJugador from "./components/EquipoJugador";
+
 
 
 const auth = getAuth(appFirebase);
@@ -75,7 +77,10 @@ function App() {
           <Route 
             path="/clasificacion" 
             element={usuario ? <Clasificacion usuario={usuario}/> : <Navigate to="/" replace />} />
-
+          <Route
+            path="/equipo/:jugadorId"
+            element={usuario ? <EquipoJugador usuario={usuario}/> : <Navigate to="/" replace/>} />
+            
           {/* Ruta fallback */}
           <Route path="*" element={<Navigate to={usuario ? "/home" : "/"} replace />} />
       </Routes>

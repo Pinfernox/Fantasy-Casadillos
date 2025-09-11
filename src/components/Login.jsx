@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import Swal from 'sweetalert2';
 import { useNavigate } from "react-router-dom";
 import Imagen from '../assets/fondo.png'
-import ImagenProfile from '../assets/SinPerfil.jpg'
+import ImagenProfile from '/SinPerfil.jpg'
 import ImagenLogo from '../assets/logo.png'
 import googleLogo from '../assets/google.png'
 import ojoAbierto from '../assets/ojoabierto.png';

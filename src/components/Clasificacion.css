@@ -1,0 +1,186 @@
+.login-hero-Cabecera { 
+  position: relative; /* referencia para posicionar #particles-js */
+  inset: 0; 
+  margin: 0; 
+  height: 100vh; /* 100% de la altura visible */ 
+  overflow: hidden; 
+  min-height: 100vh; 
+  background-color: black; /* fondo negro base */
+  background-size: contain; 
+  background-position: center; 
+  background-repeat: no-repeat; 
+  display: flex; align-items: center; 
+  justify-content: center; 
+
+}
+
+.Cabecera {
+  background-color: rgb(1, 1, 33);
+  width: 100%;
+  padding: 1em;
+
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  
+}
+
+.Cabecera-li:hover{
+  color: gray;
+  text-decoration: underline;
+}
+
+.Cabecera-button {
+  display: none;          /* tu regla */
+  background: transparent; /* quita fondo blanco */
+  border: none;            /* quita borde */
+  cursor: pointer;         /* mano al pasar */
+  padding: 0;              /* quita relleno extra */
+}
+
+.Cabecera-svg {
+  width: 2em;
+  height: 2em;
+  fill: white;
+}
+
+.Cabecera-ul {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-end;
+  align-items: center;
+  list-style: none; /* quita los puntos */
+  padding-left: 0;  /* opcional: elimina sangrado */
+  margin-left: 0;   /* opcional: elimina margen izquierdo */
+
+}
+
+.Cabecera-li {
+  margin: 0.5em;
+  font-size: clamp(0.8rem, 1.8vw, 1.2rem); /* nombre */
+  color: white;
+  margin-bottom: 0.2rem;
+}
+
+.container-tabla{
+    width: 100%;
+    max-width: 40rem;
+    margin: 0.3rem;
+}
+
+.rdt_TableRow:hover {
+  background-color: rgb(117, 115, 115) !important; /* color de tu preferencia */
+  color: black !important;
+}
+
+/* Negrita en los encabezados de columna */
+.rdt_TableHead, .rdt_TableCol {
+  font-weight: bold !important;
+  font-size: 1rem;
+}
+
+div.rdt_TableHeader > div:first-child {
+  font-weight: bold;
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  text-transform: uppercase;
+}
+
+/* Perfil */
+.container-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.info-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.img-profile-small img {
+  width: clamp(50px, 10vw, 80px);  /* px en móvil, px en escritorio */
+  height: clamp(50px, 10vw, 80px);
+  border-radius: 50%;
+  object-fit: cover;     /* ajusta todo dentro */
+  background-color: black; /* o color que quieras */
+  margin: 5px;
+  cursor: pointer;
+}
+
+.nombre-usuario{
+  font-size: clamp(0.8rem, 1.8vw, 1.2rem); /* nombre */
+  margin: 0;
+  color: white;
+  margin-bottom: 0.2rem;
+}
+
+.dinero-usuario {
+  font-size: clamp(0.7rem, 1.6vw, 1rem); /* dinero */
+  margin: 0;
+  color: white;
+}
+
+/* Pantalla de carga onboarding */
+.onboarding-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9); /* fondo negro transparente */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.loader {
+  animation: blink 1s infinite;
+}
+
+
+@media screen and (max-width: 480px) {
+
+  .Cabecera-button {
+    display: flex;
+    cursor: pointer;
+  }
+
+  .Cabecera-nav {
+    width: 100%;
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: center;
+    align-items: center;
+    height: 0vh;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.5s ease
+  }
+
+  .Cabecera-nav.isActive {
+    height: 8rem;
+    opacity: 1; 
+  }
+
+  .Cabecera-ul {
+    flex-direction: column;
+  }
+
+  .Cabecera-li {
+    margin: 0.5em 0;
+  }
+
+}

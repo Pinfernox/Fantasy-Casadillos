@@ -1,20 +1,106 @@
 import React, { useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
+import DataTable, {createTheme} from "react-data-table-component"; 
 import appFirebase from "../credenciales";
 import { getAuth, signOut } from 'firebase/auth'
-import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore'
+import { getFirestore, doc, getDoc, updateDoc, collection, getDocs, where } from 'firebase/firestore'
 import ImagenProfile from '../assets/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
-import "./Home.css";
+import "./Clasificacion.css";
+import ModalPerfil from "./ModalPerfil"
+
 
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
+
+createTheme('solarized', {
+  text: {
+    primary: '#268bd2',
+    secondary: '#2aa198',
+  },
+  background: {
+    default: '#002b36',
+  },
+  context: {
+    background: '#cb4b16',
+    text: '#FFFFFF',
+  },
+  divider: {
+    default: '#073642',
+  },
+  action: {
+    button: 'rgba(0,0,0,.54)',
+    hover: 'rgba(40, 67, 165, 0.08)',
+    disabled: 'rgba(188, 22, 22, 0.12)',
+  },
+}, 'dark');
 
 export default function Clasificacion({ usuario }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [dinero, setDinero] = useState(null)
   const [menu, setMenu] = useState(false)
+  const [openModal, setOpenModal] = useState(false)
+  const getNumericPos = (pos) => parseInt(pos)
   const fotoURL = usuario?.fotoPerfil || ImagenProfile
+  const conditionalRowStyles = [
+    // Top 3 según posición
+    {
+      when: row => row.pos === '1º',
+      style: { backgroundColor: '#FFD700', color: 'white', fontWeight: 'bold',  fontSize: 'clamp(0.9rem, 1vw + 0.3rem, 1rem)'} // Oro
+    },
+    {
+      when: row => row.pos === '2º',
+      style: { backgroundColor: '#C0C0C0', color: 'white', fontWeight: 'bold', fontSize: 'clamp(0.9rem, 1vw + 0.3rem, 1rem)' } // Plata
+    },
+    {
+      when: row => row.pos === '3º',
+      style: { backgroundColor: '#CD7F32', color: 'white', fontWeight: 'bold', fontSize: 'clamp(0.9rem, 1vw + 0.3rem, 1rem)' } // Bronce
+    },
+    // Intercalado para el resto (excepto top3 y 0 puntos)
+    {
+      when: row => getNumericPos(row.pos) > 3 && getNumericPos(row.pos) % 2 === 0,
+      style: { backgroundColor: '#002b36', color: 'white', fontWeight: 'bold', fontSize: 'clamp(0.9rem, 1vw + 0.3rem, 1rem)' }
+    },
+    {
+      when: row => getNumericPos(row.pos) > 3 &&  getNumericPos(row.pos) % 2 === 1,
+      style: { backgroundColor: '#092e37ff', color: 'white', fontWeight: 'bold', fontSize: 'clamp(0.9rem, 1vw + 0.3rem, 1rem)' }
+    }
+  ]
+
+  const columns = [
+    { 
+      name: "Pos.",    
+      selector: row => row.pos,    
+      width: "4rem",
+      center: true
+    },
+    { 
+      name: "Jugador",
+      selector: row => row.jugador,
+      cell: row => (
+              <Link
+        to={`/equipo/${row.id}`} // usa el ID único del jugador
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          textDecoration: 'none',
+          color: 'inherit'
+        }}
+      >
+          <img src={row.fotoPerfil} alt="Foto" style={{ width: '2rem', height: '2rem', borderRadius: '50%' }} />
+          <span>{row.jugador}</span>
+        </Link>
+      ),
+     
+    },
+    { 
+      name: "Puntos", 
+      selector: row => row.puntos, 
+      width: '5.5rem', 
+      center: true
+    }
+  ]
 
   const toggleMenu = () => {
     setMenu(!menu)
@@ -34,14 +120,14 @@ export default function Clasificacion({ usuario }) {
   const abreviarNick = (nick) => {
     if (!nick) return "";
 
-    const maxLength = 12
+    const maxLength = 10
     const firstSpace = nick.indexOf(" ");
 
     let corte;
 
     if (firstSpace !== -1 && firstSpace <= maxLength) {
       corte = firstSpace; // cortar en el espacio si está antes de 9
-      return nick.slice(0, corte);
+      return nick.slice(0, corte) + "...";
       
     } else if (nick.length > maxLength) {
       corte = maxLength-3; // cortar en 9 si es más largo
@@ -74,6 +160,76 @@ export default function Clasificacion({ usuario }) {
     }
   }, [usuario]);
 
+  const [tableData, setTableData] = useState([])
+  const [loading, setLoading] = useState(false)
+
+// Dentro del useEffect que carga los datos:
+  useEffect(() => {
+    const fetchUsuarios = async () => {
+      setLoading(true)
+      try {
+        const colRef = collection(db, 'usuarios')
+        const snap = await getDocs(colRef)
+        const usuarios = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => (b.puntos || 0) - (a.puntos || 0))
+
+        let datosConPos = usuarios.map((u, i) => ({
+          id: u.id,
+          pos: `${i + 1}º`,
+          jugador: u.nick || 'Sin nombre',
+          puntos: u.puntos || 0,
+          fotoPerfil: u.fotoPerfil || ImagenProfile
+        }))
+
+        /* Añadir filas vacías hasta un mínimo (ej. 10)
+        const minRows = 10
+        while (datosConPos.length < minRows) {
+          datosConPos.push({
+            pos: `${datosConPos.length + 1}º`,
+            jugador: 'Prueba',
+            puntos: 0,
+            fotoPerfil: ImagenProfile
+          })
+        }*/
+
+        setTableData(datosConPos)
+      } catch (error) {
+        console.error('Error al cargar usuarios:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUsuarios()
+  }, [])
+
+  const customStyles = {
+    cells: {
+      style: {
+        borderRight: '1px solid rgba(255,255,255, 0.2)', // línea entre columnas
+        borderBottom: '1px solid rgba(255,255,255, 0.2)', // línea en encabezado
+
+      }
+    },
+    headCells: {
+      style: {
+        borderRight: '1px solid rgba(255,255,255,0.2)', // línea en encabezado
+        backgroundColor: '#002b36',
+        color: '#ffffff',
+        borderTop: '1px solid rgba(255,255,255,0.2)', // línea en encabezado
+        justifyContent: 'center',
+        textAlign: 'center'
+      }
+    },
+    rows: {
+      style: {
+
+      }
+    }
+  }
+
+
   return (
     <div>
       <header className="Cabecera">
@@ -89,6 +245,7 @@ export default function Clasificacion({ usuario }) {
               e.currentTarget.onerror = null
               e.currentTarget.src = ImagenProfile
             }}
+            onClick={() => setOpenModal(true)}
             alt="Foto de perfil"
           />
             
@@ -129,15 +286,32 @@ export default function Clasificacion({ usuario }) {
 
       </header>
 
-            <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
+        <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
-
-        <div
-          className="form-card-Home"
-          style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}
-        >
+        {openModal && 
+          (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
+        }
+        <div className="container-tabla" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <DataTable
+            title="CLASIFICACIÓN"
+            columns={columns}
+            data={tableData}
+            fixedHeader
+            fixedHeaderScrollHeight="30rem" // altura máxima del contenedor, ajusta como quieras
+            minHeight="20rem"       /* altura mínima, ajusta a tu gusto */
+            progressPending={loading}
+            progressComponent={<h1>Cargando...</h1>}
+            conditionalRowStyles={conditionalRowStyles}
+            customStyles={customStyles}
+            striped
+            highlightOnHover
+            responsive
+            noDataComponent={<div>No hay jugadores para mostrar</div>}
+            theme="solarized"
+          />
 
         </div>
+    
       </div>
 
     </div>

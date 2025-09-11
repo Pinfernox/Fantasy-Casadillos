@@ -295,7 +295,7 @@ a {
   }
 
   .Cabecera-nav.isActive {
-    height: 50vh;
+    height: 8rem;
     opacity: 1; 
   }
 

@@ -3,7 +3,7 @@ import './ModalPerfil.css'
 import { getAuth, updateProfile, updateEmail, updatePassword } from 'firebase/auth'
 import { getFirestore, doc, updateDoc } from 'firebase/firestore'
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import ImagenProfile from '../assets/SinPerfil.jpg'
+import ImagenProfile from '/SinPerfil.jpg'
 
 
 export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
@@ -61,6 +61,28 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
     }
   }
 
+  const abreviarNick = (nick) => {
+    if (!nick) return "";
+
+    const maxLength = 10
+    const firstSpace = nick.indexOf(" ");
+
+    let corte;
+
+    if (firstSpace !== -1 && firstSpace <= maxLength) {
+      corte = firstSpace; // cortar en el espacio si está antes de 9
+      return nick.slice(0, corte) + "...";
+      
+    } else if (nick.length > maxLength) {
+      corte = maxLength-3; // cortar en 9 si es más largo
+
+      return nick.slice(0, corte) + "...";
+    } else {
+      return nick; // no hace falta cortar
+    }
+
+  };
+
   const handleFileChange = e => {
     const f = e.target.files[0]
     if (!f) return
@@ -73,51 +95,65 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
 
   const handleSave = async () => {
     try {
-      setIsSaving(true)
-      const user = auth.currentUser
+      setIsSaving(true);
+      const user = auth.currentUser;
+      let finalPhotoURL = usuario.fotoPerfil;
 
-      // 1) sube nueva foto si hay file
-      let finalPhotoURL = usuario.fotoPerfil
+      // 1) Subir nueva foto si hay file
       if (file) {
-        const ext = file.type.split('/')[1]
-        const storageRef = ref(storage, `usuarios/${user.uid}/perfil.${ext}`)
-        await uploadBytes(storageRef, file)
-        finalPhotoURL = await getDownloadURL(storageRef)
-        // actualiza perfil Auth
-        await updateProfile(user, { photoURL: finalPhotoURL })
+        try {
+          const ext = file.name.split('.').pop() || 'jpg';
+          console.log("Subiendo archivo con extensión:", ext);
+          const storageRef = ref(storage, `usuarios/${user.uid}/perfil.${ext}`);
+          console.log("Referencia de Storage:", storageRef.fullPath);
+          
+          await uploadBytes(storageRef, file); // sube
+          console.log("Subida completada");
+
+          finalPhotoURL = await getDownloadURL(storageRef); // obtiene URL pública
+          console.log("URL de descarga:", finalPhotoURL);
+
+          await updateProfile(user, { photoURL: finalPhotoURL });
+          console.log("Perfil Auth actualizado");
+        } catch (err) {
+            console.error("Error subiendo la foto:", err);
+            alert("No se pudo subir la foto: " + err.message);
+            setIsSaving(false); // desbloquea el botón
+            return; // salir de la función
+        }
       }
 
-      // 2) actualiza nick
+
+      // 2) Actualiza nick si cambió
       if (nick !== usuario.nick) {
-        await updateProfile(user, { displayName: nick })
+        await updateProfile(user, { displayName: nick });
       }
 
-      // 3) cambia correo
-      if (email !== usuario.correo) {
-        await updateEmail(user, email)
-      }
-
-      // 4) cambia contraseña si se ha escrito
+      // 3) Cambia contraseña si se escribió
       if (password) {
-        await updatePassword(user, password)
+        await updatePassword(user, password);
       }
 
-      // 5) guarda en Firestore todos los campos
-      const userRef = doc(db, 'usuarios', user.uid)
+      // 4) Guarda en Firestore
+      const userRef = doc(db, "usuarios", user.uid);
       await updateDoc(userRef, {
         fotoPerfil: finalPhotoURL,
         nick,
-        correo: email,
-      })
+      });
 
-      setOpenModal(false)
+
+
     } catch (err) {
-      console.error('Error guardando perfil:', err)
-      alert('No se pudo guardar los cambios: ' + err.message)
+      console.error("Error guardando perfil:", err);
+      alert("No se pudo guardar los cambios: " + err.message);
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
+      // 🔥 Refresca la página para reflejar los cambios
+      window.location.reload();
     }
-  }
+  };
+
+
 
   if (!openModal) return null
 
@@ -146,14 +182,14 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
             />
           </label>
           <div className="modal-userinfo">
-            <h2>{usuario.nick}</h2>
+            <h2>{window.innerWidth < 450 ? abreviarNick(usuario.nick) : usuario.nick}</h2>
             <small>{usuario.correo}</small>
           </div>
         </div>
         <hr/>
         <div className="modal-body">
           <div className="field-group">
-            <label>Nick</label>
+            <label>Nick <small>(Máx: 10 caracteres)</small></label>
             <div className="field-with-icon">
               <input
                 type="text"

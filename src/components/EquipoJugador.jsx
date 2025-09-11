@@ -1,0 +1,266 @@
+import React, { useState, useEffect } from "react";
+import { Link, useParams } from 'react-router-dom';
+import appFirebase from "../credenciales";
+import { FORMACIONES } from './formations';
+import { getAuth, signOut } from 'firebase/auth'
+import { 
+  getFirestore, 
+  doc, 
+  getDoc, 
+  updateDoc, 
+  collection, 
+  onSnapshot, 
+  getDocs, 
+  query, 
+  where
+} from 'firebase/firestore';
+import ImagenProfile from '/SinPerfil.jpg'
+import Fondo from '../assets/fondo.png'
+import "./Home.css";
+import ModalPerfil from "./ModalPerfil"
+
+const db = getFirestore(appFirebase);
+const auth = getAuth(appFirebase);
+
+export default function EquipoJugador({ usuario }) {
+  const { jugadorId } = useParams()
+  const [loadingJugador, setLoadingJugador] = useState(true)
+  const [jugadorData, setJugadorData] = useState(null)
+  const [menu, setMenu] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [dinero, setDinero] = useState(null)
+  const fotoURL = usuario?.fotoPerfil || ImagenProfile
+  const titulares = jugadorData?.equipo?.titulares || [];
+  const banquillo = jugadorData?.equipo?.banquillo || [];
+  const [jugadores, setJugadores] = useState([]);
+  const capitan = jugadorData?.equipo?.capitan || "";
+    // Estado inicial: la formación actual del usuario
+  const [formacionActual, setFormacionActual] = useState(jugadorData?.equipo?.formacion || "2-1-1");
+  const [formacionSeleccionada, setFormacionSeleccionada] = useState(formacionActual);
+  const [openModal, setOpenModal] = useState(false)
+
+  useEffect(() => {
+    const fetchJugador = async () => {
+      setLoadingJugador(true)
+      const snap = await getDoc(doc(db, 'usuarios', jugadorId))
+      if (snap.exists()) setJugadorData({ id: snap.id, ...snap.data() })
+      setLoadingJugador(false)
+    }
+    fetchJugador()
+  }, [jugadorId])
+
+  const toggleMenu = () => {
+    setMenu(!menu)
+  }
+
+  // Función para abreviar el dinero
+  const formatearDinero = (valor) => {
+    if (valor >= 1_000_000) {
+      return (valor / 1_000_000).toFixed(2) + 'M'
+    } else if (valor >= 1_000) {
+      return (valor / 1_000).toFixed(2) + 'K'
+    } else {
+      return valor.toFixed(2)
+    }
+  }
+
+  const abreviarNick = (nick) => {
+    if (!nick) return "";
+
+    const maxLength = 10
+    const firstSpace = nick.indexOf(" ");
+
+    let corte;
+
+    if (firstSpace !== -1 && firstSpace <= maxLength) {
+      corte = firstSpace; // cortar en el espacio si está antes de 9
+      return nick.slice(0, corte) + "...";
+      
+    } else if (nick.length > maxLength) {
+      corte = maxLength-3; // cortar en 9 si es más largo
+
+      return nick.slice(0, corte) + "...";
+    } else {
+      return nick; // no hace falta cortar
+    }
+
+  };
+
+
+  useEffect(() => {
+    if (usuario && usuario?.onboarding === false) {
+      setShowOnboarding(true);
+
+      const timer = setTimeout(async () => {
+        try {
+          const userRef = doc(db, "usuarios", auth.currentUser.uid);
+          await updateDoc(userRef, { onboarding: true });
+          window.location.reload(); // refresca la página
+        } catch (error) {
+          console.error("Error actualizando onboarding:", error);
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+
+    console.log('Foto de perfil desde Firestore o Auth:', usuario?.fotoPerfil)
+    // Partículas
+    if (window.particlesJS) {
+      window.particlesJS.load('particles-js', 'particles.json', () => {
+        console.log('Particles.js config cargado')
+      })
+      
+    }
+    
+    // Leer dinero de Firestore
+    if (usuario) {
+      const ref = doc(db, 'usuarios', usuario.uid)
+      getDoc(ref).then((snap) => {
+        if (snap.exists()) {
+          setDinero(snap.data().dinero)
+        }
+      })
+    }
+
+    const fetchJugador = async () => {
+      setLoadingJugador(true)
+      try {
+        const snap = await getDoc(doc(db, 'usuarios', jugadorId))
+        if (snap.exists()) {
+          setJugadorData({ id: snap.id, ...snap.data() })
+        } else {
+          setJugadorData(null)
+        }
+      } catch (err) {
+        console.error('Error fetching jugador:', err)
+      } finally {
+        setLoadingJugador(false)
+      }
+    }
+
+    fetchJugador()
+ 
+
+  }, [usuario], [titulares],[jugadorId] );
+
+    if (loadingJugador) {
+    return <h2>Cargando equipo…</h2>
+    }
+    if (!jugadorData) {
+    return <h2>Jugador no encontrado</h2>
+    }
+
+  return (
+    <div>
+      <header className="Cabecera">
+        <div className="container-profile">
+
+          <div className='img-profile-small'>
+            
+          <img
+            src={
+              fotoURL
+            }
+            onError={(e) => {
+              e.currentTarget.onerror = null
+              e.currentTarget.src = ImagenProfile
+            }}
+            onClick={() => setOpenModal(true)}
+            alt="Foto de perfil"
+          />
+            
+          </div>
+
+          <div className="info-profile">
+            <h2 className="nombre-usuario">
+              {abreviarNick(usuario?.nick || usuario?.displayName)}
+            </h2>
+            {dinero !== null && (
+              <p className="dinero-usuario">
+                💰<strong>{formatearDinero(dinero)}</strong>
+              </p>
+            )}
+          </div>
+        </div>
+
+        <button onClick={toggleMenu} className="Cabecera-button">
+          <svg className='Cabecera-svg' xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5"/>
+          </svg>
+        </button>
+
+        <nav className={`Cabecera-nav ${menu ? 'isActive' : ''}`}>
+          <ul className="Cabecera-ul">
+            <li className="Cabecera-li">
+              <Link to="/home" className="Cabecera-a">EQUIPO</Link>
+            </li>
+            <li className="Cabecera-li">
+              <Link to="/mercado" className="Cabecera-a">MERCADO</Link>
+            </li>
+            <li className="Cabecera-li">
+              <Link to="/clasificacion" className="Cabecera-a">CLASIFICACIÓN</Link>
+            </li>
+
+          </ul>
+        </nav>
+
+      </header>
+
+      <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
+        <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
+        {openModal && 
+          (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
+        }
+
+        <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+            <h1>Equipo de {jugadorData.nick}</h1>
+          <div className="formacion-selector">
+            <label htmlFor="formacion-select">Formación: {formacionSeleccionada}</label>
+          </div>
+
+
+          <div className="campo">
+            {/* Jugadores según formación */}
+            {FORMACIONES[formacionSeleccionada]?.map((pos, index) => {
+              const jugadorId = titulares[index];
+              const jugador = jugadores.find(j => j.id === jugadorId);
+
+              return (
+                <div
+                  key={jugador?.id || index}
+                  className="jugador"
+                  style={{
+                    position: "absolute",
+                    top: pos.top,
+                    left: pos.left,
+                    transform: "translate(-50%, -50%)",
+                  }}>
+                  <div className="jugador-wrapper">
+                    <img
+                      src={jugador?.foto || ImagenProfile}
+                      alt={jugador?.nombre || "Vacío"}
+                      className="jugador-img"
+                    />
+                    {capitan === jugador?.id && (
+                      <div className="capitan-badge">C</div>
+                    )}
+                  </div>
+                  <p className="jugador-nombre">{jugador?.nombre || "Vacío"}</p>
+                </div>
+              );
+            })}
+
+          </div> 
+
+        </div>
+      </div>
+
+      {showOnboarding && (
+        <div className="onboarding-overlay">
+          <div className="loader">Cargando...</div>
+        </div>
+      )}
+    </div>
+  );
+}

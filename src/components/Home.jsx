@@ -15,7 +15,7 @@ import {
   where
 } from 'firebase/firestore';
 import { arrayUnion } from "firebase/firestore";
-import ImagenProfile from '../assets/SinPerfil.jpg'
+import ImagenProfile from '/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
 import "./Home.css";
 import ModalPerfil from "./ModalPerfil"
@@ -28,7 +28,6 @@ export default function Home({ usuario }) {
   const [dinero, setDinero] = useState(null)
   const [menu, setMenu] = useState(false)
   const fotoURL = usuario?.fotoPerfil || ImagenProfile
-  const formacion = usuario?.equipo?.formacion || "2-1-1";
   const titulares = usuario?.equipo?.titulares || [];
   const banquillo = usuario?.equipo?.banquillo || [];
   const [jugadores, setJugadores] = useState([]);
@@ -79,14 +78,14 @@ export default function Home({ usuario }) {
   const abreviarNick = (nick) => {
     if (!nick) return "";
 
-    const maxLength = 12
+    const maxLength = 10
     const firstSpace = nick.indexOf(" ");
 
     let corte;
 
     if (firstSpace !== -1 && firstSpace <= maxLength) {
       corte = firstSpace; // cortar en el espacio si está antes de 9
-      return nick.slice(0, corte);
+      return nick.slice(0, corte) + "...";
       
     } else if (nick.length > maxLength) {
       corte = maxLength-3; // cortar en 9 si es más largo
@@ -309,7 +308,7 @@ export default function Home({ usuario }) {
 
           <div className="info-profile">
             <h2 className="nombre-usuario">
-              {abreviarNick(usuario?.nick || usuario?.displayName)}
+              {(usuario?.nick || usuario?.displayName)}
             </h2>
             {dinero !== null && (
               <p className="dinero-usuario">
@@ -345,7 +344,7 @@ export default function Home({ usuario }) {
       <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
         {openModal && 
-          (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal } />)
+          (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
         }
 
 
