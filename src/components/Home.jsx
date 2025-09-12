@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link } from 'react-router-dom';
 import appFirebase from "../credenciales";
 import { FORMACIONES } from './formations';
@@ -40,6 +40,22 @@ export default function Home({ usuario }) {
   const [equipocreado, setEquipocreado] = useState(usuario?.equipocreado);
   const [openModal, setOpenModal] = useState(false)
 
+  const [menuActivo, setMenuActivo] = useState(false);
+  const refMenu = useRef(null);
+  const logout = () => signOut(auth);
+
+  // Cerramos el menú si clicas fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (refMenu.current && !refMenu.current.contains(event.target)) {
+        setMenuActivo(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleSelect = (e) => {
     setFormacionSeleccionada(e.target.value);
@@ -210,19 +226,27 @@ export default function Home({ usuario }) {
       <header className="Cabecera">
         <div className="container-profile">
 
-          <div className='img-profile-small'>
-            
-          <img
-            src={
-              fotoURL
-            }
-            onError={(e) => {
-              e.currentTarget.onerror = null
-              e.currentTarget.src = ImagenProfile
-            }}
-            alt="Foto de perfil"
-          />
-            
+          <div className='img-profile-small' style={{ position: 'relative' }}>
+            <img
+              src={fotoURL}
+              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ImagenProfile }}
+              alt="Foto de perfil"
+              onClick={() => setMenuActivo(!menuActivo)} // toggle con clic
+              onMouseEnter={() => setMenuActivo(true)} // hover
+
+            />
+
+            {menuActivo && (
+              <div
+                className="perfil-bocadillo"
+                ref={refMenu}
+                onMouseLeave={() => setMenuActivo(false)} // solo se cierra al salir del menú
+              >
+                <div className="triangulo" />
+                  <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
+                  <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
+              </div>
+            )}
           </div>
 
           <div className="info-profile">
@@ -290,20 +314,28 @@ export default function Home({ usuario }) {
       <header className="Cabecera">
         <div className="container-profile">
 
-          <div className='img-profile-small'>
-            
-          <img
-            src={
-              fotoURL
-            }
-            onError={(e) => {
-              e.currentTarget.onerror = null
-              e.currentTarget.src = ImagenProfile
-            }}
-            onClick={() => setOpenModal(true)}
-            alt="Foto de perfil"
-          />
-            
+          <div className='img-profile-small' style={{ position: 'relative' }}>
+            <img
+              src={fotoURL}
+              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ImagenProfile }}
+              alt="Foto de perfil"
+              onClick={() => setMenuActivo(!menuActivo)} // toggle con clic
+              onMouseEnter={() => setMenuActivo(true)} // hover
+
+            />
+
+            {menuActivo && (
+              <div
+                className="perfil-bocadillo"
+                ref={refMenu}
+                onMouseLeave={() => setMenuActivo(false)} // solo se cierra al salir del menú
+              >
+              <div className="triangulo" />
+                  <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
+                  
+                  <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
+              </div>
+            )}
           </div>
 
           <div className="info-profile">

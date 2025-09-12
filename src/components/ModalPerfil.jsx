@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import Swal from 'sweetalert2';
 import './ModalPerfil.css'
 import { getAuth, updateProfile, updateEmail, updatePassword } from 'firebase/auth'
 import { getFirestore, doc, updateDoc } from 'firebase/firestore'
@@ -101,28 +102,42 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
 
       // 1) Subir nueva foto si hay file
       if (file) {
-        try {
-          const ext = file.name.split('.').pop() || 'jpg';
-          console.log("Subiendo archivo con extensión:", ext);
-          const storageRef = ref(storage, `usuarios/${user.uid}/perfil.${ext}`);
-          console.log("Referencia de Storage:", storageRef.fullPath);
-          
-          await uploadBytes(storageRef, file); // sube
-          console.log("Subida completada");
+        
+        if (file.size > 1 * 1024 * 1024) { // 1 MB
+            await Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: "La imagen es demasiado grande (máx. 1 MB)."
+            });
 
-          finalPhotoURL = await getDownloadURL(storageRef); // obtiene URL pública
-          console.log("URL de descarga:", finalPhotoURL);
+          return;
+        }
 
-          await updateProfile(user, { photoURL: finalPhotoURL });
-          console.log("Perfil Auth actualizado");
-        } catch (err) {
-            console.error("Error subiendo la foto:", err);
-            alert("No se pudo subir la foto: " + err.message);
-            setIsSaving(false); // desbloquea el botón
-            return; // salir de la función
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", "perfil_preset"); // tu preset
+
+        // endpoint de Cloudinary
+        const cloudName = "drmoefeeq"; 
+        const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+
+        const res = await fetch(url, {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (data.secure_url) {
+          finalPhotoURL = data.secure_url; // URL de la imagen subida
+        } else {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: "Error subiendo a Cloudinary"
+            });
+            return;
         }
       }
-
 
       // 2) Actualiza nick si cambió
       if (nick !== usuario.nick) {
@@ -134,26 +149,49 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
         await updatePassword(user, password);
       }
 
-      // 4) Guarda en Firestore
+      // 4) Guarda en Firestore (URL de Cloudinary en fotoPerfil)
       const userRef = doc(db, "usuarios", user.uid);
       await updateDoc(userRef, {
         fotoPerfil: finalPhotoURL,
         nick,
       });
-
-
+      await Swal.fire('Datos actualizados', 'Se han guardado sus modificaciones correctamente.', 'success')
 
     } catch (err) {
       console.error("Error guardando perfil:", err);
       alert("No se pudo guardar los cambios: " + err.message);
     } finally {
       setIsSaving(false);
-      // 🔥 Refresca la página para reflejar los cambios
       window.location.reload();
     }
   };
 
+  const handleDeleteClick = async () => {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: 'Esta acción eliminará tu cuenta permanentemente. No podrás deshacerlo.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, borrar cuenta',
+      cancelButtonText: 'Cancelar'
+    });
 
+    if (result.isConfirmed) {
+      try {
+        setIsSaving(true);
+        await borrarCuenta(); // Aquí va tu función para eliminar la cuenta
+        await Swal.fire('Cuenta eliminada', 'Tu cuenta ha sido borrada exitosamente.', 'success');
+        window.location.href = '/logout'; // O redirige a donde necesites
+      } catch (err) {
+        console.error("Error al borrar la cuenta:", err);
+        Swal.fire('Error', 'No se pudo borrar la cuenta: ' + err.message, 'error');
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
 
   if (!openModal) return null
 
@@ -189,7 +227,7 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
         <hr/>
         <div className="modal-body">
           <div className="field-group">
-            <label>Nick <small>(Máx: 10 caracteres)</small></label>
+            <label>Nick <small>(Recomendado máximo 10 caracteres)</small></label>
             <div className="field-with-icon">
               <input
                 type="text"
@@ -200,9 +238,8 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
             <button
                     className="icon-pencil"
                     onClick={() => setEditable(!editable)}
-                    title="Editar nick"
-                >
-            ✎
+                    title="Editar nick">
+              ✎
             </button>
             </div>
           </div>
@@ -232,10 +269,16 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
           {hasChanges && <button
             className="modal-save-btn"
             onClick={handleSave}
-            disabled={isSaving}
-          >
+            disabled={isSaving}>
             {isSaving ? 'Guardando…' : 'Guardar cambios'}
           </button>}
+
+          <button
+            className="modal-delete-btn"
+            onClick={handleDeleteClick}
+            disabled={isSaving}>
+            Borrar cuenta
+          </button>
         </div>
       </div>
     </div>

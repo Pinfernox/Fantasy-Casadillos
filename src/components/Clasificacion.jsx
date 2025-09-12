@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link } from 'react-router-dom';
 import DataTable, {createTheme} from "react-data-table-component"; 
 import appFirebase from "../credenciales";
 import { getAuth, signOut } from 'firebase/auth'
 import { getFirestore, doc, getDoc, updateDoc, collection, getDocs, where } from 'firebase/firestore'
-import ImagenProfile from '../assets/SinPerfil.jpg'
+import ImagenProfile from '/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
 import "./Clasificacion.css";
 import ModalPerfil from "./ModalPerfil"
@@ -40,6 +40,23 @@ export default function Clasificacion({ usuario }) {
   const [dinero, setDinero] = useState(null)
   const [menu, setMenu] = useState(false)
   const [openModal, setOpenModal] = useState(false)
+  const [menuActivo, setMenuActivo] = useState(false);
+  const refMenu = useRef(null);
+  const logout = () => signOut(auth);
+  
+    // Cerramos el menú si clicas fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (refMenu.current && !refMenu.current.contains(event.target)) {
+        setMenuActivo(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const getNumericPos = (pos) => parseInt(pos)
   const fotoURL = usuario?.fotoPerfil || ImagenProfile
   const conditionalRowStyles = [
@@ -235,20 +252,27 @@ export default function Clasificacion({ usuario }) {
       <header className="Cabecera">
         <div className="container-profile">
 
-          <div className='img-profile-small'>
-            
-          <img
-            src={
-              fotoURL
-            }
-            onError={(e) => {
-              e.currentTarget.onerror = null
-              e.currentTarget.src = ImagenProfile
-            }}
-            onClick={() => setOpenModal(true)}
-            alt="Foto de perfil"
-          />
-            
+          <div className='img-profile-small' style={{ position: 'relative' }}>
+            <img
+              src={fotoURL}
+              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ImagenProfile }}
+              alt="Foto de perfil"
+              onClick={() => setMenuActivo(!menuActivo)} // toggle con clic
+              onMouseEnter={() => setMenuActivo(true)} // hover
+
+            />
+
+            {menuActivo && (
+              <div
+                className="perfil-bocadillo"
+                ref={refMenu}
+                onMouseLeave={() => setMenuActivo(false)} // solo se cierra al salir del menú
+              >
+                <div className="triangulo" />
+                  <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
+                  <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
+              </div>
+            )}
           </div>
 
           <div className="info-profile">

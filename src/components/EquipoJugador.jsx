@@ -39,6 +39,23 @@ export default function EquipoJugador({ usuario }) {
   const [formacionSeleccionada, setFormacionSeleccionada] = useState(formacionActual);
   const [openModal, setOpenModal] = useState(false)
 
+  const [menuActivo, setMenuActivo] = useState(false);
+  const refMenu = useRef(null);
+  const logout = () => signOut(auth);
+  
+    // Cerramos el menú si clicas fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (refMenu.current && !refMenu.current.contains(event.target)) {
+        setMenuActivo(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   useEffect(() => {
     const fetchJugador = async () => {
       setLoadingJugador(true)
@@ -85,7 +102,6 @@ export default function EquipoJugador({ usuario }) {
     }
 
   };
-
 
   useEffect(() => {
     if (usuario && usuario?.onboarding === false) {
@@ -156,20 +172,27 @@ export default function EquipoJugador({ usuario }) {
       <header className="Cabecera">
         <div className="container-profile">
 
-          <div className='img-profile-small'>
-            
-          <img
-            src={
-              fotoURL
-            }
-            onError={(e) => {
-              e.currentTarget.onerror = null
-              e.currentTarget.src = ImagenProfile
-            }}
-            onClick={() => setOpenModal(true)}
-            alt="Foto de perfil"
-          />
-            
+          <div className='img-profile-small' style={{ position: 'relative' }}>
+            <img
+              src={fotoURL}
+              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ImagenProfile }}
+              alt="Foto de perfil"
+              onClick={() => setMenuActivo(!menuActivo)} // toggle con clic
+              onMouseEnter={() => setMenuActivo(true)} // hover
+
+            />
+
+            {menuActivo && (
+              <div
+                className="perfil-bocadillo"
+                ref={refMenu}
+                onMouseLeave={() => setMenuActivo(false)} // solo se cierra al salir del menú
+              >
+                <div className="triangulo" />
+                  <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
+                  <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
+              </div>
+            )}
           </div>
 
           <div className="info-profile">
