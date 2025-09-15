@@ -19,6 +19,8 @@ import ImagenProfile from '/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
 import "./Home.css";
 import ModalPerfil from "./ModalPerfil"
+import ModalJugador from "./ModalJugador"
+import ModalPerfilJugador from "./ModalJugador";
 
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
@@ -31,6 +33,7 @@ export default function Home({ usuario }) {
   const titulares = usuario?.equipo?.titulares || [];
   const banquillo = usuario?.equipo?.banquillo || [];
   const [jugadores, setJugadores] = useState([]);
+  const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)
   const capitan = usuario?.equipo?.capitan || "";
   const formacionesDisponibles = Object.keys(FORMACIONES);
     // Estado inicial: la formación actual del usuario
@@ -39,7 +42,7 @@ export default function Home({ usuario }) {
   const [guardando, setGuardando] = useState(false);
   const [equipocreado, setEquipocreado] = useState(usuario?.equipocreado);
   const [openModal, setOpenModal] = useState(false)
-
+  const [openModalJugador, setOpenModalJugador] = useState(false)
   const [menuActivo, setMenuActivo] = useState(false);
   const refMenu = useRef(null);
   const logout = () => signOut(auth);
@@ -323,7 +326,6 @@ export default function Home({ usuario }) {
               alt="Foto de perfil"
               onClick={() => setMenuActivo(!menuActivo)} // toggle con clic
               onMouseEnter={() => setMenuActivo(true)} // hover
-
             />
 
             {menuActivo && (
@@ -380,10 +382,10 @@ export default function Home({ usuario }) {
         {openModal && 
           (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
         }
-
+        {openModalJugador && jugadorSeleccionado &&           
+        (<ModalPerfilJugador jugador={jugadorSeleccionado} openModal= {openModalJugador} setOpenModal={setOpenModalJugador} />)}
 
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-
           {/* Selector de formaciones */}
           <div className="formacion-selector">
             <label htmlFor="formacion-select">Formación:</label>
@@ -423,6 +425,11 @@ export default function Home({ usuario }) {
                       src={jugador?.foto || ImagenProfile}
                       alt={jugador?.nombre || "Vacío"}
                       className="jugador-img"
+                      onClick={() => {
+                        setOpenModalJugador(true); 
+                      setJugadorSeleccionado(jugador);
+                    }}
+
                     />
                     {capitan === jugador?.id && (
                       <div className="capitan-badge">C</div>
@@ -434,7 +441,6 @@ export default function Home({ usuario }) {
             })}
 
           </div> 
-
         </div>
       </div>
 

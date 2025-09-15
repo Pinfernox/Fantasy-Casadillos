@@ -1,0 +1,27 @@
+
+.datos-equipo {
+  display: flex;
+  flex-direction: row;       /* elementos en fila */
+  justify-content: space-between; /* separa a los extremos */
+  align-items: center;       /* alinea verticalmente */
+  gap: 1rem;                 /* espacio entre ellos */
+  margin-bottom: 1rem;
+  text-align: left;          /* mejor para lectura horizontal */
+}
+
+.nombre {
+  width: 100%;
+}
+
+.nombre-equipo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0;                   /* ya no necesitas margin-bottom */
+  color: white;
+  text-decoration: underline;
+}
+
+.datos-equipo p {
+  font-size: 1rem;
+  color: white;
+}

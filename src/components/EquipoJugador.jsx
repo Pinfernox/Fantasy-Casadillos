@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useParams } from 'react-router-dom';
 import appFirebase from "../credenciales";
 import { FORMACIONES } from './formations';
@@ -17,6 +17,7 @@ import {
 import ImagenProfile from '/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
 import "./Home.css";
+import "./EquipoJugador.css"
 import ModalPerfil from "./ModalPerfil"
 
 const db = getFirestore(appFirebase);
@@ -37,8 +38,15 @@ export default function EquipoJugador({ usuario }) {
     // Estado inicial: la formación actual del usuario
   const [formacionActual, setFormacionActual] = useState(jugadorData?.equipo?.formacion || "2-1-1");
   const [formacionSeleccionada, setFormacionSeleccionada] = useState(formacionActual);
-  const [openModal, setOpenModal] = useState(false)
 
+  useEffect(() => {
+    if (jugadorData?.equipo?.formacion) {
+      setFormacionActual(jugadorData.equipo.formacion);
+      setFormacionSeleccionada(jugadorData.equipo.formacion);
+    }
+  }, [jugadorData]);
+
+  const [openModal, setOpenModal] = useState(false)
   const [menuActivo, setMenuActivo] = useState(false);
   const refMenu = useRef(null);
   const logout = () => signOut(auth);
@@ -57,14 +65,74 @@ export default function EquipoJugador({ usuario }) {
   }, []);
 
   useEffect(() => {
-    const fetchJugador = async () => {
-      setLoadingJugador(true)
-      const snap = await getDoc(doc(db, 'usuarios', jugadorId))
-      if (snap.exists()) setJugadorData({ id: snap.id, ...snap.data() })
-      setLoadingJugador(false)
+    if (window.particlesJS && document.getElementById("particles-js")) {
+      window.particlesJS.load("particles-js", "particles.json", () => {
+        console.log("Particles.js config cargado");
+      });
     }
-    fetchJugador()
-  }, [jugadorId])
+
+    if (usuario) {
+          const ref = doc(db, 'usuarios', usuario.uid)
+          getDoc(ref).then((snap) => {
+            if (snap.exists()) {
+              setDinero(snap.data().dinero)
+            }
+          })
+    }
+  }, [usuario]);
+
+  // 1. Cargar jugador clicado en la clasificación
+  useEffect(() => {
+    const fetchJugador = async () => {
+      if (!jugadorId) return;
+      setLoadingJugador(true);
+      try {
+        const snap = await getDoc(doc(db, 'usuarios', jugadorId));
+        if (snap.exists()) {
+          setJugadorData({ id: snap.id, ...snap.data() });
+        } else {
+          setJugadorData(null);
+        }
+      } catch (err) {
+        console.error("Error fetching jugador:", err);
+      } finally {
+        setLoadingJugador(false);
+      }
+    };
+
+    fetchJugador();
+  }, [jugadorId]);
+
+  // 2. Cuando ya tenemos los titulares/banquillo, cargar los jugadores reales
+  useEffect(() => {
+    const fetchJugadores = async () => {
+      if (!jugadorData?.equipo) return;
+
+      try {
+        const ids = [
+          ...(jugadorData.equipo.titulares || []),
+          ...(jugadorData.equipo.banquillo || [])
+        ].filter(id => typeof id === 'string' && id); // elimina null, undefined y no strings
+
+        if (ids.length === 0) {
+          setJugadores([]);
+          return;
+        }
+
+        const jugadoresRef = collection(db, "jugadores");
+        const q = query(jugadoresRef, where("__name__", "in", ids));
+        const snap = await getDocs(q);
+        const jugadoresData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        setJugadores(jugadoresData);
+      } catch (err) {
+        console.error("Error cargando jugadores:", err);
+      }
+    };
+
+    fetchJugadores();
+  }, [jugadorData]);
+
 
   const toggleMenu = () => {
     setMenu(!menu)
@@ -103,70 +171,6 @@ export default function EquipoJugador({ usuario }) {
 
   };
 
-  useEffect(() => {
-    if (usuario && usuario?.onboarding === false) {
-      setShowOnboarding(true);
-
-      const timer = setTimeout(async () => {
-        try {
-          const userRef = doc(db, "usuarios", auth.currentUser.uid);
-          await updateDoc(userRef, { onboarding: true });
-          window.location.reload(); // refresca la página
-        } catch (error) {
-          console.error("Error actualizando onboarding:", error);
-        }
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-
-    console.log('Foto de perfil desde Firestore o Auth:', usuario?.fotoPerfil)
-    // Partículas
-    if (window.particlesJS) {
-      window.particlesJS.load('particles-js', 'particles.json', () => {
-        console.log('Particles.js config cargado')
-      })
-      
-    }
-    
-    // Leer dinero de Firestore
-    if (usuario) {
-      const ref = doc(db, 'usuarios', usuario.uid)
-      getDoc(ref).then((snap) => {
-        if (snap.exists()) {
-          setDinero(snap.data().dinero)
-        }
-      })
-    }
-
-    const fetchJugador = async () => {
-      setLoadingJugador(true)
-      try {
-        const snap = await getDoc(doc(db, 'usuarios', jugadorId))
-        if (snap.exists()) {
-          setJugadorData({ id: snap.id, ...snap.data() })
-        } else {
-          setJugadorData(null)
-        }
-      } catch (err) {
-        console.error('Error fetching jugador:', err)
-      } finally {
-        setLoadingJugador(false)
-      }
-    }
-
-    fetchJugador()
- 
-
-  }, [usuario], [titulares],[jugadorId] );
-
-    if (loadingJugador) {
-    return <h2>Cargando equipo…</h2>
-    }
-    if (!jugadorData) {
-    return <h2>Jugador no encontrado</h2>
-    }
-
   return (
     <div>
       <header className="Cabecera">
@@ -197,7 +201,7 @@ export default function EquipoJugador({ usuario }) {
 
           <div className="info-profile">
             <h2 className="nombre-usuario">
-              {abreviarNick(usuario?.nick || usuario?.displayName)}
+              {(usuario?.nick || usuario?.displayName)}
             </h2>
             {dinero !== null && (
               <p className="dinero-usuario">
@@ -236,18 +240,17 @@ export default function EquipoJugador({ usuario }) {
           (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
         }
 
-        <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-            <h1>Equipo de {jugadorData.nick}</h1>
-          <div className="formacion-selector">
-            <label htmlFor="formacion-select">Formación: {formacionSeleccionada}</label>
+        <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 , marginTop: '0rem'}}>
+          <div className="datos-equipo">
+            <p><strong>Formación:</strong> {formacionSeleccionada} </p>
+            <p><strong>Dinero:</strong> 💰{formatearDinero(jugadorData?.dinero || 0)}</p>
           </div>
-
 
           <div className="campo">
             {/* Jugadores según formación */}
             {FORMACIONES[formacionSeleccionada]?.map((pos, index) => {
-              const jugadorId = titulares[index];
-              const jugador = jugadores.find(j => j.id === jugadorId);
+              const jugadorIdActual = titulares[index];
+              const jugador = jugadores.find(j => j.id === jugadorIdActual);
 
               return (
                 <div
@@ -273,6 +276,7 @@ export default function EquipoJugador({ usuario }) {
                 </div>
               );
             })}
+
 
           </div> 
 
