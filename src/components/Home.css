@@ -255,6 +255,7 @@ a {
   border: 2px solid white;
   object-fit: cover;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
 }
 
 .jugador-nombre {
@@ -321,7 +322,7 @@ a {
 
 
 
-@media screen and (max-width: 480px) {
+@media screen and (max-width: 500px) {
 
   .triangulo {
     right: 7.2rem;

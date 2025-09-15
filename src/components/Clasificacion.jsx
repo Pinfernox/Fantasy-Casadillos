@@ -9,7 +9,6 @@ import Fondo from '../assets/fondo.png'
 import "./Clasificacion.css";
 import ModalPerfil from "./ModalPerfil"
 
-
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
 
@@ -63,15 +62,33 @@ export default function Clasificacion({ usuario }) {
     // Top 3 según posición
     {
       when: row => row.pos === '1º',
-      style: { backgroundColor: '#FFD700', color: 'white', fontWeight: 'bold',  fontSize: 'clamp(0.9rem, 1vw + 0.3rem, 1rem)'} // Oro
+      style: {
+        background: 'linear-gradient(135deg, rgb(255, 215, 0), rgb(218, 165, 32))',
+        boxShadow: '0 0 8px rgba(255, 215, 0, 0.7), inset 0 0 4px rgba(255, 255, 255, 0.6)',
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 'clamp(0.9rem, 1vw + 0.3rem, 1rem)'
+      }    
     },
     {
       when: row => row.pos === '2º',
-      style: { backgroundColor: '#C0C0C0', color: 'white', fontWeight: 'bold', fontSize: 'clamp(0.9rem, 1vw + 0.3rem, 1rem)' } // Plata
+      style: {
+        background: 'linear-gradient(135deg, rgb(192,192,192), rgb(169,169,169))',
+        boxShadow: '0 0 8px rgba(192,192,192, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.5)',
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 'clamp(0.9rem, 1vw + 0.3rem, 1rem)'
+      }    
     },
     {
       when: row => row.pos === '3º',
-      style: { backgroundColor: '#CD7F32', color: 'white', fontWeight: 'bold', fontSize: 'clamp(0.9rem, 1vw + 0.3rem, 1rem)' } // Bronce
+      style: {
+        background: 'linear-gradient(135deg, rgb(205, 127, 50), rgb(139, 69, 19))',
+        boxShadow: '0 0 8px rgba(205, 127, 50, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.4)',
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 'clamp(0.9rem, 1vw + 0.3rem, 1rem)'
+      }    
     },
     // Intercalado para el resto (excepto top3 y 0 puntos)
     {
@@ -88,7 +105,7 @@ export default function Clasificacion({ usuario }) {
     { 
       name: "Pos.",    
       selector: row => row.pos,    
-      width: "4rem",
+      width: "4.2rem",
       center: true
     },
     { 
@@ -105,7 +122,7 @@ export default function Clasificacion({ usuario }) {
           color: 'inherit'
         }}
       >
-          <img src={row.fotoPerfil} alt="Foto" style={{ width: '2rem', height: '2rem', borderRadius: '50%' }} />
+          <img src={row.fotoPerfil} alt="Foto" style={{ width: '2rem', height: '2rem', borderRadius: '50%', border: '1px solid black' }} />
           <span>{row.jugador}</span>
         </Link>
       ),
@@ -277,7 +294,7 @@ export default function Clasificacion({ usuario }) {
 
           <div className="info-profile">
             <h2 className="nombre-usuario">
-              {abreviarNick(usuario?.nick || usuario?.displayName)}
+              {(usuario?.nick || usuario?.displayName)}
             </h2>
             {dinero !== null && (
               <p className="dinero-usuario">

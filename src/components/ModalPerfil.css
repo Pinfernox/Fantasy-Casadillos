@@ -72,6 +72,7 @@ hr {
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
+  display: inline-block;
 }
 .modal-avatar input {
   position: absolute;
@@ -86,7 +87,26 @@ hr {
   object-fit: cover;
   cursor: pointer;
 }
+.modal-avatar-overlay {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s ease-in-out;
+  pointer-events: none; /* para que el click siga pasando al input */
+}
 
+.modal-avatar:hover .modal-avatar-overlay {
+  opacity: 1;
+}
 /* nombre + correo */
 .modal-userinfo h2 {
   margin: 0; 
@@ -101,12 +121,29 @@ hr {
 
 }
 
+.link-style {
+  background: none;
+  border: none;
+  color: lightblue;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+  font-weight: bolder;
+  margin-left: 0.3rem;
+}
+
+.link-style:hover {
+  color: lightblue;
+  text-decoration: underline;
+}
+
 /* cuerpo con campos editables */
 .modal-body {
   padding: 1rem;
   display: grid;
   gap: 1rem;
   color: white;
+  padding-bottom: 0;
 }
 
 .field-group label {

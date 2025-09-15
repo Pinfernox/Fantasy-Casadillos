@@ -165,6 +165,8 @@ export default function Home({ usuario }) {
       console.error("Error al crear equipo:", error);
     } finally {
       setGuardando(false);
+      window.location.reload();
+
     }
   };
 
@@ -251,7 +253,7 @@ export default function Home({ usuario }) {
 
           <div className="info-profile">
             <h2 className="nombre-usuario">
-              {abreviarNick(usuario?.nick || usuario?.displayName)}
+              {(usuario?.nick || usuario?.displayName)}
             </h2>
             {dinero !== null && (
               <p className="dinero-usuario">

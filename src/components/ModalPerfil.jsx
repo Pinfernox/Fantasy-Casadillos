@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Swal from 'sweetalert2';
 import './ModalPerfil.css'
-import { getAuth, updateProfile, updateEmail, updatePassword } from 'firebase/auth'
-import { getFirestore, doc, updateDoc } from 'firebase/firestore'
+import { getAuth, updateProfile, updateEmail, updatePassword, deleteUser, EmailAuthProvider, 
+  GoogleAuthProvider, 
+  reauthenticateWithCredential, 
+  reauthenticateWithPopup, sendPasswordResetEmail} from 'firebase/auth'
+import { collection, query, where, deleteDoc, getFirestore, doc, updateDoc, getDoc, getDocs, arrayRemove, increment } from 'firebase/firestore'
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import ImagenProfile from '/SinPerfil.jpg'
 
@@ -54,7 +57,21 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
     setHasChanges(cambios);
     }, [nick, email, password, file, originalNick, originalEmail]);
 
+  const recuperarContrasena = async () => {
+    const email = auth.currentUser?.email; // o usuario.email si lo tienes en tu estado
 
+    if (!email) {
+      Swal.fire('Error', 'No se encontró un correo asociado al usuario', 'error');
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      await Swal.fire('¡Correo enviado!', 'Revisa tu bandeja de entrada o bandeja de spam', 'success');
+    } catch (error) {
+      Swal.fire('Error', error.message, 'error');
+    }
+  };
 
   const handleOverlayClick = e => {
     if (e.target === overlayRef.current) {
@@ -166,6 +183,63 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
     }
   };
 
+  const borrarCuenta = async () => {
+    const user = auth.currentUser;
+    if (!user) throw new Error("No hay usuario autenticado.");
+
+    const uid = user.uid;
+
+    // --- 1) Reautenticación ---
+    if (user.providerData[0].providerId === "password") {
+      // Caso: email y contraseña
+      const { value: password } = await Swal.fire({
+        title: "Confirma tu contraseña",
+        input: "password",
+        inputLabel: "Introduce tu contraseña para continuar",
+        inputPlaceholder: "Tu contraseña",
+        inputAttributes: {
+          autocapitalize: "off",
+          autocorrect: "off"
+        },
+        showCancelButton: true,
+        confirmButtonText: "Confirmar",
+        cancelButtonText: "Cancelar"
+      });
+
+      if (!password) throw new Error("Se canceló la reautenticación");
+
+      const credential = EmailAuthProvider.credential(user.email, password);
+      await reauthenticateWithCredential(user, credential);
+    } else if (user.providerData[0].providerId === "google.com") {
+      // Caso: login con Google
+      const provider = new GoogleAuthProvider();
+      await reauthenticateWithPopup(user, provider);
+    } else {
+      throw new Error("Proveedor no soportado para reautenticación.");
+    }
+
+    // --- 2) Actualizar jugadores ---
+    const q = query(collection(db, "jugadores"), where("dueños", "array-contains", uid));
+    const snapshot = await getDocs(q);
+
+    const updates = snapshot.docs.map(async (jugadorDoc) => {
+      const jugadorRef = jugadorDoc.ref;
+      await updateDoc(jugadorRef, {
+        stockLibre: increment(1),
+        dueños: arrayRemove(uid),
+      });
+    });
+
+    await Promise.all(updates);
+
+    // --- 3) Eliminar documento de usuario en Firestore ---
+    const userRef = doc(db, "usuarios", uid);
+    await deleteDoc(userRef);
+
+    // --- 4) Eliminar del Auth ---
+    await deleteUser(user);
+  };
+
   const handleDeleteClick = async () => {
     const result = await Swal.fire({
       title: '¿Estás seguro?',
@@ -183,7 +257,6 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
         setIsSaving(true);
         await borrarCuenta(); // Aquí va tu función para eliminar la cuenta
         await Swal.fire('Cuenta eliminada', 'Tu cuenta ha sido borrada exitosamente.', 'success');
-        window.location.href = '/logout'; // O redirige a donde necesites
       } catch (err) {
         console.error("Error al borrar la cuenta:", err);
         Swal.fire('Error', 'No se pudo borrar la cuenta: ' + err.message, 'error');
@@ -212,12 +285,13 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
 
         <div className="modal-header">
           <label className="modal-avatar">
-            <img src={preview} alt="Avatar" />
+            <img src={preview} alt="Perfil" />
             <input
               type="file"
               accept="image/*"
               onChange={handleFileChange}
             />
+            <span className="modal-avatar-overlay">Editar</span>
           </label>
           <div className="modal-userinfo">
             <h2>{window.innerWidth < 450 ? abreviarNick(usuario.nick) : usuario.nick}</h2>
@@ -244,25 +318,12 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
             </div>
           </div>
 
-          <div className="field-group">
-            <label>Correo</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              disabled={true}
-            />
+          <div style={{ textAlign: 'left' }}>
+            <button type="button" onClick={recuperarContrasena} className="link-style">
+              Cambiar contraseña
+            </button>
           </div>
 
-          <div className="field-group">
-            <label>Nueva contraseña</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-            />
-          </div>
         </div>
 
         <div className="modal-footer">
