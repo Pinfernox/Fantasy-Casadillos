@@ -261,7 +261,7 @@ a {
   width: clamp(50px, 10vw, 60px);
   height: clamp(50px, 10vw, 60px);
   border-radius: 50%;
-  border: 2px solid white;
+  border: 3px solid white;
   object-fit: cover;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
   cursor: pointer;

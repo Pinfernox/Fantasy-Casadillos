@@ -217,7 +217,7 @@ hr {
   margin: 1rem;
 }
 
-@media screen and (max-width: 480px) {
+@media screen and (max-width: 500px) {
 
   .field-group small{
   font-size: 0.7rem;

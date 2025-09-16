@@ -74,118 +74,165 @@ hr {
   cursor: pointer;
   display: inline-block;
 }
-.modal-avatar input {
-  position: absolute;
-  width: 100%; height: 100%;
-  top: 0; left: 0;
-  opacity: 0;
-  cursor: pointer;
-}
+
 .modal-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   cursor: pointer;
 }
-.modal-avatar-overlay {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.6);
-  color: white;
-  font-size: 0.9rem;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.25s ease-in-out;
-  pointer-events: none; /* para que el click siga pasando al input */
-}
 
-.modal-avatar:hover .modal-avatar-overlay {
-  opacity: 1;
-}
-/* nombre + correo */
-.modal-userinfo h2 {
+.modal-jugadorinfo h2 {
   margin: 0; 
   font-size: 1.2rem;
   color: white;
   font-weight: bold;
 }
-.modal-userinfo small {
-  display: block;
-  color: lightgray;
-  margin-top: 4px;
+
+.modal-jugadorinfo{
+  background-color: transparent;
 
 }
 
-.link-style {
-  background: none;
-  border: none;
-  color: lightblue;
-  cursor: pointer;
-  font-size: 1rem;
-  padding: 0;
-  font-weight: bolder;
-  margin-left: 0.3rem;
+.posicion-precio{
+  display: flex;
+  flex-direction: row;       /* elementos en fila */
+  justify-content: space-between; /* separa a los extremos */
+  align-items: center;       /* alinea verticalmente */
+  gap: 5rem;                 /* espacio entre ellos */
+  margin-bottom: 0.5rem;
+  text-align: left;          /* mejor para lectura horizontal */
+}
+.precio-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.link-style:hover {
-  color: lightblue;
-  text-decoration: underline;
+.precio{
+  color: lightgreen;
+  font-weight: bold;
 }
 
-/* cuerpo con campos editables */
-.modal-body {
+.posicion-texto{
+  font-weight: bold;
+}
+.posicion-texto.DEF {
+  color: orange; /* azul para defensa */
+}
+
+.posicion-texto.MED {
+  color: #1e90ff; /* verde para mediocampo */
+}
+
+.posicion-texto.DEL {
+  color: #dc3545; /* rojo para delantero */
+}
+
+.posicion-texto.POR {
+  color: darkgreen; /* amarillo para portero */
+}
+
+.estadisticas-extra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ultimas-jornadas {
+  flex-wrap: wrap;
+  display: flex;
+  gap: 8px;
+  justify-content: center;   /* centrado horizontal */
+  align-items: center;       /* opcional, centrado vertical */
+}
+
+.jornada-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.jornada-nombre {
+  font-size: 10px;
+  margin-bottom: 2px;
+  color: white;
+}
+
+.jornada-cuadro {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.jornada-cuadro.verde {
+  background: #4caf50;
+  color: #fff;
+  border-color: #388e3c;
+}
+
+.jornada-cuadro.rojo {
+  background: #f44336;
+  color: #fff;
+  border-color: #d32f2f;
+}
+
+
+.diferencia-precio {
+  font-weight: bold;
+  color: white;
+}
+
+.diferencia-precio .subida {
+  color: green;
+}
+
+.diferencia-precio .bajada {
+  color: red;
+}
+
+
+.modal-jugadorbody {
   padding: 1rem;
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 1rem;
   color: white;
-  padding-bottom: 0;
 }
 
-.field-group label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 4px;
-  width: 100%;
+.stat-card {
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 0.75rem;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease;
 }
 
-.field-group small{
-  font-weight: lighter;
-  font-size: 0.85rem;
+.stat-card:hover {
+  transform: translateY(-3px);
 }
 
-.field-group input {
-  width: 100%;
+.stat-card h4 {
+  font-size: 1.1rem;
+  margin: 0;
 }
 
-.field-group input:disabled{
-  background-color: lightgray;
+.stat-card small {
+  font-size: 0.9rem;
+  color: white;
 }
 
-.field-with-icon {
-  position: relative;
-}
-.field-with-icon input {
-  width: 100%;
-  padding-right: 28px; /* espacio para el icono */
-}
-.icon-pencil {
-  position: absolute;
-  right: 8px; top: 50%;
-  transform: translateY(-50%);
-  font-size: 1rem;
-  cursor: pointer;
-  background: none;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  color: #555;
 
-}
+
 
 /* footer con botón guardar */
 .modal-footer {
@@ -217,17 +264,65 @@ hr {
   margin: 1rem;
 }
 
-@media screen and (max-width: 480px) {
+/* Cabecera responsive */
+@media screen and (max-width: 500px) {
 
-  .field-group small{
-  font-size: 0.7rem;
-  }
-  
-  .modal-save-btn {
-  font-size: 0.8rem;
+  .modal-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
   }
 
-  .modal-delete-btn{
-    font-size: 0.8rem;
+  .modal-avatar {
+    width: 80px;
+    height: 80px;
+  }
+
+  .modal-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .modal-jugadorinfo {
+    width: 100%;
+  }
+
+  .precio-container {
+    justify-content: center;
+  }
+  .posicion-precio {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .estadisticas-extra {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .diferencia-precio {
+    text-align: center;
+    width: 100%;
+    margin-top: 0.3rem;
+  }
+
+  .ultimas-jornadas {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .jornada-item .jornada-nombre {
+    font-size: 9px;
+  }
+
+  .jornada-cuadro {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
   }
 }

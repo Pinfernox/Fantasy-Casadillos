@@ -1,16 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
-import Swal from 'sweetalert2';
 import './ModalJugador.css'
-import { getAuth, updateProfile, updateEmail, updatePassword, deleteUser, EmailAuthProvider, 
-  GoogleAuthProvider, 
-  reauthenticateWithCredential, 
-  reauthenticateWithPopup, sendPasswordResetEmail} from 'firebase/auth'
-import { collection, query, where, deleteDoc, getFirestore, doc, updateDoc, getDoc, getDocs, arrayRemove, increment } from 'firebase/firestore'
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { getAuth} from 'firebase/auth'
+import { getFirestore } from 'firebase/firestore'
+import { getStorage} from 'firebase/storage'
 import ImagenProfile from '/SinPerfil.jpg'
 
 
-export default function ModalPerfilJugador({ jugador, openModal, setOpenModal }) {
+export default function ModalPerfilJugadorUsuario({ jugador, openModal, setOpenModal }) {
   const auth = getAuth()
   const db = getFirestore()
   const storage = getStorage()

@@ -55,6 +55,49 @@ async function syncJugadores() {
 
       const jugadorRef = db.collection("jugadores").doc(id);
 
+      // Comprobar si ya existe en Firestore
+      const snap = await jugadorRef.get();
+      // Calcular stock dinámico en función de la nota
+      let stockCalculado;
+      const notaNum = Number(nota.replace(",", ".")) || 0;
+
+      if (notaNum < 3) {
+        stockCalculado = 7;
+      } else if (notaNum < 4) {
+        stockCalculado = 5;
+      } else {
+        stockCalculado = 3;
+      }
+
+      let dueños = [];
+      let historialPrecios = [];
+
+      // Convertimos el precio actual (del Excel)
+      const nuevoPrecio = Number(precio) || 0;
+
+      if (snap.exists) {
+        const dataExistente = snap.data();
+
+        // Respetar valores actuales
+        stockTotal = dataExistente.stockTotal ?? stockCalculado;
+        stockLibre = dataExistente.stockLibre ?? stockCalculado;
+        dueños = dataExistente.dueños || [];
+        historialPrecios = dataExistente.historialPrecios || [];
+
+        // Si cambia el precio -> guardar el anterior en el historial
+        if (dataExistente.precio !== undefined && dataExistente.precio !== nuevoPrecio) {
+          historialPrecios.push({
+            precio: dataExistente.precio,
+            fecha: new Date().toISOString(),
+          });
+        }
+      } else {
+        // Si es jugador nuevo → usar el cálculo dinámico
+        stockTotal = stockCalculado;
+        stockLibre = stockCalculado;
+      }
+
+
       const jugadorData = {
         id,
         nombre,
@@ -63,25 +106,28 @@ async function syncJugadores() {
         posicion,
         valoracion,
         nota: Number(nota.replace(",", ".")) || 0,
-        precio: Number(precio) || 0,
+        precio: nuevoPrecio,
         goles: Number(goles) || 0,
         asistencias: Number(asistencias) || 0,
         partidos: Number(partidos) || 0,
         puntosTotales: Number(puntos) || 0,
         puntosPorJornada: jornadas.map((j) => Number(j) || 0),
 
-        // Campos de negocio (añadidos en Firestore, no en Sheets)
-        precioClausula: Math.round((Number(precio) || 0) * 1.5),
+        // Campos de negocio
+        precioClausula: Math.round(nuevoPrecio * 1.5),
         clausulaEditable: false,
-        dueños: [], // array vacío al inicio
-        stockTotal: 5, // unidades disponibles en total
-        stockLibre: 5, // al inicio coincide con stockTotal
+        dueños,
+        stockTotal,
+        stockLibre,
+        historialPrecios,
         actualizadoEn: new Date().toISOString(),
       };
 
       // Guardar en Firestore (merge = actualiza si ya existe)
       await jugadorRef.set(jugadorData, { merge: true });
       console.log(`✅ Jugador ${nombre} sincronizado.`);
+
+
     }
 
     console.log("🚀 Sincronización completada.");

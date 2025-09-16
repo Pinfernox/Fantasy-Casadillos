@@ -19,9 +19,26 @@ import Fondo from '../assets/fondo.png'
 import "./Home.css";
 import "./EquipoJugador.css"
 import ModalPerfil from "./ModalPerfil"
+import ModalPerfilJugadorUsuario from "./ModalJugadorUsuario";
 
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
+
+function getBordeEstilo(jugador, index, formacion) {
+  let color = "white"; // por defecto
+
+  if (!jugador) return { borderColor: color };
+
+    if (jugador.nota >= 4) color = "green";
+    else if (jugador.nota >= 3) color = "lightblue";
+    else if (jugador.nota < 3) color = "red";
+  
+  return {
+    borderColor: color,
+    borderWidth: "3px",
+    borderStyle: "solid"
+  };
+}
 
 export default function EquipoJugador({ usuario }) {
   const { jugadorId } = useParams()
@@ -47,6 +64,8 @@ export default function EquipoJugador({ usuario }) {
   }, [jugadorData]);
 
   const [openModal, setOpenModal] = useState(false)
+  const [openModalJugadorUsuario, setOpenModalJugadorUsuario] = useState(false)
+  const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)
   const [menuActivo, setMenuActivo] = useState(false);
   const refMenu = useRef(null);
   const logout = () => signOut(auth);
@@ -239,7 +258,8 @@ export default function EquipoJugador({ usuario }) {
         {openModal && 
           (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
         }
-
+        {openModalJugadorUsuario && jugadorSeleccionado &&           
+        (<ModalPerfilJugadorUsuario jugador={jugadorSeleccionado} openModal= {openModalJugadorUsuario} setOpenModal={setOpenModalJugadorUsuario} />)}
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 , marginTop: '0rem'}}>
           <div className="datos-equipo">
             <p><strong>Formación:</strong> {formacionSeleccionada} </p>
@@ -267,6 +287,11 @@ export default function EquipoJugador({ usuario }) {
                       src={jugador?.foto || ImagenProfile}
                       alt={jugador?.nombre || "Vacío"}
                       className="jugador-img"
+                      style={getBordeEstilo(jugador, index, formacionSeleccionada)}
+                      onClick={() => {
+                        setOpenModalJugadorUsuario(true); 
+                        setJugadorSeleccionado(jugador);
+                    }}
                     />
                     {capitan === jugador?.id && (
                       <div className="capitan-badge">C</div>

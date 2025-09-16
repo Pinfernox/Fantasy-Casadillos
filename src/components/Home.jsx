@@ -25,6 +25,23 @@ import ModalPerfilJugador from "./ModalJugador";
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
 
+function getBordeEstilo(jugador, index, formacion) {
+  let color = "white"; // por defecto
+
+  if (!jugador) return { borderColor: color };
+
+    if (jugador.nota >= 4) color = "green";
+    else if (jugador.nota >= 3) color = "lightblue";
+    else if (jugador.nota < 3) color = "red";
+  
+
+  return {
+    borderColor: color,
+    borderWidth: "3px",
+    borderStyle: "solid"
+  };
+}
+
 export default function Home({ usuario }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [dinero, setDinero] = useState(null)
@@ -425,6 +442,7 @@ export default function Home({ usuario }) {
                       src={jugador?.foto || ImagenProfile}
                       alt={jugador?.nombre || "Vacío"}
                       className="jugador-img"
+                      style={getBordeEstilo(jugador, index, formacionSeleccionada)}
                       onClick={() => {
                         setOpenModalJugador(true); 
                       setJugadorSeleccionado(jugador);
