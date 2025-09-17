@@ -24,19 +24,53 @@ import ModalPerfilJugadorUsuario from "./ModalJugadorUsuario";
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
 
+const MAPA_FORMACIONES = {
+  "1-1-1-1": ["DEL", "MED", "DEF", "POR"],
+  "2-2": ["MED", "MED", "DEF", "DEF"],
+  "1-2-1 A": ["DEL", "DEF", "DEF", "POR"],
+  "1-2-1 B": ["DEL", "MED", "MED", "DEF"],
+  "2-1-1": ["DEL", "MED", "DEF", "DEF"],
+  "1-1-2": ["MED", "MED", "DEF", "POR"],
+};
+
 function getBordeEstilo(jugador, index, formacion) {
   let color = "white"; // por defecto
+  let status = null;
 
-  if (!jugador) return { borderColor: color };
+  if (!jugador) return { style: { borderColor: color }, status };
 
-    if (jugador.nota >= 4) color = "green";
-    else if (jugador.nota >= 3) color = "lightblue";
-    else if (jugador.nota < 3) color = "red";
-  
+  const esperado = MAPA_FORMACIONES[formacion]?.[index];
+
+  if (!esperado) return { style: { borderColor: color }, status };
+
+  const pos = jugador.posicion; // debe ser "POR", "DEF", "MED" o "DEL"
+
+  // Reglas de colores
+  if (pos === "POR") {
+    color = esperado === "POR" ? "green" : "red";
+  } else if (pos === "DEF") {
+    if (esperado === "DEF") color = "green";
+    else if (esperado === "MED") color = "orange";
+    else color = "red"; // si está en DEL o POR
+  } else if (pos === "MED") {
+    if (esperado === "MED") color = "green";
+    else if (esperado === "DEF" || esperado === "DEL") color = "orange";
+    else color = "red"; // si está en POR
+  } else if (pos === "DEL") {
+    if (esperado === "DEL") color = "green";
+    else if (esperado === "MED") color = "orange";
+    else color = "red"; // si está en DEF o POR
+  }
+
+  status = color; // guardamos el estado
+
   return {
-    borderColor: color,
-    borderWidth: "3px",
-    borderStyle: "solid"
+    style: {
+      borderColor: color,
+      borderWidth: "3px",
+      borderStyle: "solid",
+    },
+    status,
   };
 }
 
@@ -158,7 +192,7 @@ export default function EquipoJugador({ usuario }) {
   }
 
   // Función para abreviar el dinero
-  const formatearDinero = (valor) => {
+  const abreviarDinero = (valor) => {
     if (valor >= 1_000_000) {
       return (valor / 1_000_000).toFixed(2) + 'M'
     } else if (valor >= 1_000) {
@@ -168,6 +202,10 @@ export default function EquipoJugador({ usuario }) {
     }
   }
 
+  const formatearDinero = (valor) => {
+    return valor.toLocaleString('es-ES') + '€';
+  };
+  
   const abreviarNick = (nick) => {
     if (!nick) return "";
 
@@ -224,7 +262,7 @@ export default function EquipoJugador({ usuario }) {
             </h2>
             {dinero !== null && (
               <p className="dinero-usuario">
-                💰<strong>{formatearDinero(dinero)}</strong>
+                💰<strong>{abreviarDinero(dinero)}</strong>
               </p>
             )}
           </div>
@@ -263,7 +301,7 @@ export default function EquipoJugador({ usuario }) {
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 , marginTop: '0rem'}}>
           <div className="datos-equipo">
             <p><strong>Formación:</strong> {formacionSeleccionada} </p>
-            <p><strong>Dinero:</strong> 💰{formatearDinero(jugadorData?.dinero || 0)}</p>
+            <p><strong>Dinero:</strong> {formatearDinero(jugadorData?.dinero || 0)}</p>
           </div>
 
           <div className="campo">
@@ -287,12 +325,27 @@ export default function EquipoJugador({ usuario }) {
                       src={jugador?.foto || ImagenProfile}
                       alt={jugador?.nombre || "Vacío"}
                       className="jugador-img"
-                      style={getBordeEstilo(jugador, index, formacionSeleccionada)}
+                      style={getBordeEstilo(jugador, index, formacionSeleccionada).style}
                       onClick={() => {
                         setOpenModalJugadorUsuario(true); 
                         setJugadorSeleccionado(jugador);
                     }}
                     />
+                      {/* Badge en función del estado */}
+                    {(() => {
+                        const { status } = getBordeEstilo(jugador, index, formacionSeleccionada);
+                        console.log(status)
+                        if (!status) return null;
+
+                        if (status === "green")
+                          return <div className="status-badge green">✓</div>;
+                        if (status === "orange")
+                          return <div className="status-badge orange">!</div>;
+                        if (status === "red")
+                          return <div className="status-badge red">✕</div>;
+
+                        return null;
+                    })()}
                     {capitan === jugador?.id && (
                       <div className="capitan-badge">C</div>
                     )}

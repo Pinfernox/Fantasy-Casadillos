@@ -1,0 +1,631 @@
+.login-hero-Cabecera {
+  position: relative;
+  inset: 0;
+  margin: 0;
+
+  /* Permite que la sección crezca más allá de la altura de la pantalla */
+  min-height: 100vh;
+  height: 100%;    
+
+  /* Empuja el contenido hacia abajo para no quedar bajo el header */
+  padding-top: 4rem;    /* O la altura real de tu header */
+  padding-bottom: 4rem;
+  background-color: black;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  /* Si necesitas centrar en horizontal, deja solo justify-content */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+
+.Cabecera {
+  background-color: rgb(1, 1, 33);
+  width: 100%;
+  padding: 1em;
+
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  
+}
+
+.Cabecera-li:hover{
+  color: gray;
+  text-decoration: underline;
+}
+
+.Cabecera-button {
+  display: none;          /* tu regla */
+  background: transparent; /* quita fondo blanco */
+  border: none;            /* quita borde */
+  cursor: pointer;         /* mano al pasar */
+  padding: 0;              /* quita relleno extra */
+}
+
+.Cabecera-svg {
+  width: 2em;
+  height: 2em;
+  fill: white;
+}
+
+.Cabecera-ul {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-end;
+  align-items: center;
+  list-style: none; /* quita los puntos */
+  padding-left: 0;  /* opcional: elimina sangrado */
+  margin-left: 0;   /* opcional: elimina margen izquierdo */
+}
+
+.Cabecera-li {
+  margin: 0.5em;
+  font-size: clamp(0.8rem, 1.8vw, 1.2rem); /* nombre */
+  color: white;
+  margin-bottom: 0.2rem;
+}
+
+/* Perfil */
+.container-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.perfil-bocadillo {
+  position: absolute;
+  top: 110%;
+  right: 0;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: 9rem;
+  left: 0.5rem;
+}
+
+.perfil-bocadillo button {
+  padding: 8px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.triangulo {
+  position: absolute;
+  top: -0.3rem;
+  right: 6.3rem;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid white;
+}
+
+.btn-logout{
+  color: red;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  border: none;
+}
+
+.btn-perfil{
+  color: black;
+  border: none;
+  border-bottom: 1px solid rgb(0, 0, 0, 0.15) !important;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+.info-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.img-profile-small img {
+  width: clamp(50px, 10vw, 80px);  /* px en móvil, px en escritorio */
+  height: clamp(50px, 10vw, 80px);
+  border-radius: 50%;
+  object-fit: cover;     /* ajusta todo dentro */
+  background-color: black; /* o color que quieras */
+  margin: 5px;
+  cursor: pointer;
+}
+
+.nombre-usuario{
+  font-size: clamp(0.8rem, 1.8vw, 1.2rem); /* nombre */
+  margin: 0;
+  color: white;
+  margin-bottom: 0.2rem;
+}
+
+.dinero-usuario {
+  font-size: clamp(0.7rem, 1.6vw, 1rem); /* dinero */
+  margin: 0;
+  color: lightgreen !important;
+}
+
+/* Pantalla de carga onboarding */
+.onboarding-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9); /* fondo negro transparente */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.loader {
+  animation: blink 1s infinite;
+}
+
+/* Pagina de Equipo */
+.mercado-jugadores {
+  background-color: rgb(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 420px;
+  border: 0; /* por si Bootstrap agrega borde */
+  text-align: center;
+  color: white;
+  position: relative;
+  z-index: 1;
+  height: auto;
+  max-height: 80vh; /* altura máxima visible */
+  overflow-y: auto; /* permite scroll interno */
+}
+
+.lista-jugadores {
+  display: flex;
+  flex-direction: column; /* apila verticalmente */
+  gap: 0.8rem;
+  padding: 1rem;
+  list-style: none;
+  overflow-y: auto; /* permite scroll vertical */
+  max-height: 60vh; /* ajusta según tu diseño */
+  transition: all 0.3s ease;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+hr {
+  border: none;
+  height: 3px;
+  background-color: white;
+  margin-bottom: 0;
+}
+/* ventana centrada */
+.jugador-perfil {
+  position: relative;
+  background-color: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);  border-radius: 12px;
+  width: 100%;
+  max-width: 40rem;
+  padding: 1rem 0 1.5rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  margin: 0 auto;
+  box-sizing: border-box; /* asegura que el padding no se sume al ancho */
+  /* animación */
+  animation: modalFadeIn 0.35s ease-out;
+  transform-origin: center;
+}
+
+.jugador-perfil input {
+  padding-left: 0.4rem;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.85) translateY(20px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+
+/* cabecera: avatar + info */
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1rem;
+}
+
+.modal-avatar {
+  position: relative;
+  width: 75px; height: 75px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-block;
+}
+
+.modal-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modal-jugadorinfo h2 {
+  margin: 0; 
+  font-size: 1.2rem;
+  color: white;
+  font-weight: bold;
+  margin-top: 0.3rem;
+  text-align: left;
+}
+
+.modal-jugadorinfo{
+  background-color: transparent;
+}
+
+.posicion-precio{
+  display: flex;
+  flex-direction: column;       /* elementos en fila */
+  justify-content: space-between; /* separa a los extremos */
+  margin-bottom: 0.5rem;
+  text-align: left;          /* mejor para lectura horizontal */
+}
+.precio-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.precio{
+  color: lightgreen;
+  font-weight: bold;
+}
+.precio-clausula{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+.precio-clausula small{
+  color: lightgreen;
+  font-weight: bold;
+}
+.texto-blanco{
+  color: white;
+}
+.posicion-texto{
+  font-weight: bold;
+  display: flex;
+  margin-top: 0.3rem;
+}
+.posicion-texto.DEF {
+  color: orange; /* azul para defensa */
+}
+
+.posicion-texto.MED {
+  color: #1e90ff; /* verde para mediocampo */
+}
+
+.posicion-texto.DEL {
+  color: #dc3545; /* rojo para delantero */
+}
+
+.posicion-texto.POR {
+  color: darkgreen; /* amarillo para portero */
+}
+
+.estadisticas-extra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ultimas-jornadas {
+  flex-wrap: wrap;
+  display: flex;
+  gap: 8px;
+  justify-content: center;   /* centrado horizontal */
+  align-items: center;       /* opcional, centrado vertical */
+}
+
+.jornada-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.jornada-nombre {
+  font-size: 10px;
+  margin-bottom: 2px;
+  color: white;
+}
+
+.jornada-cuadro {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: black;
+}
+
+.jornada-cuadro.verde {
+  background: #4caf50;
+  color: #fff;
+  border-color: #388e3c;
+}
+
+.jornada-cuadro.rojo {
+  background: #f44336;
+  color: #fff;
+  border-color: #d32f2f;
+}
+
+
+.diferencia-precio {
+  font-weight: bold;
+  color: white;
+}
+
+.diferencia-precio .subida {
+  color: green;
+}
+
+.diferencia-precio .bajada {
+  color: red;
+}
+
+.modal-jugadorbody {
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  color: white;
+}
+
+.stat-card {
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 0.75rem;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+}
+
+.stat-card h4 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.stat-card small {
+  font-size: 0.9rem;
+  color: white;
+}
+
+/* footer con botón guardar */
+.modal-footer {
+  text-align: center;
+  padding-top: 0.5rem;
+}
+.modal-save-btn {
+  background: #0069d9;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin: 1rem;
+}
+.modal-save-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.modal-delete-btn{
+  background: red;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin: 1rem;
+}
+.jugador-card {
+  transition: transform 0.3s ease;
+  cursor: pointer;
+  list-style: none;
+  padding-left: 0; /* opcional: elimina sangrado izquierdo */
+  margin-left: 0;  /* opcional: elimina margen izquierdo */
+  width: auto;
+}
+
+.jugador-card:hover {
+  transform: scale(1.03);
+}
+.jugador-info {
+  text-align: center;
+}
+
+.jugador-nombre {
+  font-size: 1.1rem;
+  margin: 0.3rem 0;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: center; /* o space-between si quieres que se separen más */
+  gap: 3.6rem; /* espacio entre botones */
+  margin-top: 0.5rem;
+}
+
+.btn-comprar {
+  min-width: 95px;       /* ajusta según tu diseño */
+  min-height: 57px;       /* suficiente para texto + precio */
+  padding: 0.4rem 0.8rem;
+  background-color: #28a745;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.precio-compra {
+  color: white; 
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+.btn-comprar:disabled {
+  background-color: #888;
+  cursor: not-allowed;
+}
+
+.btn-actualizar-mercado{
+  background-color: lightskyblue;
+  color: black;
+  font-weight: bolder;
+  margin-top:  0.8rem;
+  margin-bottom:  0.8rem;
+  border-radius: 4px;
+}
+
+.lista-jugadores::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lista-jugadores::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+@media screen and (max-width: 500px) {
+.triangulo {
+    right: 7.2rem;
+  }
+
+  .Cabecera-button {
+    display: flex;
+    cursor: pointer;
+  }
+
+  .Cabecera-nav {
+    width: 100%;
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: center;
+    align-items: center;
+    height: 0vh;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.5s ease
+  }
+
+  .Cabecera-nav.isActive {
+    height: 8rem;
+    opacity: 1; 
+  }
+
+  .Cabecera-ul {
+    flex-direction: column;
+  }
+
+  .Cabecera-li {
+    margin: 0.5em 0;
+  }
+
+  .modal-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .modal-avatar {
+    width: 80px;
+    height: 80px;
+  }
+
+  .modal-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .modal-jugadorinfo h2 {
+    margin: 0; 
+    text-align: center;
+  }
+
+  .modal-jugadorinfo {
+    width: 100%;
+  }
+
+  .precio-container {
+    justify-content: center;
+  }
+  .precio-clausula{
+    justify-content: center;
+  }
+  .posicion-precio {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .posicion-texto{
+      justify-content: center;
+  }
+  .estadisticas-extra {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .ultimas-jornadas {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .jornada-item .jornada-nombre {
+    font-size: 9px;
+  }
+
+  .jornada-cuadro {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+}

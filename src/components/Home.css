@@ -179,7 +179,7 @@ a {
 .dinero-usuario {
   font-size: clamp(0.7rem, 1.6vw, 1rem); /* dinero */
   margin: 0;
-  color: white;
+  color: lightgreen !important;
 }
 
 /* Pantalla de carga onboarding */
@@ -261,7 +261,7 @@ a {
   width: clamp(50px, 10vw, 60px);
   height: clamp(50px, 10vw, 60px);
   border-radius: 50%;
-  border: 3px solid white;
+  border: 4px solid white;
   object-fit: cover;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
   cursor: pointer;
@@ -280,6 +280,34 @@ a {
      1px  1px 0 black;  
 }
 
+.status-badge {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  border: 0px solid white;
+}
+
+.status-badge.green {
+  background: green;
+}
+
+.status-badge.orange {
+  background: orange;
+}
+
+.status-badge.red {
+  background: red;
+}
+
 .capitan-badge {
   position: absolute;
   bottom: -5px;
@@ -295,7 +323,6 @@ a {
               inset 0 0 4px rgba(255, 255, 255, 0.6);
   text-shadow: 0 0 2px rgba(255, 255, 255, 0.9);
 }
-
 
 /* ComboBox */
 .formacion-selector {

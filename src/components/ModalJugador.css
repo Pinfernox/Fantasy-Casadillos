@@ -68,10 +68,9 @@ hr {
 
 .modal-avatar {
   position: relative;
-  width: 64px; height: 64px;
+  width: 75px; height: 75px;
   border-radius: 50%;
   overflow: hidden;
-  cursor: pointer;
   display: inline-block;
 }
 
@@ -91,15 +90,12 @@ hr {
 
 .modal-jugadorinfo{
   background-color: transparent;
-
 }
 
 .posicion-precio{
   display: flex;
-  flex-direction: row;       /* elementos en fila */
+  flex-direction: column;       /* elementos en fila */
   justify-content: space-between; /* separa a los extremos */
-  align-items: center;       /* alinea verticalmente */
-  gap: 5rem;                 /* espacio entre ellos */
   margin-bottom: 0.5rem;
   text-align: left;          /* mejor para lectura horizontal */
 }
@@ -114,9 +110,23 @@ hr {
   color: lightgreen;
   font-weight: bold;
 }
-
+.precio-clausula{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+.precio-clausula small{
+  color: lightgreen;
+  font-weight: bold;
+}
+.texto-blanco{
+  color: white;
+}
 .posicion-texto{
   font-weight: bold;
+  display: flex;
+  margin-top: 0.3rem;
 }
 .posicion-texto.DEF {
   color: orange; /* azul para defensa */
@@ -171,6 +181,8 @@ hr {
   display: flex;
   justify-content: center;
   align-items: center;
+  color: black;
+
 }
 
 .jornada-cuadro.verde {
@@ -198,7 +210,6 @@ hr {
 .diferencia-precio .bajada {
   color: red;
 }
-
 
 .modal-jugadorbody {
   padding: 1rem;
@@ -230,9 +241,6 @@ hr {
   font-size: 0.9rem;
   color: white;
 }
-
-
-
 
 /* footer con botón guardar */
 .modal-footer {
@@ -292,22 +300,20 @@ hr {
   .precio-container {
     justify-content: center;
   }
+  .precio-clausula{
+    justify-content: center;
+  }
   .posicion-precio {
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0.5rem;
   }
-
+  .posicion-texto{
+      justify-content: center;
+  }
   .estadisticas-extra {
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
-  }
-
-  .diferencia-precio {
-    text-align: center;
-    width: 100%;
-    margin-top: 0.3rem;
   }
 
   .ultimas-jornadas {

@@ -19,26 +19,58 @@ import ImagenProfile from '/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
 import "./Home.css";
 import ModalPerfil from "./ModalPerfil"
-import ModalJugador from "./ModalJugador"
 import ModalPerfilJugador from "./ModalJugador";
 
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
 
+const MAPA_FORMACIONES = {
+  "1-1-1-1": ["DEL", "MED", "DEF", "POR"],
+  "2-2": ["MED", "MED", "DEF", "DEF"],
+  "1-2-1 A": ["DEL", "DEF", "DEF", "POR"],
+  "1-2-1 B": ["DEL", "MED", "MED", "DEF"],
+  "2-1-1": ["DEL", "MED", "DEF", "DEF"],
+  "1-1-2": ["MED", "MED", "DEF", "POR"],
+};
+
 function getBordeEstilo(jugador, index, formacion) {
   let color = "white"; // por defecto
+  let status = null;
 
-  if (!jugador) return { borderColor: color };
+  if (!jugador) return { style: { borderColor: color }, status };
 
-    if (jugador.nota >= 4) color = "green";
-    else if (jugador.nota >= 3) color = "lightblue";
-    else if (jugador.nota < 3) color = "red";
-  
+  const esperado = MAPA_FORMACIONES[formacion]?.[index];
+
+  if (!esperado) return { style: { borderColor: color }, status };
+
+  const pos = jugador.posicion; // debe ser "POR", "DEF", "MED" o "DEL"
+
+  // Reglas de colores
+  if (pos === "POR") {
+    color = esperado === "POR" ? "green" : "red";
+  } else if (pos === "DEF") {
+    if (esperado === "DEF") color = "green";
+    else if (esperado === "MED") color = "orange";
+    else color = "red"; // si está en DEL o POR
+  } else if (pos === "MED") {
+    if (esperado === "MED") color = "green";
+    else if (esperado === "DEF" || esperado === "DEL") color = "orange";
+    else color = "red"; // si está en POR
+  } else if (pos === "DEL") {
+    if (esperado === "DEL") color = "green";
+    else if (esperado === "MED") color = "orange";
+    else color = "red"; // si está en DEF o POR
+  }
+
+  status = color; // guardamos el estado
 
   return {
-    borderColor: color,
-    borderWidth: "3px",
-    borderStyle: "solid"
+    style: {
+      borderColor: color,
+      borderWidth: "3px",
+      borderStyle: "solid",
+    },
+    status,
   };
 }
 
@@ -420,7 +452,6 @@ export default function Home({ usuario }) {
             )}
           </div>
 
-
           <div className="campo">
             {/* Jugadores según formación */}
             {FORMACIONES[formacionSeleccionada]?.map((pos, index) => {
@@ -442,13 +473,27 @@ export default function Home({ usuario }) {
                       src={jugador?.foto || ImagenProfile}
                       alt={jugador?.nombre || "Vacío"}
                       className="jugador-img"
-                      style={getBordeEstilo(jugador, index, formacionSeleccionada)}
+                      style={getBordeEstilo(jugador, index, formacionSeleccionada).style}
                       onClick={() => {
                         setOpenModalJugador(true); 
-                      setJugadorSeleccionado(jugador);
+                        setJugadorSeleccionado(jugador);
                     }}
-
                     />
+                      {/* Badge en función del estado */}
+                      {(() => {
+                        const { status } = getBordeEstilo(jugador, index, formacionSeleccionada);
+                        console.log(status)
+                        if (!status) return null;
+
+                        if (status === "green")
+                          return <div className="status-badge green">✓</div>;
+                        if (status === "orange")
+                          return <div className="status-badge orange">!</div>;
+                        if (status === "red")
+                          return <div className="status-badge red">✕</div>;
+
+                        return null;
+                      })()}
                     {capitan === jugador?.id && (
                       <div className="capitan-badge">C</div>
                     )}

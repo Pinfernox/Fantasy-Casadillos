@@ -73,6 +73,10 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
     }
   };
 
+  const formatearDinero = (valor) => {
+  return valor.toLocaleString('es-ES') + '€';
+  };
+
   const handleOverlayClick = e => {
     if (e.target === overlayRef.current) {
       setOpenModal(false)
@@ -296,6 +300,11 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
           <div className="modal-userinfo">
             <h2>{window.innerWidth < 450 ? abreviarNick(usuario.nick) : usuario.nick}</h2>
             <small>{usuario.correo}</small>
+            <small>
+              Dinero: <span className="dinero-verde">{formatearDinero(usuario.dinero)}</span>
+            </small>
+
+
           </div>
         </div>
         <hr/>

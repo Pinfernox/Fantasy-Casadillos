@@ -36,6 +36,10 @@ export default function ModalPerfilJugadorUsuario({ jugador, openModal, setOpenM
     }
   }
 
+  const formatearDinero = (valor) => {
+    return valor.toLocaleString('es-ES') + '€';
+  };
+
   const abreviarnombre = (nombre) => {
     if (!nombre) return "";
 
@@ -79,13 +83,9 @@ console.log("DEBUG jugador en modal:", jugador);
         <div className="modal-header">
           <label className="modal-avatar">
             <img src={fotoURL} alt="Jugador" />
-            <input
-              type="file"
-              accept="image/*"
-            />
           </label>
           <div className="modal-jugadorinfo">
-            <h2>{window.innerWidth < 450 ? abreviarnombre(jugador.nombre) : jugador.nombre}</h2>
+            <h2>{window.innerWidth < 450 ? (jugador.nombre) : jugador.nombre}</h2>
             <div className='posicion-precio'>
               <div className={`posicion-texto ${jugador.posicion}`}>
                 <small>{traducirPosicion(jugador.posicion)}</small>
@@ -94,8 +94,9 @@ console.log("DEBUG jugador en modal:", jugador);
               {/* Contenedor de precio + diferencia */}
               <div className='precio-container'>
                 <div className='precio'>
-                  <small>{jugador.precio}€</small>
+                  <small><span className='texto-blanco'>Valor:</span> {formatearDinero(jugador.precio)}</small>
                 </div>
+                
                 <div className="diferencia-precio">
                   {(() => {
                     const historial = jugador.historialPrecios || [];
@@ -105,11 +106,15 @@ console.log("DEBUG jugador en modal:", jugador);
                     const signo = diferencia > 0 ? "+" : diferencia < 0 ? "-" : "±";
                     return (
                       <small className={diferencia >= 0 ? "subida" : "bajada"}>
-                        ({signo}{Math.abs(diferencia)}€)
+                        ({signo}{formatearDinero(Math.abs(diferencia))})
                       </small>
                     );
                   })()}
                 </div>
+
+              </div>      
+              <div className='precio-clausula'>
+                <small><span className='texto-blanco'>Claúsula:</span> {formatearDinero(jugador.precioClausula)}</small>
               </div>
             </div>
 

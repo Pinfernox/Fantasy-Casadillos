@@ -187,6 +187,12 @@ hr {
 
 }
 
+.dinero-verde {
+  color: lightgreen; /* verde tipo Bootstrap */
+  font-weight: bold;
+}
+
+
 /* footer con botón guardar */
 .modal-footer {
   text-align: center;
