@@ -86,7 +86,7 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
   const abreviarNick = (nick) => {
     if (!nick) return "";
 
-    const maxLength = 10
+    const maxLength = 12
     const firstSpace = nick.indexOf(" ");
 
     let corte;
@@ -310,7 +310,7 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
         <hr/>
         <div className="modal-body">
           <div className="field-group">
-            <label>Nick <small>(Recomendado máximo 10 caracteres)</small></label>
+            <label>Nick <small>(Recomendado máximo 12 caracteres)</small></label>
             <div className="field-with-icon">
               <input
                 type="text"

@@ -77,7 +77,7 @@ export default function Mercado({ usuario }) {
 
   const refrescarMercado = async () => {
     const nuevosJugadores = [
-      { idJugador: "1", nombre: "Messi", precio: 50000000, stock: 1, foto:'https://i.pinimg.com/736x/18/11/27/181127af743465ba7739c3ee1970dbac.jpg',
+      { idJugador: "1", nombre: "Messi", precio: 500000000, stock: 1, foto:'https://i.pinimg.com/736x/18/11/27/181127af743465ba7739c3ee1970dbac.jpg',
         precioClausula: 150000000, posicion: 'DEF'
        },
       { idJugador: "2", nombre: "Cristiano", precio: 45000000, stock: 1, foto:'https://i.pinimg.com/736x/18/11/27/181127af743465ba7739c3ee1970dbac.jpg',

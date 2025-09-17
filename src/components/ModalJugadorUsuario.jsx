@@ -153,10 +153,7 @@ console.log("DEBUG jugador en modal:", jugador);
                     ))
                 }
               </div>
-
-
             </div>
-
           </div>
         </div>
         <hr/>
@@ -186,10 +183,26 @@ console.log("DEBUG jugador en modal:", jugador);
             <small>Asistencias</small>
           </div>
         </div>
-
-
+        <hr/>
         <div className="modal-footer">
-
+            <button
+              className="btn-accion"
+              disabled={jugador.stock <= 0}
+              onClick={(e) => {
+                e.stopPropagation(); // evita que se abra el modal
+              }}>
+              Pagar Claúsula
+              <br />
+              <small className="precio-compra">(-{formatearDinero(jugador.precioClausula)})</small>
+            </button>
+            <button
+              className="btn-accion"
+              disabled={jugador.stock <= 0}
+              onClick={(e) => {
+              e.stopPropagation(); // evita que se abra el modal
+              }}>                      
+              Hacer oferta                    
+            </button>                
         </div>
       </div>
     </div>

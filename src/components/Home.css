@@ -258,8 +258,8 @@ a {
 }
 
 .jugador-img {
-  width: clamp(50px, 10vw, 60px);
-  height: clamp(50px, 10vw, 60px);
+  width:  60px;
+  height:  60px;
   border-radius: 50%;
   border: 4px solid white;
   object-fit: cover;
@@ -316,13 +316,35 @@ a {
   color: black;
   font-weight: bold;
   border-radius: 40%;
-  padding: 4px 6px;
+  padding: 2px 6px;
   font-size: 12px;
   border: 2px solid #b8860b; /* borde más oscuro para contraste */
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.7), 
               inset 0 0 4px rgba(255, 255, 255, 0.6);
   text-shadow: 0 0 2px rgba(255, 255, 255, 0.9);
 }
+/* Nuevo badge arriba derecha */
+.puntos-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 12px;  
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: black;
+  box-shadow: 0 0 6px rgba(0,0,0,0.3);
+}
+
+.puntos-badge.green { background: #28a745; }
+.puntos-badge.orange { background: #ff9800; }
+.puntos-badge.red { background: #dc3545; }
+.puntos-badge.gray { background: lightgray; }
+
 
 /* ComboBox */
 .formacion-selector {
@@ -394,4 +416,53 @@ a {
     margin: 0.5em 0;
   }
 
+  .jugador-img {
+  width:  50px;
+  height:  50px;
+  }
+
+  .jugador-nombre {
+    font-size: 0.9rem !important;
+    margin-top: 1px !important;
+
+  }
+  
+  .capitan-badge {
+    bottom: -3px;
+    right: -5px;
+    padding: 2px 6px;
+    font-size: 9px;
+
+  }
+}
+
+@media screen and (max-width: 350px) {
+  .jugador-img {
+    width:  45px;
+    height:  45px;
+  }
+
+  .jugador-nombre {
+    font-size: 0.8rem !important;
+    margin-top: 0 !important;
+  }
+  .capitan-badge {
+    bottom: -1px;
+  }
+
+  .puntos-badge {
+    top: -5px;
+    right: -5px;
+    width: 17px;
+    height: 17px;
+    font-size: 10px;  
+  }
+
+  .status-badge {
+    top: -5px;
+    left: -5px;
+    width: 15px;
+    height: 15px;
+    font-size: 9px;
+  }
 }

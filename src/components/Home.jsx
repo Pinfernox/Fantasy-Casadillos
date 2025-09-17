@@ -432,7 +432,7 @@ export default function Home({ usuario }) {
           (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
         }
         {openModalJugador && jugadorSeleccionado &&           
-        (<ModalPerfilJugador jugador={jugadorSeleccionado} openModal= {openModalJugador} setOpenModal={setOpenModalJugador} />)}
+        (<ModalPerfilJugador jugador={jugadorSeleccionado} openModal= {openModalJugador} setOpenModal={setOpenModalJugador} user={usuario} />)}
 
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
           {/* Selector de formaciones */}
@@ -447,7 +447,7 @@ export default function Home({ usuario }) {
             </select>
                     {formacionSeleccionada !== formacionActual && (
               <button onClick={guardarFormacion} disabled={guardando}>
-                {guardando ? "Guardando..." : "Guardar cambios"}
+                {guardando ? "Guardando..." : "Guardar"}
               </button>
             )}
           </div>
@@ -479,10 +479,9 @@ export default function Home({ usuario }) {
                         setJugadorSeleccionado(jugador);
                     }}
                     />
-                      {/* Badge en función del estado */}
-                      {(() => {
+                    {/* Badge en función del estado */}
+                    {(() => {
                         const { status } = getBordeEstilo(jugador, index, formacionSeleccionada);
-                        console.log(status)
                         if (!status) return null;
 
                         if (status === "green")
@@ -493,10 +492,38 @@ export default function Home({ usuario }) {
                           return <div className="status-badge red">✕</div>;
 
                         return null;
-                      })()}
+                    })()}
+                    
                     {capitan === jugador?.id && (
                       <div className="capitan-badge">C</div>
                     )}
+
+                    {/* Badge de últimos puntos (arriba derecha) */}
+                    {(() => {
+                      if (jugador?.puntosPorJornada.length === 0){
+                        return(
+                          <div className={`puntos-badge ${'gray'}`}>
+                            -
+                          </div>
+                        )
+                      }
+                      const ultimosPuntos = jugador?.puntosPorJornada?.length
+                        ? jugador?.puntosPorJornada[jugador?.puntosPorJornada.length - 1]
+                        : null;
+
+                      if (ultimosPuntos === null || ultimosPuntos === undefined) return null;
+
+                      let claseColor = "";
+                      if (ultimosPuntos < 7) claseColor = "red";
+                      else if (ultimosPuntos < 9) claseColor = "orange";
+                      else claseColor = "green";
+
+                      return (
+                        <div className={`puntos-badge ${claseColor}`}>
+                          {ultimosPuntos}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <p className="jugador-nombre">{jugador?.nombre || "Vacío"}</p>
                 </div>

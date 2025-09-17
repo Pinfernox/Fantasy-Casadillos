@@ -300,8 +300,8 @@ export default function EquipoJugador({ usuario }) {
         (<ModalPerfilJugadorUsuario jugador={jugadorSeleccionado} openModal= {openModalJugadorUsuario} setOpenModal={setOpenModalJugadorUsuario} />)}
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 , marginTop: '0rem'}}>
           <div className="datos-equipo">
-            <p><strong>Formación:</strong> {formacionSeleccionada} </p>
-            <p><strong>Dinero:</strong> {formatearDinero(jugadorData?.dinero || 0)}</p>
+            <p><strong>Formación:</strong> <small>{formacionSeleccionada}</small> </p>
+            <p><strong>Dinero:</strong> <small><span className="verde">{formatearDinero(jugadorData?.dinero || 0)}</span></small></p>
           </div>
 
           <div className="campo">
@@ -331,7 +331,7 @@ export default function EquipoJugador({ usuario }) {
                         setJugadorSeleccionado(jugador);
                     }}
                     />
-                      {/* Badge en función del estado */}
+                    {/* Badge en función del estado */}
                     {(() => {
                         const { status } = getBordeEstilo(jugador, index, formacionSeleccionada);
                         console.log(status)
@@ -346,9 +346,37 @@ export default function EquipoJugador({ usuario }) {
 
                         return null;
                     })()}
+                    
                     {capitan === jugador?.id && (
                       <div className="capitan-badge">C</div>
                     )}
+
+                    {/* Badge de últimos puntos (arriba derecha) */}
+                    {(() => {
+                      if (jugador?.puntosPorJornada.length === 0){
+                        return(
+                          <div className={`puntos-badge ${'gray'}`}>
+                            -
+                          </div>
+                        )
+                      }
+                      const ultimosPuntos = jugador?.puntosPorJornada?.length
+                        ? jugador?.puntosPorJornada[jugador?.puntosPorJornada.length - 1]
+                        : null;
+
+                      if (ultimosPuntos === null || ultimosPuntos === undefined) return null;
+
+                      let claseColor = "";
+                      if (ultimosPuntos < 7) claseColor = "red";
+                      else if (ultimosPuntos < 9) claseColor = "orange";
+                      else claseColor = "green";
+
+                      return (
+                        <div className={`puntos-badge ${claseColor}`}>
+                          {ultimosPuntos}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <p className="jugador-nombre">{jugador?.nombre || "Vacío"}</p>
                 </div>

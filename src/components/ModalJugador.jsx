@@ -10,11 +10,12 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import ImagenProfile from '/SinPerfil.jpg'
 
 
-export default function ModalPerfilJugador({ jugador, openModal, setOpenModal }) {
+export default function ModalPerfilJugador({ jugador, openModal, setOpenModal, user }) {
   const auth = getAuth()
   const db = getFirestore()
   const storage = getStorage()
   const fotoURL = jugador?.foto || ImagenProfile
+  const [capitanId, setCapitanId] = useState(null)
 
   const traducirPosicion = (pos) => {
     switch (pos) {
@@ -33,6 +34,42 @@ export default function ModalPerfilJugador({ jugador, openModal, setOpenModal })
 
   // para cerrar al pulsar fuera
   const overlayRef = useRef()
+
+  useEffect(() => {
+    const fetchCapitan = async () => {
+      if (!user) return
+      const userRef = doc(db, "usuarios", user.uid)
+      const userSnap = await getDoc(userRef)
+      if (userSnap.exists()) {
+        const data = userSnap.data()
+        setCapitanId(data.equipo?.capitan || null)
+      }
+    }
+    fetchCapitan()
+  }, [user, db, openModal])
+
+  const hacerCapitan = async (jugadorId) => {
+    try {
+      const userRef = doc(db, "usuarios", user.uid)
+      await updateDoc(userRef, { "equipo.capitan": jugadorId })
+      setCapitanId(jugadorId)
+      await Swal.fire({
+        icon: "success",
+        title: "¡Capitán asignado!",
+        text: `${jugador.nombre} ahora es tu capitán.`,
+        confirmButtonColor: "#28a745"
+      })
+    } catch (err) {
+      console.error("Error al asignar capitán:", err)
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudo asignar el capitán, inténtalo de nuevo."
+      })
+    }finally{
+      window.location.reload();
+    }
+  }
 
   const handleOverlayClick = e => {
     if (e.target === overlayRef.current) {
@@ -66,7 +103,6 @@ export default function ModalPerfilJugador({ jugador, openModal, setOpenModal })
   };
 
   if (!openModal) return null
-console.log("DEBUG jugador en modal:", jugador);
 
   return (
     <div
@@ -156,8 +192,6 @@ console.log("DEBUG jugador en modal:", jugador);
                     ))
                 }
               </div>
-
-
             </div>
 
           </div>
@@ -192,7 +226,19 @@ console.log("DEBUG jugador en modal:", jugador);
 
         <hr/>
         <div className="modal-footer">
-
+            <button
+              className="btn-accion"
+              disabled={jugador.stock <= 0}
+              onClick={() => {
+              }}>
+              Vender
+            </button>
+            <button
+              className="btn-capitan"
+              disabled={capitanId === jugador.id}
+              onClick={() => hacerCapitan(jugador.id)}>
+              {capitanId === jugador.id ? "Ya es capitán" : "Nombrar capitán"}                   
+            </button>                
         </div>
       </div>
     </div>
