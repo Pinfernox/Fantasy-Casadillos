@@ -20,7 +20,7 @@ import ImagenProfile from '/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
 import "./Mercado.css";
 import ModalPerfil from "./ModalPerfil"
-import ModalPerfilJugadorUsuario from "./ModalJugadorUsuario";
+import ModalJugadorMercado from "./ModalJugadorMercado";
 
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
@@ -37,10 +37,12 @@ export default function Mercado({ usuario }) {
   const [jugadoresUsuario, setJugadoresUsuario] = useState([]);    // Estado inicial: la formación actual del usuario
   const [guardando, setGuardando] = useState(false);
   const [openModal, setOpenModal] = useState(false);
-  const [openModalJugadorUsuario, setOpenModalJugadorUsuario] = useState(false)
+  const [openModalJugadorMercado, setOpenModalJugadorMercado] = useState(false)
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)
   const [menuActivo, setMenuActivo] = useState(false);
   const refMenu = useRef(null);
+  // NUEVO: añadir estado para controlar la pestaña activa
+  const [tabActiva, setTabActiva] = useState("mercado");
   const logout = () => signOut(auth);
 
   // Cerramos el menú si clicas fuera
@@ -113,7 +115,6 @@ export default function Mercado({ usuario }) {
 
     fetchJugadoresUsuario();
   }, [titulares]);
-
 
   // 🛒 Comprar jugador
   const comprarJugador = async (jugador) => {
@@ -241,7 +242,6 @@ export default function Mercado({ usuario }) {
     }
   }, [usuario], [titulares], );
 
-
   return (
     <div>
       <header className="Cabecera">
@@ -310,9 +310,26 @@ export default function Mercado({ usuario }) {
         {openModal && 
           (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
         }
-        {openModalJugadorUsuario && jugadorSeleccionado &&           
-          (<ModalPerfilJugadorUsuario jugador={jugadorSeleccionado} openModal= {openModalJugadorUsuario} setOpenModal={setOpenModalJugadorUsuario} />)}
-        <div className="mercado-jugadores">
+        {openModalJugadorMercado && jugadorSeleccionado &&           
+          (<ModalJugadorMercado jugador={jugadorSeleccionado} openModal= {openModalJugadorMercado} setOpenModal={setOpenModalJugadorMercado} />)}
+        <div className="tabs-wrapper">
+                  {/* Pestañas de navegación */}
+        <div className="tabs-container" style={{}}>
+          <button
+            className={`tab-btn ${tabActiva === "mercado" ? "active" : ""}`}
+            onClick={() => setTabActiva("mercado")}
+          >
+            Mercado
+          </button>
+          <button
+            className={`tab-btn ${tabActiva === "operaciones" ? "active" : ""}`}
+            onClick={() => setTabActiva("operaciones")}
+          >
+            Mis operaciones
+          </button>
+        </div>
+  
+        {tabActiva === "mercado" && (<div className="mercado-jugadores">
           {usuario?.rol === "admin" && (
               <button 
                 onClick={refrescarMercado} 
@@ -325,7 +342,7 @@ export default function Mercado({ usuario }) {
               <li key={j.idJugador} className="jugador-card"   
                 onClick={() => {
                   setJugadorSeleccionado(j);
-                  setOpenModalJugadorUsuario(true);
+                  setOpenModalJugadorMercado(true);
                 }}>
                 <div className="jugador-perfil">
                   {/* botón cerrar */}
@@ -435,6 +452,26 @@ export default function Mercado({ usuario }) {
               </li>
             ))}
           </ul>
+        </div>)}
+
+        {tabActiva === "operaciones" && (
+        <div className="operaciones-container">
+          <div className="operaciones-animacion">
+            <h2>Mis operaciones pendientes</h2>
+            {usuario?.operaciones && usuario.operaciones.length > 0 ? (
+              <ul>
+                {usuario.operaciones.map((op, i) => (
+                  <li key={i}>
+                    {op.tipo} - {op.jugador} - {formatearDinero(op.cantidad)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No tienes operaciones pendientes</p>
+            )}
+            </div>
+        </div>
+        )}
         </div>
       </div>
 

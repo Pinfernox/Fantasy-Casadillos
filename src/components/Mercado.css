@@ -185,7 +185,7 @@ a {
   background-color: rgb(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border-radius: 15px;
+  border-radius: 0px 0px 15px 15px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.2);
   width: 100%;
   max-width: 420px;
@@ -196,7 +196,8 @@ a {
   z-index: 1;
   height: auto;
   max-height: 80vh; /* altura máxima visible */
-  overflow-y: auto; /* permite scroll interno */
+  min-height: 70vh;
+  overflow-y:hidden; /* permite scroll interno */
 }
 
 .lista-jugadores {
@@ -546,6 +547,64 @@ hr {
   border-radius: 3px;
 }
 
+.tabs-wrapper {
+  width: 100%;         /* ocupa todo el ancho disponible */
+  max-width: 420px;
+  margin: 0 auto;      /* centrado */
+}
+
+.tabs-container {
+  display: flex;
+  justify-content: flex-start;
+  background-color: rgb(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);  padding: 0.5rem;
+  border-radius: 8px 8px 0 0;
+  
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: white;
+  font-weight: bold;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.tab-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab-btn.active {
+  border-bottom: 3px solid gold;
+}
+
+.operaciones-container{
+  background-color: rgb(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 0px 0px 15px 15px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 420px;
+  border: 0; /* por si Bootstrap agrega borde */
+  text-align: center;
+  color: white;
+  position: relative;
+  z-index: 1;
+  height: auto;
+  max-height: 80vh; /* altura máxima visible */
+  min-height: 70vh;
+  overflow-y:hidden; /* permite scroll interno */
+}
+
+.operaciones-animacion {
+  transition: all 0.3s ease;
+}
+
 @media screen and (max-width: 500px) {
 .triangulo {
     right: 7.2rem;
@@ -642,10 +701,26 @@ hr {
     height: 22px;
     font-size: 11px;
   }
+
+  .operaciones-container{
+    min-height: 71vh;
+  }
+  .mercado-jugadores {
+    min-height: 71vh;
+
+  }
 }
 
 @media screen and (max-width: 350px) {
   .modal-footer {
     gap: 2rem; /* espacio entre botones */
+  }
+
+  .operaciones-container{
+    min-height: 73vh;
+  }
+  .mercado-jugadores {
+    min-height: 73vh;
+
   }
 }

@@ -6,7 +6,7 @@ import { getStorage} from 'firebase/storage'
 import ImagenProfile from '/SinPerfil.jpg'
 
 
-export default function ModalPerfilJugadorUsuario({ jugador, openModal, setOpenModal }) {
+export default function ModalJugadorMercado({ jugador, openModal, setOpenModal }) {
   const auth = getAuth()
   const db = getFirestore()
   const storage = getStorage()
@@ -182,27 +182,6 @@ console.log("DEBUG jugador en modal:", jugador);
             <h4>{jugador.asistencias}</h4>
             <small>Asistencias</small>
           </div>
-        </div>
-        <hr/>
-        <div className="modal-footer">
-            <button
-              className="btn-accion"
-              disabled={jugador.stock <= 0}
-              onClick={(e) => {
-                e.stopPropagation(); // evita que se abra el modal
-              }}>
-              Pagar Claúsula
-              <br />
-              <small className="precio-compra">(-{formatearDinero(jugador.precioClausula)})</small>
-            </button>
-            <button
-              className="btn-accion"
-              disabled={jugador.stock <= 0}
-              onClick={(e) => {
-              e.stopPropagation(); // evita que se abra el modal
-              }}>                      
-              Hacer oferta                    
-            </button>                
         </div>
       </div>
     </div>
