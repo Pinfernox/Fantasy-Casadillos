@@ -101,6 +101,7 @@ export default function Clasificacion({ usuario }) {
     }
   ]
 
+
   const columns = [
     { 
       name: "Pos.",    
@@ -112,21 +113,25 @@ export default function Clasificacion({ usuario }) {
       name: "Jugador",
       selector: row => row.jugador,
       cell: row => (
-              <Link
-        to={`/equipo/${row.id}`} // usa el ID único del jugador
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          textDecoration: 'none',
-          color: 'inherit'
-        }}
-      >
-          <img src={row.fotoPerfil} alt="Foto" style={{ width: '2rem', height: '2rem', borderRadius: '50%', border: '1px solid black' }} />
+        <Link
+          to={row.id === usuario.uid ? "/home" : `/equipo/${row.id}`} // condición aquí
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            textDecoration: 'none',
+            color: 'inherit',
+            cursor: 'pointer'
+          }}
+        >
+          <img 
+            src={row.fotoPerfil} 
+            alt="Foto" 
+            style={{ width: '2rem', height: '2rem', borderRadius: '50%', border: '1px solid black' }} 
+          />
           <span>{row.jugador}</span>
         </Link>
       ),
-     
     },
     { 
       name: "Puntos", 
@@ -134,7 +139,7 @@ export default function Clasificacion({ usuario }) {
       width: '5.5rem', 
       center: true
     }
-  ]
+  ];
 
   const toggleMenu = () => {
     setMenu(!menu)
@@ -262,7 +267,6 @@ export default function Clasificacion({ usuario }) {
       }
     }
   }
-
 
   return (
     <div>

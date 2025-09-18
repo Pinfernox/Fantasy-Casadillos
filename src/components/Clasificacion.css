@@ -196,14 +196,6 @@ div.rdt_TableHeader > div:first-child {
   animation: blink 1s infinite;
 }
 
-.container-tabla::-webkit-scrollbar {
-  width: 6px;
-}
-
-.container-tabla::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
-}
 
 @media screen and (max-width: 500px) {
 

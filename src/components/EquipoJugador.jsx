@@ -385,7 +385,68 @@ export default function EquipoJugador({ usuario }) {
 
 
           </div> 
+          {/* --- BANQUILLO --- */}
+          <div className="banquillo-section">
+            <h3 className="banquillo-title">⚽ Banquillo</h3>
+            <div className="banquillo-container">
+              {banquillo.map((jugadorId, idx) => {
+                const jugador = jugadores.find(j => j.id === jugadorId);
 
+                return (
+                  <div className="banquillo-slot">
+                    {jugador ? (
+                      <>
+                        <div className="jugador-wrapper">
+                          <img
+                            src={jugador?.foto || ImagenProfile}
+                            alt={jugador?.nombre || "Vacío"}
+                            className="jugador-img"
+                            onClick={() => {
+                              setOpenModalJugadorUsuario(true);
+                              setJugadorSeleccionado(jugador);
+                            }}
+                          />
+                          {/* Badge de últimos puntos (arriba derecha) */}
+                          {(() => {
+                            if (jugador?.puntosPorJornada?.length === 0) {
+                              return (
+                                <div className={`puntos-badge gray`}>
+                                  -
+                                </div>
+                              );
+                            }
+
+                            const ultimosPuntos = jugador?.puntosPorJornada?.length
+                              ? jugador?.puntosPorJornada[jugador?.puntosPorJornada.length - 1]
+                              : null;
+
+                            if (ultimosPuntos === null || ultimosPuntos === undefined) return null;
+
+                            let claseColor = "";
+                            if (ultimosPuntos < 7) claseColor = "red";
+                            else if (ultimosPuntos < 9) claseColor = "orange";
+                            else claseColor = "green";
+
+                            return (
+                              <div className={`puntos-badge ${claseColor}`}>
+                                {ultimosPuntos}
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Nombre del jugador fuera del wrapper */}
+                        <p className="jugador-nombre-banquillo">{jugador?.nombre}</p>
+                      </>
+                    ) : (
+                      <Link to="/mercado" className="banquillo-add">+</Link>
+                    )}
+                  </div>
+
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
