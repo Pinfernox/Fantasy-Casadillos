@@ -162,17 +162,17 @@ export default function ModalPerfilJugador({ jugador, openModal, setOpenModal, u
               {/* Últimas 5 jornadas */}
               <div className="ultimas-jornadas">
                 {jugador.puntosPorJornada && jugador.puntosPorJornada.length > 0
-                  ? jugador.puntosPorJornada.slice(-5).map((p, i) => {
-                      const puntos = p !== null && p !== undefined ? p : "-";
-                      // Calculamos el índice real de la jornada
-                      const total = jugador.puntosPorJornada.length;
-                      const jornadaIndex = total - 5 + i + 1; // +1 porque queremos J1, J2...
-                      
+                  ? jugador.puntosPorJornada.slice(-5).map((p, i, arr) => {
+                      const puntos = p != null ? p : "-";
+                      // Índice de jornada: siempre empezamos desde 1
+                      const jornadaIndex = arr.length < 5 ? i + 1 : jugador.puntosPorJornada.length - 5 + i + 1;
+
                       // Determinar clase de color
                       let claseColor = "";
                       if (typeof p === "number") {
                         if (p >= 9) claseColor = "verde";
                         else if (p < 7) claseColor = "rojo";
+                        else claseColor = "naranja";
                       }
 
                       return (
@@ -192,6 +192,7 @@ export default function ModalPerfilJugador({ jugador, openModal, setOpenModal, u
                     ))
                 }
               </div>
+
             </div>
 
           </div>

@@ -110,15 +110,22 @@ export default function Home({ usuario }) {
     if (!modoEdicion) return;
 
     const arrayMap = tipo === 'titulares' ? [...titularesLocal] : [...banquilloLocal];
-    const jugador = arrayMap[index];
-    if (!jugador) return;
+    const jugador = arrayMap[index]; // puede ser jugador o null
 
     if (!jugadorSeleccionadoEdicion) {
-      // primer click
+      // primer click (aunque sea null lo dejamos marcar)
       setJugadorSeleccionadoEdicion({ jugadorId, index, tipo });
     } else {
       // segundo click → intercambio
       const { index: selIndex, tipo: selTipo } = jugadorSeleccionadoEdicion;
+
+      // Evitamos null <-> null
+      const primero = selTipo === "titulares" ? titularesLocal[selIndex] : banquilloLocal[selIndex];
+      const segundo = tipo === "titulares" ? titularesLocal[index] : banquilloLocal[index];
+      if (primero === null && segundo === null) {
+        setJugadorSeleccionadoEdicion(null);
+        return;
+      }
 
       if (selTipo === 'titulares' && tipo === 'titulares') {
         const copia = [...titularesLocal];
@@ -140,13 +147,12 @@ export default function Home({ usuario }) {
         setBanquillo(copiaBanquillo);
       }
 
-      // 👇 aquí marcas que hay cambios sin guardar
+      // Marcar cambios
       setCambiosPendientes(true);
 
       setJugadorSeleccionadoEdicion(null); // reset
     }
   };
-
 
   // Cerramos el menú si clicas fuera
   useEffect(() => {
@@ -527,7 +533,9 @@ export default function Home({ usuario }) {
             {FORMACIONES[formacionSeleccionada]?.map((pos, index) => {
               const jugadorId = titularesLocal[index];
               const jugador = jugadores.find(j => j.id === jugadorId);
-              const esSeleccionado = jugadorSeleccionadoEdicion?.jugadorId === jugador?.id;
+              const esSeleccionado =
+                jugadorSeleccionadoEdicion?.index === index &&
+                jugadorSeleccionadoEdicion?.tipo === "titulares";
 
               return (
                 <div
@@ -535,14 +543,13 @@ export default function Home({ usuario }) {
                   className={`jugador ${modoEdicion ? 'modo-edicion' : ''} ${esSeleccionado ? 'seleccionado' : ''}`}
                   style={{ position: "absolute", top: pos.top, left: pos.left, transform: "translate(-50%, -50%)" }}
                   onClick={() => {
-                    if (modoEdicion && jugador) {
-                      handleClickEdicion(jugador.id, index, 'titulares');
+                    if (modoEdicion) {
+                      handleClickEdicion(jugador?.id || null, index, 'titulares');
                     } else if (jugador) {
                       setOpenModalJugador(true);
                       setJugadorSeleccionado(jugador);
                     }
-                  }}
-                >
+                  }}>
                   <div className="jugador-wrapper">
                     <img
                       src={jugador?.foto || ImagenProfile}
@@ -567,7 +574,7 @@ export default function Home({ usuario }) {
                       const ultimosPuntos = jugador.puntosPorJornada[jugador.puntosPorJornada.length - 1];
                       if (ultimosPuntos == null) return null;
 
-                      let claseColor = ultimosPuntos < 7 ? "red" : ultimosPuntos < 9 ? "orange" : "green";
+                      let claseColor = ultimosPuntos === "-" ? "gray" : ultimosPuntos < 7 ? "red" : ultimosPuntos < 9 ? "orange" : "green";
                       return <div className={`puntos-badge ${claseColor}`}>{ultimosPuntos}</div>;
                     })()}
                   </div>
@@ -583,20 +590,24 @@ export default function Home({ usuario }) {
             <div className="banquillo-container">
               {banquilloLocal.map((jugadorId, idx) => {
                 const jugador = jugadores.find(j => j.id === jugadorId);
-                const esSeleccionado = jugadorSeleccionadoEdicion?.jugadorId === jugador?.id;
+                const esSeleccionado =
+                  jugadorSeleccionadoEdicion?.index === idx &&
+                  jugadorSeleccionadoEdicion?.tipo === "banquillo";
 
                 return (
                   <div
                     key={jugador?.id || idx}
                     className={`banquillo-slot ${modoEdicion ? 'modo-edicion' : ''} ${esSeleccionado ? 'seleccionado' : ''}`}
                     onClick={() => {
-                      if (modoEdicion && jugador) {
-                        handleClickEdicion(jugador.id, idx, 'banquillo');
+                      // Intercambio si estamos en modo edición
+                      if (modoEdicion) {
+                        handleClickEdicion(jugador?.id || null, idx, 'banquillo');
                       } else if (jugador) {
                         setOpenModalJugador(true);
                         setJugadorSeleccionado(jugador);
                       }
-                    }}>
+                    }}
+                  >
                     {jugador ? (
                       <>
                         <div className="jugador-wrapper">
@@ -604,48 +615,33 @@ export default function Home({ usuario }) {
                             src={jugador?.foto || ImagenProfile}
                             alt={jugador?.nombre || "Vacío"}
                             className="jugador-img"
-
                           />
-                          {capitan === jugador?.id && (
-                            <div className="capitan-badge">C</div>
-                          )}
-                          {/* Badge de últimos puntos (arriba derecha) */}
+                          {capitan === jugador?.id && <div className="capitan-badge">C</div>}
+
+                          {/* Badge de últimos puntos */}
                           {(() => {
-                            if (jugador?.puntosPorJornada?.length === 0) {
-                              return (
-                                <div className={`puntos-badge gray`}>
-                                  -
-                                </div>
-                              );
-                            }
-
-                            const ultimosPuntos = jugador?.puntosPorJornada?.length
-                              ? jugador?.puntosPorJornada[jugador?.puntosPorJornada.length - 1]
-                              : null;
-
-                            if (ultimosPuntos === null || ultimosPuntos === undefined) return null;
-
-                            let claseColor = "";
-                            if (ultimosPuntos < 7) claseColor = "red";
-                            else if (ultimosPuntos < 9) claseColor = "orange";
-                            else claseColor = "green";
-
-                            return (
-                              <div className={`puntos-badge ${claseColor}`}>
-                                {ultimosPuntos}
-                              </div>
-                            );
+                            if (!jugador?.puntosPorJornada?.length) return <div className="puntos-badge gray">-</div>;
+                            const ultimosPuntos = jugador.puntosPorJornada[jugador.puntosPorJornada.length - 1];
+                            if (ultimosPuntos == null) return null;
+                            let claseColor = ultimosPuntos === "-" ? "gray" : ultimosPuntos < 7 ? "red" : ultimosPuntos < 9 ? "orange" : "green";
+                            return <div className={`puntos-badge ${claseColor}`}>{ultimosPuntos}</div>;
                           })()}
                         </div>
-
-                        {/* Nombre del jugador fuera del wrapper */}
                         <p className="jugador-nombre-banquillo">{jugador?.nombre}</p>
                       </>
                     ) : (
-                      <Link to="/mercado" className="banquillo-add">+</Link>
+                      // Slot vacío, “+”
+                      <Link
+                        to={modoEdicion ? "#" : "/mercado"}  // no navegar en modo edición
+                        className={`banquillo-add ${modoEdicion ? "disabled" : ""}`}
+                        onClick={(e) => {
+                          if (modoEdicion) e.preventDefault(); // evita navegación
+                        }}
+                      >
+                        +
+                      </Link>
                     )}
                   </div>
-
                 );
               })}
             </div>

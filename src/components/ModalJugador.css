@@ -208,7 +208,11 @@ hr {
   color: #fff;
   border-color: #d32f2f;
 }
-
+.jornada-cuadro.naranja {
+  background: #ff9800;
+  color: #fff;
+  border-color: #b66f04;
+}
 
 .diferencia-precio {
   font-weight: bold;

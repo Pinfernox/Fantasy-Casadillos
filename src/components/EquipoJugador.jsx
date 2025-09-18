@@ -365,12 +365,7 @@ export default function EquipoJugador({ usuario }) {
                         : null;
 
                       if (ultimosPuntos === null || ultimosPuntos === undefined) return null;
-
-                      let claseColor = "";
-                      if (ultimosPuntos < 7) claseColor = "red";
-                      else if (ultimosPuntos < 9) claseColor = "orange";
-                      else claseColor = "green";
-
+                      let claseColor = ultimosPuntos === "-" ? "gray" : ultimosPuntos < 7 ? "red" : ultimosPuntos < 9 ? "orange" : "green";
                       return (
                         <div className={`puntos-badge ${claseColor}`}>
                           {ultimosPuntos}
@@ -415,17 +410,11 @@ export default function EquipoJugador({ usuario }) {
                                 </div>
                               );
                             }
-
                             const ultimosPuntos = jugador?.puntosPorJornada?.length
                               ? jugador?.puntosPorJornada[jugador?.puntosPorJornada.length - 1]
                               : null;
-
                             if (ultimosPuntos === null || ultimosPuntos === undefined) return null;
-
-                            let claseColor = "";
-                            if (ultimosPuntos < 7) claseColor = "red";
-                            else if (ultimosPuntos < 9) claseColor = "orange";
-                            else claseColor = "green";
+                            let claseColor = ultimosPuntos === "-" ? "gray" : ultimosPuntos < 7 ? "red" : ultimosPuntos < 9 ? "orange" : "green";
 
                             return (
                               <div className={`puntos-badge ${claseColor}`}>

@@ -407,6 +407,11 @@ a {
   outline: 4px solid yellow;
   filter: none;
 }
+.banquillo-add.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: default;
+}
 
 @keyframes shake {
   0% { transform: translate(0, 0); }
