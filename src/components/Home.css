@@ -357,7 +357,7 @@ a {
 
 /* ComboBox */
 .formacion-selector {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   display: flex;
   gap: 10px;
   justify-content: center;
@@ -386,6 +386,49 @@ a {
 .formacion-selector button:disabled {
   background: #aaa;
   cursor: not-allowed;
+}
+
+.jugador.modo-edicion .jugador-img {
+  filter: grayscale(80%);
+  animation: shake 0.5s infinite;
+}
+
+.jugador.seleccionado .jugador-img {
+  outline: 4px solid yellow;
+  filter: none;
+}
+
+.banquillo-slot.modo-edicion .jugador-img {
+  filter: grayscale(80%);
+  animation: shake 0.5s infinite;
+}
+
+.banquillo-slot.seleccionado .jugador-img {
+  outline: 4px solid yellow;
+  filter: none;
+}
+
+@keyframes shake {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(2px, 0); }
+  50% { transform: translate(-2px, 0); }
+  75% { transform: translate(2px, 0); }
+  100% { transform: translate(0, 0); }
+}
+
+.modo-edicion-buttons button {
+  background: linear-gradient(150deg, blue, cyan);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s;
+  margin-bottom: 1rem;
+}
+.modo-edicion-buttons button:hover {
+  transform: scale(1.05);
 }
 
 /* Sección de banquillo */

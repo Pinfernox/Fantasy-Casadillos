@@ -81,6 +81,8 @@ export default function Home({ usuario }) {
   const fotoURL = usuario?.fotoPerfil || ImagenProfile
   const titulares = usuario?.equipo?.titulares || [];
   const banquillo = usuario?.equipo?.banquillo || [];
+  const [titularesLocal, setTitulares] = useState(titulares);
+  const [banquilloLocal, setBanquillo] = useState(banquillo);
   const [jugadores, setJugadores] = useState([]);
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)
   const capitan = usuario?.equipo?.capitan || "";
@@ -89,12 +91,62 @@ export default function Home({ usuario }) {
   const [formacionActual, setFormacionActual] = useState(usuario?.equipo?.formacion || "2-1-1");
   const [formacionSeleccionada, setFormacionSeleccionada] = useState(formacionActual);
   const [guardando, setGuardando] = useState(false);
+  const [cambiosPendientes, setCambiosPendientes] = useState(false);
   const [equipocreado, setEquipocreado] = useState(usuario?.equipocreado);
   const [openModal, setOpenModal] = useState(false)
   const [openModalJugador, setOpenModalJugador] = useState(false)
   const [menuActivo, setMenuActivo] = useState(false);
   const refMenu = useRef(null);
   const logout = () => signOut(auth);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [jugadorSeleccionadoEdicion, setJugadorSeleccionadoEdicion] = useState(null);
+
+  const toggleModoEdicion = () => {
+    setModoEdicion(!modoEdicion);
+    setJugadorSeleccionadoEdicion(null); // reset al cambiar el modo
+  };
+
+  const handleClickEdicion = (jugadorId, index, tipo) => {
+    if (!modoEdicion) return;
+
+    const arrayMap = tipo === 'titulares' ? [...titularesLocal] : [...banquilloLocal];
+    const jugador = arrayMap[index];
+    if (!jugador) return;
+
+    if (!jugadorSeleccionadoEdicion) {
+      // primer click
+      setJugadorSeleccionadoEdicion({ jugadorId, index, tipo });
+    } else {
+      // segundo click → intercambio
+      const { index: selIndex, tipo: selTipo } = jugadorSeleccionadoEdicion;
+
+      if (selTipo === 'titulares' && tipo === 'titulares') {
+        const copia = [...titularesLocal];
+        [copia[selIndex], copia[index]] = [copia[index], copia[selIndex]];
+        setTitulares(copia);
+      } else if (selTipo === 'banquillo' && tipo === 'banquillo') {
+        const copia = [...banquilloLocal];
+        [copia[selIndex], copia[index]] = [copia[index], copia[selIndex]];
+        setBanquillo(copia);
+      } else {
+        const copiaTitulares = [...titularesLocal];
+        const copiaBanquillo = [...banquilloLocal];
+        if (selTipo === 'titulares') {
+          [copiaTitulares[selIndex], copiaBanquillo[index]] = [copiaBanquillo[index], copiaTitulares[selIndex]];
+        } else {
+          [copiaBanquillo[selIndex], copiaTitulares[index]] = [copiaTitulares[index], copiaBanquillo[selIndex]];
+        }
+        setTitulares(copiaTitulares);
+        setBanquillo(copiaBanquillo);
+      }
+
+      // 👇 aquí marcas que hay cambios sin guardar
+      setCambiosPendientes(true);
+
+      setJugadorSeleccionadoEdicion(null); // reset
+    }
+  };
+
 
   // Cerramos el menú si clicas fuera
   useEffect(() => {
@@ -117,14 +169,20 @@ export default function Home({ usuario }) {
     try {
       setGuardando(true);
       const userRef = doc(db, "usuarios", usuario.uid);
+
       await updateDoc(userRef, {
-        "equipo.formacion": formacionSeleccionada
+        "equipo.formacion": formacionSeleccionada,
+        "equipo.titulares": titularesLocal,
+        "equipo.banquillo": banquilloLocal
       });
+
       setFormacionActual(formacionSeleccionada);
+      setCambiosPendientes(false); // cambios guardados
     } catch (error) {
       console.error("Error al guardar formación:", error);
     } finally {
       setGuardando(false);
+      setModoEdicion(false);
     }
   };
 
@@ -245,7 +303,6 @@ export default function Home({ usuario }) {
       window.particlesJS.load('particles-js', 'particles.json', () => {
         console.log('Particles.js config cargado')
       })
-      
     }
     
     // Leer dinero de Firestore
@@ -454,101 +511,92 @@ export default function Home({ usuario }) {
                 </option>
               ))}
             </select>
-                    {formacionSeleccionada !== formacionActual && (
+            {(formacionSeleccionada !== formacionActual || cambiosPendientes) && (
               <button onClick={guardarFormacion} disabled={guardando}>
                 {guardando ? "Guardando..." : "Guardar"}
               </button>
             )}
-          </div>
 
+          </div>
+          <div className="modo-edicion-buttons">
+            <button onClick={toggleModoEdicion}>
+              {modoEdicion ? "Desactivar modo edición" : "Activar modo edición"}
+            </button>
+          </div>
           <div className="campo">
-            {/* Jugadores según formación */}
             {FORMACIONES[formacionSeleccionada]?.map((pos, index) => {
-              const jugadorId = titulares[index];
+              const jugadorId = titularesLocal[index];
               const jugador = jugadores.find(j => j.id === jugadorId);
+              const esSeleccionado = jugadorSeleccionadoEdicion?.jugadorId === jugador?.id;
 
               return (
                 <div
                   key={jugador?.id || index}
-                  className="jugador"
-                  style={{
-                    position: "absolute",
-                    top: pos.top,
-                    left: pos.left,
-                    transform: "translate(-50%, -50%)",
-                  }}>
+                  className={`jugador ${modoEdicion ? 'modo-edicion' : ''} ${esSeleccionado ? 'seleccionado' : ''}`}
+                  style={{ position: "absolute", top: pos.top, left: pos.left, transform: "translate(-50%, -50%)" }}
+                  onClick={() => {
+                    if (modoEdicion && jugador) {
+                      handleClickEdicion(jugador.id, index, 'titulares');
+                    } else if (jugador) {
+                      setOpenModalJugador(true);
+                      setJugadorSeleccionado(jugador);
+                    }
+                  }}
+                >
                   <div className="jugador-wrapper">
                     <img
                       src={jugador?.foto || ImagenProfile}
                       alt={jugador?.nombre || "Vacío"}
                       className="jugador-img"
                       style={getBordeEstilo(jugador, index, formacionSeleccionada).style}
-                      onClick={() => {
-                        setOpenModalJugador(true); 
-                        setJugadorSeleccionado(jugador);
-                    }}
                     />
                     {/* Badge en función del estado */}
                     {(() => {
-                        const { status } = getBordeEstilo(jugador, index, formacionSeleccionada);
-                        if (!status) return null;
-
-                        if (status === "green")
-                          return <div className="status-badge green">✓</div>;
-                        if (status === "orange")
-                          return <div className="status-badge orange">!</div>;
-                        if (status === "red")
-                          return <div className="status-badge red">✕</div>;
-
-                        return null;
+                      const { status } = getBordeEstilo(jugador, index, formacionSeleccionada);
+                      if (!status) return null;
+                      if (status === "green") return <div className="status-badge green">✓</div>;
+                      if (status === "orange") return <div className="status-badge orange">!</div>;
+                      if (status === "red") return <div className="status-badge red">✕</div>;
                     })()}
-                    
-                    {capitan === jugador?.id && (
-                      <div className="capitan-badge">C</div>
-                    )}
 
-                    {/* Badge de últimos puntos (arriba derecha) */}
+                    {capitan === jugador?.id && <div className="capitan-badge">C</div>}
+
+                    {/* Badge de últimos puntos */}
                     {(() => {
-                      if (jugador?.puntosPorJornada.length === 0){
-                        return(
-                          <div className={`puntos-badge ${'gray'}`}>
-                            -
-                          </div>
-                        )
-                      }
-                      const ultimosPuntos = jugador?.puntosPorJornada?.length
-                        ? jugador?.puntosPorJornada[jugador?.puntosPorJornada.length - 1]
-                        : null;
+                      if (!jugador?.puntosPorJornada?.length) return <div className="puntos-badge gray">-</div>;
+                      const ultimosPuntos = jugador.puntosPorJornada[jugador.puntosPorJornada.length - 1];
+                      if (ultimosPuntos == null) return null;
 
-                      if (ultimosPuntos === null || ultimosPuntos === undefined) return null;
-
-                      let claseColor = "";
-                      if (ultimosPuntos < 7) claseColor = "red";
-                      else if (ultimosPuntos < 9) claseColor = "orange";
-                      else claseColor = "green";
-
-                      return (
-                        <div className={`puntos-badge ${claseColor}`}>
-                          {ultimosPuntos}
-                        </div>
-                      );
+                      let claseColor = ultimosPuntos < 7 ? "red" : ultimosPuntos < 9 ? "orange" : "green";
+                      return <div className={`puntos-badge ${claseColor}`}>{ultimosPuntos}</div>;
                     })()}
                   </div>
                   <p className="jugador-nombre">{jugador?.nombre || "Vacío"}</p>
                 </div>
               );
             })}
+          </div>
 
-          </div> 
           {/* --- BANQUILLO --- */}
           <div className="banquillo-section">
             <h3 className="banquillo-title">⚽ Banquillo</h3>
             <div className="banquillo-container">
-              {banquillo.map((jugadorId, idx) => {
+              {banquilloLocal.map((jugadorId, idx) => {
                 const jugador = jugadores.find(j => j.id === jugadorId);
+                const esSeleccionado = jugadorSeleccionadoEdicion?.jugadorId === jugador?.id;
 
                 return (
-                  <div className="banquillo-slot">
+                  <div
+                    key={jugador?.id || idx}
+                    className={`banquillo-slot ${modoEdicion ? 'modo-edicion' : ''} ${esSeleccionado ? 'seleccionado' : ''}`}
+                    onClick={() => {
+                      if (modoEdicion && jugador) {
+                        handleClickEdicion(jugador.id, idx, 'banquillo');
+                      } else if (jugador) {
+                        setOpenModalJugador(true);
+                        setJugadorSeleccionado(jugador);
+                      }
+                    }}>
                     {jugador ? (
                       <>
                         <div className="jugador-wrapper">
@@ -556,11 +604,11 @@ export default function Home({ usuario }) {
                             src={jugador?.foto || ImagenProfile}
                             alt={jugador?.nombre || "Vacío"}
                             className="jugador-img"
-                            onClick={() => {
-                              setOpenModalJugador(true);
-                              setJugadorSeleccionado(jugador);
-                            }}
+
                           />
+                          {capitan === jugador?.id && (
+                            <div className="capitan-badge">C</div>
+                          )}
                           {/* Badge de últimos puntos (arriba derecha) */}
                           {(() => {
                             if (jugador?.puntosPorJornada?.length === 0) {

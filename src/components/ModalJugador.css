@@ -82,6 +82,8 @@ hr {
   border-radius: 50%;
   overflow: hidden;
   display: inline-block;
+  border: 2px solid white !important;
+
 }
 
 .modal-avatar img {
