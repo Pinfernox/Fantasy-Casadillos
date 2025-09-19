@@ -1,7 +1,7 @@
 // CommonJS
 const { google }          = require("googleapis");
 const admin              = require("firebase-admin");
-const serviceAccount     = require("./serviceAccountKey.json");
+const serviceAccount     = require("../serviceAccountKey.json");
 
 
 // Inicializar Firebase Admin
@@ -46,6 +46,7 @@ async function syncJugadores() {
         valoracion,
         nota,
         precio,
+        stockTotal,
         partidos,
         goles,
         asistencias,
@@ -53,34 +54,25 @@ async function syncJugadores() {
         ...jornadas
       ] = row;
 
-      const jugadorRef = db.collection("jugadores").doc(id);
+      const jugadorRef = db.collection("jugadores").doc(String(id));
 
       // Comprobar si ya existe en Firestore
       const snap = await jugadorRef.get();
       // Calcular stock dinámico en función de la nota
-      let stockCalculado;
-      const notaNum = Number(nota.replace(",", ".")) || 0;
-
-      if (notaNum < 3) {
-        stockCalculado = 7;
-      } else if (notaNum < 4) {
-        stockCalculado = 5;
-      } else {
-        stockCalculado = 3;
-      }
 
       let dueños = [];
       let historialPrecios = [];
 
       // Convertimos el precio actual (del Excel)
-      const nuevoPrecio = Number(precio) || 0;
+      const nuevoPrecio = Number(String(precio).replace(",", ".")) || 0;
+      let stockLibre;
+      const stockTotalNum = Number(String(stockTotal).replace(",", ".")) || 0;
 
       if (snap.exists) {
         const dataExistente = snap.data();
 
         // Respetar valores actuales
-        stockTotal = dataExistente.stockTotal ?? stockCalculado;
-        stockLibre = dataExistente.stockLibre ?? stockCalculado;
+        stockLibre = dataExistente.stockLibre ?? stockTotal;
         dueños = dataExistente.dueños || [];
         historialPrecios = dataExistente.historialPrecios || [];
 
@@ -93,10 +85,8 @@ async function syncJugadores() {
         }
       } else {
         // Si es jugador nuevo → usar el cálculo dinámico
-        stockTotal = stockCalculado;
-        stockLibre = stockCalculado;
+        stockLibre = stockTotal;
       }
-
 
       const jugadorData = {
         id,
@@ -111,13 +101,15 @@ async function syncJugadores() {
         asistencias: Number(asistencias) || 0,
         partidos: Number(partidos) || 0,
         puntosTotales: Number(puntos) || 0,
-        puntosPorJornada: jornadas.map((j) => Number(j) || 0),
+        puntosPorJornada: jornadas.map((j) => {
+          const n = Number(String(j).replace(",", "."));
+          return isNaN(n) ? '-' : n;
+        }),
 
         // Campos de negocio
         precioClausula: Math.round(nuevoPrecio * 1.5),
-        clausulaEditable: false,
         dueños,
-        stockTotal,
+        stockTotal: stockTotalNum,
         stockLibre,
         historialPrecios,
         actualizadoEn: new Date().toISOString(),
@@ -126,8 +118,6 @@ async function syncJugadores() {
       // Guardar en Firestore (merge = actualiza si ya existe)
       await jugadorRef.set(jugadorData, { merge: true });
       console.log(`✅ Jugador ${nombre} sincronizado.`);
-
-
     }
 
     console.log("🚀 Sincronización completada.");

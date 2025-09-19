@@ -428,7 +428,7 @@ export default function EquipoJugador({ usuario }) {
                         <p className="jugador-nombre-banquillo">{jugador?.nombre}</p>
                       </>
                     ) : (
-                      <Link to="/mercado" className="banquillo-add">+</Link>
+                      <Link className="banquillo-add">+</Link>
                     )}
                   </div>
 

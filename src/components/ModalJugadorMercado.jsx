@@ -36,9 +36,13 @@ export default function ModalJugadorMercado({ jugador, openModal, setOpenModal }
     }
   }
 
-  const formatearDinero = (valor) => {
-    return valor.toLocaleString('es-ES') + '€';
-  };
+  function formatearDinero(valor) {
+    if (typeof valor !== "number") return "—"; // o "0 €", como prefieras
+    return valor.toLocaleString("es-ES", {
+      style: "currency",
+      currency: "EUR"
+    });
+  }
 
   const abreviarnombre = (nombre) => {
     if (!nombre) return "";
@@ -114,7 +118,7 @@ console.log("DEBUG jugador en modal:", jugador);
 
               </div>      
               <div className='precio-clausula'>
-                <small><span className='texto-blanco'>Claúsula:</span> {formatearDinero(jugador.precioClausula)}</small>
+                <small><span className='texto-blanco'>Claúsula:</span> {formatearDinero(jugador?.precioClausula)}</small>
               </div>
             </div>
 

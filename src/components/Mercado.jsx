@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link } from 'react-router-dom';
 import appFirebase from "../credenciales";
+import { arrayRemove, arrayUnion } from "firebase/firestore";
 import { getAuth, signOut } from 'firebase/auth'
 import { 
   getFirestore, 
@@ -77,28 +78,69 @@ export default function Mercado({ usuario }) {
     cargarMercado();
   }, []);
 
-  const refrescarMercado = async () => {
-    const nuevosJugadores = [
-      { idJugador: "1", nombre: "Messi", precio: 500000000, stock: 1, foto:'https://i.pinimg.com/736x/18/11/27/181127af743465ba7739c3ee1970dbac.jpg',
-        precioClausula: 150000000, posicion: 'DEF'
-       },
-      { idJugador: "2", nombre: "Cristiano", precio: 45000000, stock: 1, foto:'https://i.pinimg.com/736x/18/11/27/181127af743465ba7739c3ee1970dbac.jpg',
-       precioClausula: 150000000, posicion: 'DEL', goles: 1
+const refrescarMercado = async () => {
+  const refMercado = doc(db, "mercado", "actual");
+  const snapMercado = await getDoc(refMercado);
 
-       },
-      { idJugador: "3", nombre: "Pedri", precio: 30000000, stock: 1, foto:'https://i.pinimg.com/736x/18/11/27/181127af743465ba7739c3ee1970dbac.jpg',
-       precioClausula: 150000000, posicion: 'MED'
+  if (snapMercado.exists()) {
+    const data = snapMercado.data();
 
-       },
-    ];
+    // Devolver stock de jugadores no vendidos
+    for (const j of data.jugadores) {
+      if (j.stock > 0) {
+        const jugadorRef = doc(db, "jugadores", j.idJugador);
+        await updateDoc(jugadorRef, {
+          stockLibre: increment(j.stock), // devolvemos stock disponible
+          dueños: arrayRemove("mercado"), // quitamos el dueño "mercado"
+        });
+      }
+    }
+  }
 
-    await setDoc(doc(db, "mercado", "actual"), {
-      jugadores: nuevosJugadores,
-      ultimaActualizacion: serverTimestamp(),
+  // Ahora seleccionamos nuevos jugadores para el mercado
+  const snapJugadores = await getDocs(collection(db, "jugadores"));
+  const todos = snapJugadores.docs.map(d => ({ idJugador: d.id, ...d.data() }));
+
+  // Elegir 10 aleatorios que aún tengan stock libre
+  const seleccionados = todos
+    .filter(j => j.stockLibre > 0)
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 10);
+
+  // Actualizar colección jugadores (restar stock y añadir "mercado")
+  for (const j of seleccionados) {
+    const jugadorRef = doc(db, "jugadores", j.idJugador);
+    await updateDoc(jugadorRef, {
+      stockLibre: increment(-1), // restamos 1 stock disponible
+      dueños: arrayUnion("mercado"), // añadimos dueño mercado
     });
+  }
 
-    setJugadoresMercado(nuevosJugadores);
-  };
+  // Guardar nuevo mercado
+  await setDoc(refMercado, {
+    jugadores: seleccionados.map(j => ({
+      idJugador: j.idJugador,
+      nombre: j.nombre,
+      precio: j.precio,
+      precioClausula: j.precioClausula,
+      goles: j.goles,
+      asistencias: j.asistencias,
+      valoracion: j.valoracion,
+      nota: j.nota,
+      puntos: j.puntosTotales,
+      partidos: j.partidos,
+      foto: j.foto,
+      posicion: j.posicion,
+      stock: 1, // cada jugador en el mercado representa una unidad
+      historialPrecios: j.historialPrecios || [],
+      puntosPorJornada: j.puntosPorJornada || [],
+    })),
+    ultimaActualizacion: serverTimestamp(),
+  });
+
+  setJugadoresMercado(seleccionados);
+};
+
 
   // cargar titulares usuario
   useEffect(() => {
@@ -123,26 +165,32 @@ export default function Mercado({ usuario }) {
       return;
     }
 
-    // Restar stock en el mercado
-    const ref = doc(db, "mercado", "actual");
-    const snap = await getDoc(ref);
+    const refMercado = doc(db, "mercado", "actual");
+    const snap = await getDoc(refMercado);
     if (!snap.exists()) return;
 
     const data = snap.data();
+
+    // Reducir stock del jugador en el mercado
     const lista = data.jugadores.map((j) =>
       j.idJugador === jugador.idJugador
         ? { ...j, stock: j.stock - 1 }
         : j
     );
+    await updateDoc(refMercado, { jugadores: lista });
 
-    await updateDoc(ref, { jugadores: lista });
-
-    // También restar stock en la colección jugadores global
+    // Reducir stock en la colección global de jugadores
     await updateDoc(doc(db, "jugadores", jugador.idJugador), {
       stockTotal: increment(-1),
     });
 
-    setJugadores(lista);
+    // Añadir jugador al usuario
+    const refUsuario = doc(db, "usuarios", auth.currentUser.uid);
+    await updateDoc(refUsuario, {
+      "equipo.banquillo": [...(usuario.equipo?.banquillo || []), jugador.idJugador]
+    });
+
+    setJugadoresMercado(lista); // actualizar estado en React
     alert(`Has comprado a ${jugador.nombre}`);
   };
 
