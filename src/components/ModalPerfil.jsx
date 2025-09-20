@@ -303,7 +303,39 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
             <small>
               Dinero: <span className="dinero-verde">{formatearDinero(usuario.dinero)}</span>
             </small>
+              {/* Últimas 5 jornadas */}
+            <div className="ultimas-jornadas">
+                {usuario.puntuaciones && usuario.puntuaciones.length > 0
+                  ? usuario.puntuaciones.slice(-5).map((p, i, arr) => {
+                      const puntos = p != null ? p : "-";
+                      // Índice de jornada: siempre empezamos desde 1
+                      const jornadaIndex = arr.length < 5 ? i + 1 : usuario.puntuaciones.length - 5 + i + 1;
 
+                      // Determinar clase de color
+                      let claseColor = "";
+                      if (typeof p === "number") {
+                        if (p >= 36) claseColor = "verde";
+                        else if (p < 28) claseColor = "rojo";
+                        else claseColor = "naranja";
+                      }
+
+                      return (
+                        <div key={i} className="jornada-item">
+                          <small className="jornada-nombre">J{jornadaIndex}</small>
+                          <div className={`jornada-cuadro ${claseColor}`}>
+                            {puntos}
+                          </div>
+                        </div>
+                      );
+                    })
+                  : [...Array(5)].map((_, i) => (
+                      <div key={i} className="jornada-item">
+                        <small className="jornada-nombre">J{i + 1}</small>
+                        <div className="jornada-cuadro">-</div>
+                      </div>
+                    ))
+                }
+            </div>
 
           </div>
         </div>

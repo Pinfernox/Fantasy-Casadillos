@@ -67,7 +67,7 @@ export const Login = () => {
             capitan: null
           },
           fotoPerfil: "https://res.cloudinary.com/drmoefeeq/image/upload/v1757670238/SinPerfil_w61dic.jpg",
-          puntuaciones: [0],
+          puntuaciones: [],
           onboarding: false,
           equipocreado: false,
           creadoEn: new Date().toISOString(),
@@ -176,7 +176,7 @@ export const Login = () => {
             capitan: null
           },
           fotoPerfil: "https://res.cloudinary.com/drmoefeeq/image/upload/v1757670238/SinPerfil_w61dic.jpg",
-          puntuaciones: [0],
+          puntuaciones: [],
           onboarding: false,
           equipocreado: false,
           creadoEn: new Date().toISOString()

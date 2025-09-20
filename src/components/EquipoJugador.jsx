@@ -303,7 +303,38 @@ export default function EquipoJugador({ usuario }) {
             <p><strong>Formación:</strong> <small>{formacionSeleccionada}</small> </p>
             <p><strong>Dinero:</strong> <small><span className="verde">{formatearDinero(jugadorData?.dinero || 0)}</span></small></p>
           </div>
+          <div className="ultimas-jornadas-equipo-jugador">
+                {jugadorData?.puntuaciones && jugadorData?.puntuaciones.length > 0
+                  ? jugadorData?.puntuaciones.slice(-5).map((p, i, arr) => {
+                      const puntos = p != null ? p : "-";
+                      // Índice de jornada: siempre empezamos desde 1
+                      const jornadaIndex = arr.length < 5 ? i + 1 : jugadorData?.puntuaciones.length - 5 + i + 1;
 
+                      // Determinar clase de color
+                      let claseColor = "";
+                      if (typeof p === "number") {
+                        if (p >= 36) claseColor = "verde";
+                        else if (p < 28) claseColor = "rojo";
+                        else claseColor = "naranja";
+                      }
+
+                      return (
+                        <div key={i} className="jornada-item">
+                          <small className="jornada-nombre">J{jornadaIndex}</small>
+                          <div className={`jornada-cuadro ${claseColor}`}>
+                            {puntos}
+                          </div>
+                        </div>
+                      );
+                    })
+                  : [...Array(5)].map((_, i) => (
+                      <div key={i} className="jornada-item">
+                        <small className="jornada-nombre">J{i + 1}</small>
+                        <div className="jornada-cuadro">-</div>
+                      </div>
+                    ))
+                }
+          </div>
           <div className="campo">
             {/* Jugadores según formación */}
             {FORMACIONES[formacionSeleccionada]?.map((pos, index) => {
@@ -377,8 +408,6 @@ export default function EquipoJugador({ usuario }) {
                 </div>
               );
             })}
-
-
           </div> 
           {/* --- BANQUILLO --- */}
           <div className="banquillo-section">
