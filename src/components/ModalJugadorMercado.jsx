@@ -109,7 +109,7 @@ console.log("DEBUG jugador en modal:", jugador);
                     const diferencia = jugador.precio - ultimoPrecio;
                     const signo = diferencia > 0 ? "+" : diferencia < 0 ? "-" : "±";
                     return (
-                      <small className={diferencia >= 0 ? "subida" : "bajada"}>
+                      <small className={diferencia > 0 ? "subida" : diferencia < 0 ? "bajada" : "igual"}>
                         ({signo}{formatearDinero(Math.abs(diferencia))})
                       </small>
                     );

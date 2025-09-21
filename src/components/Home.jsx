@@ -20,6 +20,7 @@ import Fondo from '../assets/fondo.png'
 import "./Home.css";
 import ModalPerfil from "./ModalPerfil"
 import ModalPerfilJugador from "./ModalJugador";
+import Swal from "sweetalert2";
 
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
@@ -198,14 +199,8 @@ export default function Home({ usuario }) {
 
   // Función para abreviar el dinero
   const formatearDinero = (valor) => {
-    if (valor >= 1_000_000) {
-      return (valor / 1_000_000).toFixed(2) + 'M'
-    } else if (valor >= 1_000) {
-      return (valor / 1_000).toFixed(2) + 'K'
-    } else {
-      return valor.toFixed(2)
-    }
-  }
+    return valor.toLocaleString('es-ES') + '€';
+  };
 
   const abreviarNick = (nick) => {
     if (!nick) return "";
@@ -229,6 +224,7 @@ export default function Home({ usuario }) {
 
   };
 
+
 // --- Función para crear equipo ---
   const crearEquipo = async () => {
     try {
@@ -243,19 +239,60 @@ export default function Home({ usuario }) {
           jugadoresDisponibles.push({ id: docu.id, ...data });
         }
       });
-      console.log(jugadoresDisponibles.length)
-      if ("Jugadores disponibles", jugadoresDisponibles.length < 4) {
-        alert("No hay suficientes jugadores disponibles");
+
+      if (jugadoresDisponibles.length < 4) {
+        await Swal.fire({
+          icon: "warning",
+          title: "No hay suficientes jugadores disponibles",
+          text: "Se necesitan al menos 4 jugadores con stock para crear un equipo.",
+          confirmButtonText: "Entendido",
+        });
         setGuardando(false);
         return;
       }
 
-      // 2. Escoger 4 aleatorios
+      // 2. Filtrar por rangos de precio
+      const jugadoresCaros = jugadoresDisponibles.filter(
+        (j) => j.precio > 15000000 && j.precio <= 40000000
+      );
+      const jugadoresBaratos = jugadoresDisponibles.filter(
+        (j) => j.precio <= 15000000
+      );
+
       let seleccionados = [];
-      for (let i = 0; i < 4; i++) {
-        const idx = Math.floor(Math.random() * jugadoresDisponibles.length);
-        seleccionados.push(jugadoresDisponibles[idx]);
-        jugadoresDisponibles.splice(idx, 1); // eliminar para no repetir
+
+      if (jugadoresCaros.length >= 1 && jugadoresBaratos.length >= 3) {
+        // Caso ideal: 1 caro + 3 baratos
+        const idxCaro = Math.floor(Math.random() * jugadoresCaros.length);
+        seleccionados.push(jugadoresCaros[idxCaro]);
+
+        for (let i = 0; i < 3; i++) {
+          const idx = Math.floor(Math.random() * jugadoresBaratos.length);
+          seleccionados.push(jugadoresBaratos[idx]);
+          jugadoresBaratos.splice(idx, 1);
+        }
+      } else {
+        // Respaldo: elegir 4 al azar sin superar 40M
+        const jugadoresPermitidos = jugadoresDisponibles.filter(
+          (j) => j.precio <= 40000000
+        );
+
+        if (jugadoresPermitidos.length < 4) {
+          await Swal.fire({
+            icon: "error",
+            title: "No hay jugadores válidos",
+            text: "No hay suficiente stock para crear un equipo bajo las condiciones establecidas.",
+            confirmButtonText: "Ok",
+          });
+          setGuardando(false);
+          return;
+        }
+
+        for (let i = 0; i < 4; i++) {
+          const idx = Math.floor(Math.random() * jugadoresPermitidos.length);
+          seleccionados.push(jugadoresPermitidos[idx]);
+          jugadoresPermitidos.splice(idx, 1);
+        }
       }
 
       // 3. Actualizar jugadores seleccionados en Firestore
@@ -277,12 +314,17 @@ export default function Home({ usuario }) {
       });
 
       setEquipocreado(true);
+
     } catch (error) {
       console.error("Error al crear equipo:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Error al crear el equipo",
+        text: "Inténtalo de nuevo más tarde.",
+      });
     } finally {
       setGuardando(false);
       window.location.reload();
-
     }
   };
 

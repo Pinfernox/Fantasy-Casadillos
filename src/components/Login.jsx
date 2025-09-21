@@ -59,7 +59,7 @@ export const Login = () => {
           correo,
           puntos: 0,
           rol: 'usuario',
-          dinero: 100000000,
+          dinero: 40000000,
           equipo: {
             formacion: "2-1-1",
             titulares: [null, null, null, null], 
@@ -168,7 +168,7 @@ export const Login = () => {
           correo: user.email,
           puntos: 0,
           rol: 'usuario',
-          dinero: 100000000,
+          dinero: 40000000,
           equipo: {
             formacion: "2-1-1",
             titulares: [null, null, null, null], 

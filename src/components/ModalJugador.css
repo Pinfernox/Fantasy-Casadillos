@@ -227,6 +227,10 @@ hr {
   color: red;
 }
 
+.diferencia-precio .igual {
+  color: lightgray;
+}
+
 .modal-jugadorbody {
   padding: 1rem;
   display: grid;

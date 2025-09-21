@@ -1,8 +1,7 @@
 // CommonJS
-const { google }          = require("googleapis");
-const admin              = require("firebase-admin");
-const serviceAccount     = require("../serviceAccountKey.json");
-
+const { google } = require("googleapis");
+const admin = require("firebase-admin");
+const serviceAccount = require("../serviceAccountKey.json");
 
 // Inicializar Firebase Admin
 admin.initializeApp({
@@ -36,7 +35,6 @@ async function syncJugadores() {
     }
 
     for (const row of rows) {
-      // Ajusta los índices a las columnas de tu tabla
       const [
         id,
         nombre,
@@ -55,37 +53,55 @@ async function syncJugadores() {
       ] = row;
 
       const jugadorRef = db.collection("jugadores").doc(String(id));
-
-      // Comprobar si ya existe en Firestore
       const snap = await jugadorRef.get();
-      // Calcular stock dinámico en función de la nota
 
       let dueños = [];
       let historialPrecios = [];
 
-      // Convertimos el precio actual (del Excel)
       const nuevoPrecio = Number(String(precio).replace(",", ".")) || 0;
-      let stockLibre;
       const stockTotalNum = Number(String(stockTotal).replace(",", ".")) || 0;
+
+      let stockLibre;
 
       if (snap.exists) {
         const dataExistente = snap.data();
 
-        // Respetar valores actuales
-        stockLibre = dataExistente.stockLibre ?? stockTotal;
         dueños = dataExistente.dueños || [];
         historialPrecios = dataExistente.historialPrecios || [];
 
-        // Si cambia el precio -> guardar el anterior en el historial
-        if (dataExistente.precio !== undefined && dataExistente.precio !== nuevoPrecio) {
+        // 🔹 Si cambia el precio -> guardar el anterior en el historial
+        if (
+          dataExistente.precio !== undefined &&
+          dataExistente.precio !== nuevoPrecio
+        ) {
           historialPrecios.push({
             precio: dataExistente.precio,
             fecha: new Date().toISOString(),
           });
         }
+
+        // 🔹 Ajustar stock si el nuevo es mayor
+        const stockPrevio = dataExistente.stockTotal || 0;
+        stockLibre = dataExistente.stockLibre ?? stockPrevio;
+
+        if (stockTotalNum > stockPrevio) {
+          const diferencia = stockTotalNum - stockPrevio;
+          stockLibre += diferencia; // aumentar stockLibre en la misma cantidad
+          console.log(
+            `📈 Stock aumentado para ${nombre}: +${diferencia} (Total: ${stockTotalNum}, Libre: ${stockLibre})`
+          );
+        } else {
+          // mantener el stockLibre como estaba
+          stockLibre = dataExistente.stockLibre ?? stockTotalNum;
+        }
       } else {
-        // Si es jugador nuevo → usar el cálculo dinámico
-        stockLibre = stockTotal;
+        // Jugador nuevo → asignar valores iniciales
+        stockLibre = stockTotalNum;
+        historialPrecios.push({
+        precio: nuevoPrecio,
+        fecha: new Date().toISOString(),
+        });
+
       }
 
       const jugadorData = {
@@ -95,7 +111,7 @@ async function syncJugadores() {
         foto,
         posicion,
         valoracion,
-        nota: Number(nota.replace(",", ".")) || 0,
+        nota: Number(String(nota).replace(",", ".")) || 0,
         precio: nuevoPrecio,
         goles: Number(goles) || 0,
         asistencias: Number(asistencias) || 0,
@@ -103,7 +119,7 @@ async function syncJugadores() {
         puntosTotales: Number(puntos) || 0,
         puntosPorJornada: jornadas.map((j) => {
           const n = Number(String(j).replace(",", "."));
-          return isNaN(n) ? '-' : n;
+          return isNaN(n) ? "-" : n;
         }),
 
         // Campos de negocio
@@ -115,7 +131,6 @@ async function syncJugadores() {
         actualizadoEn: new Date().toISOString(),
       };
 
-      // Guardar en Firestore (merge = actualiza si ya existe)
       await jugadorRef.set(jugadorData, { merge: true });
       console.log(`✅ Jugador ${nombre} sincronizado.`);
     }

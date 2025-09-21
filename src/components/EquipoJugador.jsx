@@ -191,17 +191,6 @@ export default function EquipoJugador({ usuario }) {
     setMenu(!menu)
   }
 
-  // Función para abreviar el dinero
-  const abreviarDinero = (valor) => {
-    if (valor >= 1_000_000) {
-      return (valor / 1_000_000).toFixed(2) + 'M'
-    } else if (valor >= 1_000) {
-      return (valor / 1_000).toFixed(2) + 'K'
-    } else {
-      return valor.toFixed(2)
-    }
-  }
-
   const formatearDinero = (valor) => {
     return valor.toLocaleString('es-ES') + '€';
   };
@@ -262,7 +251,7 @@ export default function EquipoJugador({ usuario }) {
             </h2>
             {dinero !== null && (
               <p className="dinero-usuario">
-                💰<strong>{abreviarDinero(dinero)}</strong>
+                💰<strong>{formatearDinero(dinero)}</strong>
               </p>
             )}
           </div>

@@ -105,7 +105,7 @@ const refrescarMercado = async () => {
   const seleccionados = todos
     .filter(j => j.stockLibre > 0)
     .sort(() => 0.5 - Math.random())
-    .slice(0, 10);
+    .slice(0, 15);
 
   // Actualizar colección jugadores (restar stock y añadir "mercado")
   for (const j of seleccionados) {
