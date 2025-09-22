@@ -10,7 +10,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import ImagenProfile from '/SinPerfil.jpg'
 
 
-export default function ModalPerfilJugador({ jugador, openModal, setOpenModal, user }) {
+export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModal, setOpenModal, user }) {
   const auth = getAuth()
   const db = getFirestore()
   const storage = getStorage()
@@ -153,7 +153,7 @@ export default function ModalPerfilJugador({ jugador, openModal, setOpenModal, u
 
               </div>      
               <div className='precio-clausula'>
-                <small><span className='texto-blanco'>Claúsula:</span> {formatearDinero(jugador.precioClausula)}</small>
+                <small><span className='texto-blanco'>Claúsula:</span> {formatearDinero(clausulaPersonal)}</small>
               </div>
             </div>
 

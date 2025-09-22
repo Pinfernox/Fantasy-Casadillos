@@ -224,7 +224,6 @@ export default function Home({ usuario }) {
 
   };
 
-
 // --- Función para crear equipo ---
   const crearEquipo = async () => {
     try {
@@ -309,7 +308,14 @@ export default function Home({ usuario }) {
       // 4. Actualizar usuario en Firestore
       const userRef = doc(db, "usuarios", usuario.uid);
       await updateDoc(userRef, {
-        "equipo.titulares": seleccionados.map((j) => j.id),
+        "equipo.titulares": seleccionados.map((j) => ({
+          jugadorId: j.id,
+          clausulaPersonal: j.clausulaInicial ?? j.precio,
+        })),
+        "equipo.banquillo":[
+          { jugadorId: null, clausulaPersonal: null },
+          { jugadorId: null, clausulaPersonal: null },
+        ], 
         equipocreado: true,
       });
 
@@ -364,7 +370,11 @@ export default function Home({ usuario }) {
     }
 
     const fetchJugadores = async () => {
-      const allIds = [...(titulares || []), ...(banquillo || [])].filter(Boolean);
+      const allIds = [
+        ...(titulares?.map(t => t?.jugadorId) || []),
+        ...(banquillo?.map(b => b?.jugadorId) || []),
+      ].filter(Boolean);
+
 
       if (allIds.length === 0) return;
 
@@ -546,7 +556,12 @@ export default function Home({ usuario }) {
           (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
         }
         {openModalJugador && jugadorSeleccionado &&           
-        (<ModalPerfilJugador jugador={jugadorSeleccionado} openModal= {openModalJugador} setOpenModal={setOpenModalJugador} user={usuario} />)}
+        (<ModalPerfilJugador jugador={jugadorSeleccionado}     
+          clausulaPersonal={
+            usuario?.equipo?.titulares?.find(j => j.jugadorId === jugadorSeleccionado.id)?.clausulaPersonal ??
+            usuario?.equipo?.banquillo?.find(j => j.jugadorId === jugadorSeleccionado.id)?.clausulaPersonal
+          } 
+          openModal= {openModalJugador} setOpenModal={setOpenModalJugador} user={usuario} />)}
 
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
           {/* Selector de formaciones */}
@@ -573,9 +588,13 @@ export default function Home({ usuario }) {
           </div>
           <div className="campo">
             {FORMACIONES[formacionSeleccionada]?.map((pos, index) => {
-              const jugadorId = titularesLocal[index];
-              const jugador = jugadores.find(j => j.id === jugadorId);
-              const esSeleccionado =
+            const titularSlot = titularesLocal[index];
+            const jugadorId = titularSlot?.jugadorId || null;
+            const clausula = titularSlot?.clausulaPersonal || null;
+
+            const jugador = jugadores.find(j => j.id === jugadorId);
+
+            const esSeleccionado =
                 jugadorSeleccionadoEdicion?.index === index &&
                 jugadorSeleccionadoEdicion?.tipo === "titulares";
 
@@ -630,7 +649,8 @@ export default function Home({ usuario }) {
           <div className="banquillo-section">
             <h3 className="banquillo-title">⚽ Banquillo</h3>
             <div className="banquillo-container">
-              {banquilloLocal.map((jugadorId, idx) => {
+              {banquilloLocal.map((slot, idx) => {
+                const jugadorId = slot?.jugadorId || null;
                 const jugador = jugadores.find(j => j.id === jugadorId);
                 const esSeleccionado =
                   jugadorSeleccionadoEdicion?.index === idx &&

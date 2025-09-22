@@ -163,9 +163,10 @@ export default function EquipoJugador({ usuario }) {
 
       try {
         const ids = [
-          ...(jugadorData.equipo.titulares || []),
-          ...(jugadorData.equipo.banquillo || [])
-        ].filter(id => typeof id === 'string' && id); // elimina null, undefined y no strings
+          ...(jugadorData.equipo.titulares || []).map(s => s?.jugadorId).filter(Boolean),
+          ...(jugadorData.equipo.banquillo || []).map(s => s?.jugadorId).filter(Boolean),
+        ];
+
 
         if (ids.length === 0) {
           setJugadores([]);
@@ -286,7 +287,12 @@ export default function EquipoJugador({ usuario }) {
           (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
         }
         {openModalJugadorUsuario && jugadorSeleccionado &&           
-        (<ModalPerfilJugadorUsuario jugador={jugadorSeleccionado} openModal= {openModalJugadorUsuario} setOpenModal={setOpenModalJugadorUsuario} />)}
+        (<ModalPerfilJugadorUsuario jugador={jugadorSeleccionado} 
+          clausulaPersonal={
+            jugadorData?.equipo?.titulares?.find(j => j.jugadorId === jugadorSeleccionado.id)?.clausulaPersonal ??
+            jugadorData?.equipo?.banquillo?.find(j => j.jugadorId === jugadorSeleccionado.id)?.clausulaPersonal
+          } 
+          openModal= {openModalJugadorUsuario} setOpenModal={setOpenModalJugadorUsuario} />)}
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 , marginTop: '0rem'}}>
           <div className="datos-equipo">
             <p><strong>Formación:</strong> <small>{formacionSeleccionada}</small> </p>
@@ -327,8 +333,9 @@ export default function EquipoJugador({ usuario }) {
           <div className="campo">
             {/* Jugadores según formación */}
             {FORMACIONES[formacionSeleccionada]?.map((pos, index) => {
-              const jugadorIdActual = titulares[index];
-              const jugador = jugadores.find(j => j.id === jugadorIdActual);
+              const slot = titulares[index]; // { jugadorId, clausulaPersonal }
+              const jugador = jugadores.find(j => j.id === slot?.jugadorId);
+
 
               return (
                 <div
@@ -402,9 +409,8 @@ export default function EquipoJugador({ usuario }) {
           <div className="banquillo-section">
             <h3 className="banquillo-title">⚽ Banquillo</h3>
             <div className="banquillo-container">
-              {banquillo.map((jugadorId, idx) => {
-                const jugador = jugadores.find(j => j.id === jugadorId);
-
+              {banquillo.map((slot, idx) => {
+                const jugador = jugadores.find(j => j.id === slot?.jugadorId);
                 return (
                   <div className="banquillo-slot">
                     {jugador ? (

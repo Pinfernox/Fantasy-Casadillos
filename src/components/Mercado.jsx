@@ -418,12 +418,12 @@ const refrescarMercado = async () => {
                           <div className="diferencia-precio">
                             {(() => {
                               const historial = j.historialPrecios || [];
-                              if (historial.length === 0) return <small>(±10.000.000€)</small>;
+                              if (historial.length === 0) return <small>(±0€)</small>;
                               const ultimoPrecio = historial[historial.length - 1].precio || 0;
                               const diferencia = j.precio - ultimoPrecio;
                               const signo = diferencia > 0 ? "+" : diferencia < 0 ? "-" : "±";
                               return (
-                                <small className={diferencia >= 0 ? "subida" : "bajada"}>
+                                <small className={diferencia > 0 ? "subida" : diferencia < 0 ? "bajada" : "igual"}>
                                   ({signo}{formatearDinero(Math.abs(diferencia))})
                                 </small>
                               );

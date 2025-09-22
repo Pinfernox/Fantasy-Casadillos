@@ -62,8 +62,16 @@ export const Login = () => {
           dinero: 40000000,
           equipo: {
             formacion: "2-1-1",
-            titulares: [null, null, null, null], 
-            banquillo: [null, null],
+            titulares: [
+              { jugadorId: null, clausulaPersonal: null },
+              { jugadorId: null, clausulaPersonal: null },
+              { jugadorId: null, clausulaPersonal: null },
+              { jugadorId: null, clausulaPersonal: null }
+            ],
+            banquillo: [
+              { jugadorId: null, clausulaPersonal: null },
+              { jugadorId: null, clausulaPersonal: null },
+            ],            
             capitan: null
           },
           fotoPerfil: "https://res.cloudinary.com/drmoefeeq/image/upload/v1757670238/SinPerfil_w61dic.jpg",
@@ -171,8 +179,16 @@ export const Login = () => {
           dinero: 40000000,
           equipo: {
             formacion: "2-1-1",
-            titulares: [null, null, null, null], 
-            banquillo: [null, null],
+            titulares: [
+              { jugadorId: null, clausulaPersonal: null },
+              { jugadorId: null, clausulaPersonal: null },
+              { jugadorId: null, clausulaPersonal: null },
+              { jugadorId: null, clausulaPersonal: null }
+            ],
+            banquillo: [
+              { jugadorId: null, clausulaPersonal: null },
+              { jugadorId: null, clausulaPersonal: null },
+            ],            
             capitan: null
           },
           fotoPerfil: "https://res.cloudinary.com/drmoefeeq/image/upload/v1757670238/SinPerfil_w61dic.jpg",
