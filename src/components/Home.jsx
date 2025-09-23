@@ -259,6 +259,7 @@ export default function Home({ usuario }) {
       );
 
       let seleccionados = [];
+      let bonusDinero = 0; // 👈 aquí guardamos si hay que dar 10M
 
       if (jugadoresCaros.length >= 1 && jugadoresBaratos.length >= 3) {
         // Caso ideal: 1 caro + 3 baratos
@@ -292,6 +293,11 @@ export default function Home({ usuario }) {
           seleccionados.push(jugadoresPermitidos[idx]);
           jugadoresPermitidos.splice(idx, 1);
         }
+
+        // 👉 Si TODOS los seleccionados son baratos (≤ 15M), añadimos bonus
+        if (seleccionados.every((j) => j.precio <= 15000000)) {
+          bonusDinero = 10000000; // +10M
+        }
       }
 
       // 3. Actualizar jugadores seleccionados en Firestore
@@ -312,11 +318,12 @@ export default function Home({ usuario }) {
           jugadorId: j.id,
           clausulaPersonal: j.clausulaInicial ?? j.precio,
         })),
-        "equipo.banquillo":[
+        "equipo.banquillo": [
           { jugadorId: null, clausulaPersonal: null },
           { jugadorId: null, clausulaPersonal: null },
-        ], 
+        ],
         equipocreado: true,
+        ...(bonusDinero > 0 && { dinero: increment(bonusDinero) }), // 👈 añade el dinero solo si corresponde
       });
 
       setEquipocreado(true);

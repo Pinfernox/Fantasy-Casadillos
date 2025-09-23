@@ -33,6 +33,7 @@ export default function Mercado({ usuario }) {
   const [menu, setMenu] = useState(false)
   const fotoURL = usuario?.fotoPerfil || ImagenProfile
   const titulares = usuario?.equipo?.titulares || [];
+  const [loadingMercado, setLoadingMercado] = useState(false);
   const banquillo = usuario?.equipo?.banquillo || [];
   const [jugadoresMercado, setJugadoresMercado] = useState([]);
   const [jugadoresUsuario, setJugadoresUsuario] = useState([]);    // Estado inicial: la formación actual del usuario
@@ -65,82 +66,125 @@ export default function Mercado({ usuario }) {
       const snap = await getDoc(ref);
 
       if (snap.exists()) {
-        // si ya existe, cargamos los jugadores
         const data = snap.data();
-        setJugadoresMercado(data.jugadores || []);
+        // Aseguramos que todos tienen vendedor
+        const jugadoresSistema = (data.jugadores || []).map(j => ({
+          ...j,
+          vendedor: j.vendedor || "Fantasy Casadillos",
+        }));
+        setJugadoresMercado(jugadoresSistema);
       } else {
-        // si no existe, solo lo crean los admin al pulsar el botón
         setJugadoresMercado([]); 
-        console.log("No existe mercado, espera a que un admin lo actualice");
       }
+
     };
 
     cargarMercado();
   }, []);
 
-const refrescarMercado = async () => {
-  const refMercado = doc(db, "mercado", "actual");
-  const snapMercado = await getDoc(refMercado);
+  useEffect(() => {
+  const cargarMercado = async () => {
+    const ref = doc(db, "mercado", "actual");
+    const snap = await getDoc(ref);
 
-  if (snapMercado.exists()) {
-    const data = snapMercado.data();
+    let jugadoresSistema = [];
+    if (snap.exists()) {
+      const data = snap.data();
+      jugadoresSistema = data.jugadores || [];
+    }
 
-    // Devolver stock de jugadores no vendidos
-    for (const j of data.jugadores) {
-      if (j.stock > 0) {
+    // --- Cargar jugadores puestos por usuarios ---
+    const refUsuarios = collection(db, "mercado/actual/usuarios");
+    const snapUsuarios = await getDocs(refUsuarios);
+    const jugadoresUsuarios = snapUsuarios.docs.map(d => ({
+      idVenta: d.id,
+      ...d.data(),
+      vendedor: d.data().vendedorNick || "Usuario",
+    }));
+
+    // Unimos ambos
+    setJugadoresMercado([...jugadoresSistema, ...jugadoresUsuarios]);
+  };
+
+  cargarMercado();
+  }, []);
+
+  const refrescarMercado = async () => {
+    setLoadingMercado(true); // 👈 empieza la carga
+    try {
+      const refMercado = doc(db, "mercado", "actual");
+      const snapMercado = await getDoc(refMercado);
+
+      if (snapMercado.exists()) {
+        const data = snapMercado.data();
+
+        // ⚠️ SOLO devolvemos stock de jugadores del sistema
+        for (const j of data.jugadores) {
+          if (j.stock > 0) {
+            const jugadorRef = doc(db, "jugadores", j.idJugador);
+            await updateDoc(jugadorRef, {
+              stockLibre: increment(j.stock),
+              dueños: arrayRemove("mercado"),
+            });
+          }
+        }
+      }
+
+      // Nuevo mercado del sistema
+      const snapJugadores = await getDocs(collection(db, "jugadores"));
+      const todos = snapJugadores.docs.map(d => ({ idJugador: d.id, ...d.data() }));
+
+      const seleccionados = todos
+        .filter(j => j.stockLibre > 0)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 15);
+
+      for (const j of seleccionados) {
         const jugadorRef = doc(db, "jugadores", j.idJugador);
         await updateDoc(jugadorRef, {
-          stockLibre: increment(j.stock), // devolvemos stock disponible
-          dueños: arrayRemove("mercado"), // quitamos el dueño "mercado"
+          stockLibre: increment(-1),
+          dueños: arrayUnion("mercado"),
         });
       }
+
+      await updateDoc(refMercado, {
+        jugadores: seleccionados.map(j => ({
+          idJugador: j.idJugador,
+          nombre: j.nombre,
+          precio: j.precio,
+          precioClausula: j.precioClausula,
+          goles: j.goles,
+          asistencias: j.asistencias,
+          valoracion: j.valoracion,
+          nota: j.nota,
+          puntos: j.puntosTotales,
+          partidos: j.partidos,
+          foto: j.foto,
+          posicion: j.posicion,
+          vendedor: "Fantasy Casadillos",
+          stock: 1,
+          historialPrecios: j.historialPrecios || [],
+          puntosPorJornada: j.puntosPorJornada || [],
+        })),
+        ultimaActualizacion: serverTimestamp(),
+      });
+
+      // jugadores de usuarios
+      const refUsuarios = collection(db, "mercado/actual/usuarios");
+      const snapUsuarios = await getDocs(refUsuarios);
+      const jugadoresUsuarios = snapUsuarios.docs.map(d => ({
+        idVenta: d.id,
+        ...d.data(),
+        vendedor: d.data().vendedorNick || "Usuario",
+      }));
+
+      setJugadoresMercado([...seleccionados, ...jugadoresUsuarios]);
+    } catch (error) {
+      console.error("Error al refrescar mercado:", error);
+    } finally {
+      setLoadingMercado(false); // 👈 termina la carga
     }
-  }
-
-  // Ahora seleccionamos nuevos jugadores para el mercado
-  const snapJugadores = await getDocs(collection(db, "jugadores"));
-  const todos = snapJugadores.docs.map(d => ({ idJugador: d.id, ...d.data() }));
-
-  // Elegir 10 aleatorios que aún tengan stock libre
-  const seleccionados = todos
-    .filter(j => j.stockLibre > 0)
-    .sort(() => 0.5 - Math.random())
-    .slice(0, 15);
-
-  // Actualizar colección jugadores (restar stock y añadir "mercado")
-  for (const j of seleccionados) {
-    const jugadorRef = doc(db, "jugadores", j.idJugador);
-    await updateDoc(jugadorRef, {
-      stockLibre: increment(-1), // restamos 1 stock disponible
-      dueños: arrayUnion("mercado"), // añadimos dueño mercado
-    });
-  }
-
-  // Guardar nuevo mercado
-  await setDoc(refMercado, {
-    jugadores: seleccionados.map(j => ({
-      idJugador: j.idJugador,
-      nombre: j.nombre,
-      precio: j.precio,
-      precioClausula: j.precioClausula,
-      goles: j.goles,
-      asistencias: j.asistencias,
-      valoracion: j.valoracion,
-      nota: j.nota,
-      puntos: j.puntosTotales,
-      partidos: j.partidos,
-      foto: j.foto,
-      posicion: j.posicion,
-      stock: 1, // cada jugador en el mercado representa una unidad
-      historialPrecios: j.historialPrecios || [],
-      puntosPorJornada: j.puntosPorJornada || [],
-    })),
-    ultimaActualizacion: serverTimestamp(),
-  });
-
-  setJugadoresMercado(seleccionados);
-};
-
+  };
 
   // cargar titulares usuario
   useEffect(() => {
@@ -157,6 +201,28 @@ const refrescarMercado = async () => {
 
     fetchJugadoresUsuario();
   }, [titulares]);
+
+  // para que se reflejen los cambios sin actualizar
+  useEffect(() => {
+    const db = getFirestore(appFirebase);
+    const mercadoRef = doc(db, "mercado", "actual");
+
+    // Nos suscribimos a cambios en el documento
+    const unsubscribe = onSnapshot(mercadoRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        const jugadoresSistema = (data.jugadores || []).map(j => ({
+          ...j,
+          vendedor: j.vendedor || "Fantasy Casadillos",
+        }));
+        setJugadoresMercado(jugadoresSistema);
+      } else {
+        setJugadoresMercado([]);
+      }
+    });
+
+    return () => unsubscribe(); // cleanup al desmontar
+  }, []);
 
   // 🛒 Comprar jugador
   const comprarJugador = async (jugador) => {
@@ -212,17 +278,6 @@ const refrescarMercado = async () => {
         return pos || "Sin posición";
     }
   };
-
-  // Función para abreviar el dinero
-  const abreviarDinero = (valor) => {
-    if (valor >= 1_000_000) {
-      return (valor / 1_000_000).toFixed(2) + 'M'
-    } else if (valor >= 1_000) {
-      return (valor / 1_000).toFixed(2) + 'K'
-    } else {
-      return valor.toFixed(2)
-    }
-  }
 
   const formatearDinero = (valor) => {
     if (typeof valor !== "number" || isNaN(valor)) {
@@ -324,7 +379,7 @@ const refrescarMercado = async () => {
             </h2>
             {dinero !== null && (
               <p className="dinero-usuario">
-                💰<strong>{abreviarDinero(dinero)}</strong>
+                💰<strong>{formatearDinero(dinero)}</strong>
               </p>
             )}
           </div>
@@ -378,13 +433,20 @@ const refrescarMercado = async () => {
         </div>
   
         {tabActiva === "mercado" && (<div className="mercado-jugadores">
-          {usuario?.rol === "admin" && (
-              <button 
-                onClick={refrescarMercado} 
-                className="btn-actualizar-mercado">
-               ⟳ Actualizar mercado
-              </button>
-          )}
+          {/* {usuario?.rol === "admin" && (
+            <button 
+              onClick={refrescarMercado} 
+              className="btn-actualizar-mercado"
+              disabled={loadingMercado} // desactivar mientras carga
+            >
+            {loadingMercado ? <>⏳ Actualizando <span className="spinner"></span></> : "⟳ Actualizar mercado"}
+            </button>
+          )}*/}
+          {jugadoresMercado.length === 0 ? (
+            <div className="sin-mercado">
+              <p>No hay mercado disponible</p>
+            </div>
+          ) : (
           <ul className="lista-jugadores">
             {jugadoresMercado.map((j) => (
               <li key={j.idJugador} className="jugador-card"   
@@ -408,7 +470,6 @@ const refrescarMercado = async () => {
                         <div className={`posicion-texto ${j.posicion}`}>
                           <small>{traducirPosicion(j.posicion)}</small>
                         </div>
-
                         {/* Contenedor de precio + diferencia */}
                         <div className='precio-container'>
                           <div className='precio'>
@@ -430,9 +491,9 @@ const refrescarMercado = async () => {
                             })()}
                           </div>
 
-                        </div>      
+                        </div>
+                        <small className="texto-vendedor">Vendedor:&nbsp;<span className="vendedor">{j.vendedor}</span></small>
                       </div>
-
                       {/* Nuevo bloque debajo */}
                       <div className="estadisticas-extra">
                         {/* Últimas 5 jornadas */}
@@ -499,7 +560,7 @@ const refrescarMercado = async () => {
 
               </li>
             ))}
-          </ul>
+          </ul>)}
         </div>)}
 
         {tabActiva === "operaciones" && (

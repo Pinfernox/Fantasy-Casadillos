@@ -68,7 +68,7 @@ hr {
 
 .modal-avatar {
   position: relative;
-  width: 64px; height: 64px;
+  width: 80px !important; height: 80px !important;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
@@ -130,6 +130,7 @@ hr {
   padding: 0;
   font-weight: bolder;
   margin-left: 0.3rem;
+  margin-top: 0;
 }
 
 .link-style:hover {
@@ -273,12 +274,42 @@ hr {
   margin: 1rem;
 }
 
+.modal-admin-btn {
+  background: linear-gradient(145deg, #d4d4d4, #f0f0f0); /* tono plateado degradado */
+  color: #1a1a1a;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.modal-admin-btn:hover {
+  background: linear-gradient(145deg, #f0f0f0, #d4d4d4); /* invierte degradado al pasar el mouse */
+  box-shadow: 0 5px 10px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.modal-admin-btn:active {
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  transform: translateY(0);
+}
+
+
 @media screen and (max-width: 500px) {
 
   .field-group small{
-  font-size: 0.7rem;
+    font-size: 0.7rem;
   }
-
+  .modal-userinfo h2 {
+    margin: 0; 
+    font-size: 1rem;
+    color: white;
+    font-weight: bold;
+  }
   .ultimas-jornadas {
     justify-content: center !important;
     flex-wrap: wrap;
@@ -295,11 +326,17 @@ hr {
     font-size: 11px;
   }
 
-  .modal-save-btn {
-  font-size: 0.8rem;
+  .modal-save-btn , .modal-delete-btn{
+    padding: 0.5rem 0.6rem !important;
+    font-size: 0.9rem !important;
+    margin: 0.3rem !important;
   }
+}
 
-  .modal-delete-btn{
-    font-size: 0.8rem;
+@media screen and (max-width: 350px){
+  .modal-save-btn , .modal-delete-btn{
+    padding: 0.5rem 0.5rem !important;
+    font-size: 0.85rem !important;
+    margin: 0.3rem !important;
   }
 }

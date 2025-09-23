@@ -8,6 +8,7 @@ import { getAuth, updateProfile, updateEmail, updatePassword, deleteUser, EmailA
 import { collection, query, where, deleteDoc, getFirestore, doc, updateDoc, getDoc, getDocs, arrayRemove, increment } from 'firebase/firestore'
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import ImagenProfile from '/SinPerfil.jpg'
+import { refrescarMercado } from "../utils/mercadoUtils";
 
 
 export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
@@ -298,7 +299,7 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
             <span className="modal-avatar-overlay">Editar</span>
           </label>
           <div className="modal-userinfo">
-            <h2>{window.innerWidth < 450 ? abreviarNick(usuario.nick) : usuario.nick}</h2>
+            <h2>{usuario.nick}</h2>
             <small>{usuario.correo}</small>
             <small>
               Dinero: <span className="dinero-verde">{formatearDinero(usuario.dinero)}</span>
@@ -358,13 +359,12 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
             </button>
             </div>
           </div>
-
           <div style={{ textAlign: 'left' }}>
             <button type="button" onClick={recuperarContrasena} className="link-style">
               Cambiar contraseña
             </button>
-          </div>
 
+          </div>
         </div>
 
         <div className="modal-footer">
@@ -381,6 +381,34 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
             disabled={isSaving}>
             Borrar cuenta
           </button>
+
+          
+            {usuario.rol === "admin" && (
+              <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
+                <button 
+                  type="button" 
+                  className="modal-admin-btn"
+                  onClick={async () => {
+                    try {
+                      await refrescarMercado(); // función que ya tienes creada
+                      Swal.fire("Mercado actualizado", "Se ha refrescado el mercado correctamente", "success");
+                    } catch (err) {
+                      console.error(err);
+                      Swal.fire("Error", "No se pudo actualizar el mercado", "error");
+                    }
+                  }}>
+                  ⟳ Actualizar mercado
+                </button>
+
+                <button 
+                  type="button" 
+                  className="modal-admin-btn"
+                  onClick={() => Swal.fire("Aviso", "Funcionalidad aún no implementada", "info")}
+                >
+                  Repartir puntos
+                </button>
+              </div>
+            )}
         </div>
       </div>
     </div>

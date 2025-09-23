@@ -210,6 +210,15 @@ a {
   max-height: 60vh; /* ajusta según tu diseño */
   transition: all 0.3s ease;
 }
+.sin-mercado {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px; /* o 100% según quieras */
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #ccc;
+}
 
 @keyframes overlayFadeIn {
   from { opacity: 0; }
@@ -334,6 +343,14 @@ hr {
   color: darkgreen; /* amarillo para portero */
 }
 
+.texto-vendedor{
+  font-weight: bold;
+  display: flex;
+}
+.vendedor{
+  font-weight: lighter;
+}
+
 .estadisticas-extra {
   display: flex;
   justify-content: space-between;
@@ -436,6 +453,7 @@ hr {
   text-align: center;
   padding-top: 0.5rem;
 }
+
 .modal-save-btn {
   background: #0069d9;
   color: white;
@@ -446,10 +464,12 @@ hr {
   font-size: 1rem;
   margin: 1rem;
 }
+
 .modal-save-btn:disabled {
   opacity: 0.6;
   cursor: default;
 }
+
 .modal-delete-btn{
   background: red;
   color: white;
@@ -460,6 +480,7 @@ hr {
   font-size: 1rem;
   margin: 1rem;
 }
+
 .jugador-card {
   transition: transform 0.3s ease;
   cursor: pointer;
@@ -512,6 +533,7 @@ hr {
   justify-content: center;
   text-align: center;
 }
+
 .btn-comprar:hover{
     transform: translateY(-4px) scale(1.03);
   box-shadow:
@@ -605,6 +627,23 @@ hr {
   transition: all 0.3s ease;
 }
 
+.spinner {
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-left: 6px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+
 @media screen and (max-width: 500px) {
 .triangulo {
     right: 7.2rem;
@@ -679,6 +718,9 @@ hr {
   }
   .posicion-texto{
       justify-content: center;
+  }
+  .texto-vendedor{
+    justify-content: center;
   }
   .estadisticas-extra {
     flex-direction: column;

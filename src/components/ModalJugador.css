@@ -231,6 +231,15 @@ hr {
   color: lightgray;
 }
 
+.texto-vendedor{
+  font-weight: bold;
+  display: flex;
+  color: white;
+}
+.vendedor{
+  font-weight: lighter;
+}
+
 .modal-jugadorbody {
   padding: 1rem;
   display: grid;
@@ -395,6 +404,10 @@ hr {
   }
   .posicion-texto{
       justify-content: center;
+  }
+  
+  .texto-vendedor{
+    justify-content: center;
   }
   .estadisticas-extra {
     flex-direction: column;
