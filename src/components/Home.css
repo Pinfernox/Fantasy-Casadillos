@@ -152,6 +152,13 @@ a {
   border-top-right-radius: 6px;
 }
 
+.btn-admin{
+  border-top: 1px solid rgb(0, 0, 0, 0.15) !important;
+  color: black;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  border: none;
+}
 .info-profile {
   display: flex;
   flex-direction: column;

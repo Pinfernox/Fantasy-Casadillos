@@ -1,0 +1,92 @@
+/* capa semitransparente que bloquea todo */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  /* animación de entrada */
+  animation: overlayFadeIn 0.3s ease-out;
+}
+
+.modal-perfil {
+  position: relative;
+  background: rgb(1, 1, 33);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 30rem;
+  padding: 1rem 0 1.5rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  margin: 0 auto;
+  max-height: 80vh;   /* límite de alto */
+  overflow-y: auto;   /* scroll si se pasa */
+  box-sizing: border-box; /* asegura que el padding no se sume al ancho */
+  /* animación */
+  animation: modalFadeIn 0.35s ease-out;
+  transform-origin: center;
+}
+
+/* cierre */
+.modal-close-btn {
+  position: absolute;
+  top: 8px; right: 12px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: white;
+}
+
+.modal-footer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  padding: 1rem;
+  justify-items: center;
+  margin-top: 1rem;
+}
+
+.modal-admin-btn {
+  background: linear-gradient(145deg, #d4d4d4, #f0f0f0); /* tono plateado degradado */
+  color: #1a1a1a;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  width: 90%; /* ocupa todo el ancho de su celda */
+  min-width: 140px; /* opcional: asegura un mínimo visual */
+  max-width: 160px; 
+}
+
+.modal-admin-btn:hover {
+  background: linear-gradient(145deg, #f0f0f0, #d4d4d4); /* invierte degradado al pasar el mouse */
+  box-shadow: 0 5px 10px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.modal-admin-btn:active {
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  transform: translateY(0);
+}
+
+@media screen and (max-width: 350px) {
+    .modal-admin-btn {
+        padding: 4px 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        width: 100%; /* ocupa todo el ancho de su celda */
+        min-width: 100px; /* opcional: asegura un mínimo visual */
+        max-width: 100px; 
+    }
+}

@@ -88,7 +88,7 @@ console.log("DEBUG jugador en modal:", jugador);
             <img src={fotoURL} alt="Jugador" />
           </label>
           <div className="modal-jugadorinfo">
-            <h2>{window.innerWidth < 450 ? (jugador.nombre) : jugador.nombre}</h2>
+            <h2>{jugador.nombre}</h2>
             <div className='posicion-precio'>
               <div className={`posicion-texto ${jugador.posicion}`}>
                 <small>{traducirPosicion(jugador.posicion)}</small>

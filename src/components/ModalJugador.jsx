@@ -16,7 +16,6 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
   const storage = getStorage()
   const fotoURL = jugador?.foto || ImagenProfile
   const [capitanId, setCapitanId] = useState(null)
-
   const traducirPosicion = (pos) => {
     switch (pos) {
       case "DEF":
@@ -124,7 +123,7 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
             <img src={fotoURL} alt="Jugador" />
           </label>
           <div className="modal-jugadorinfo">
-            <h2>{window.innerWidth < 450 ? (jugador.nombre) : jugador.nombre}</h2>
+            <h2>{jugador.nombre}</h2>
             <div className='posicion-precio'>
               <div className={`posicion-texto ${jugador.posicion}`}>
                 <small>{traducirPosicion(jugador.posicion)}</small>
@@ -227,13 +226,38 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
 
         <hr/>
         <div className="modal-footer">
-            <button
-              className="btn-accion"
-              disabled={jugador.stock <= 0}
-              onClick={() => {
-              }}>
-              Vender
-            </button>
+          <button
+            className="btn-accion"
+            disabled={jugador.stock <= 0}
+            onClick={() => {
+              const ventaInmediata = jugador.precio * 0.6;
+
+              Swal.fire({
+                title: "¿Cómo quieres vender?",
+                showDenyButton: true,
+                confirmButtonText: "💰 Poner en el Mercado",
+                denyButtonText: `Venta Directa\n(<span style="color:#2ecc71">+${ventaInmediata.toLocaleString(
+                  "es-ES"
+                )}€</span>)`,
+                confirmButtonColor: "#28a745",
+                denyButtonColor: "#4878a4ff",
+                background: "#1e1e1e",
+                color: "#fff",
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  // 👉 lógica para poner en mercado
+                  console.log("Venta en mercado");
+                } else if (result.isDenied) {
+                  // 👉 lógica para venta directa
+                  console.log("Venta directa por", ventaInmediata);
+                  // ejemplo: sumarle dinero al usuario y devolver stock
+                }
+              });
+            }}
+          >
+            Vender
+          </button>
+
             <button
               className="btn-capitan"
               disabled={capitanId === jugador.id}

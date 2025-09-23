@@ -21,6 +21,7 @@ import ImagenProfile from '/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
 import "./Mercado.css";
 import ModalPerfil from "./ModalPerfil"
+import ModalAdmin from './ModalAdmin'
 import ModalJugadorMercado from "./ModalJugadorMercado";
 
 const db = getFirestore(appFirebase);
@@ -40,6 +41,7 @@ export default function Mercado({ usuario }) {
   const [guardando, setGuardando] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [openModalJugadorMercado, setOpenModalJugadorMercado] = useState(false)
+  const [openModalAdmin, setOpenModalAdmin] = useState(false)
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)
   const [menuActivo, setMenuActivo] = useState(false);
   const refMenu = useRef(null);
@@ -224,8 +226,8 @@ export default function Mercado({ usuario }) {
     return () => unsubscribe(); // cleanup al desmontar
   }, []);
 
-  // 🛒 Comprar jugador
-  const comprarJugador = async (jugador) => {
+  // 🛒 Pujar jugador
+  const pujarJugador = async (jugador) => {
     if (jugador.stock <= 0) {
       alert("Ya no queda stock de este jugador");
       return;
@@ -369,6 +371,8 @@ export default function Mercado({ usuario }) {
                   <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
                   
                   <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
+
+                  {usuario?.rol === 'admin' && <button className="btn-admin" onClick={() => { setOpenModalAdmin(true); setMenuActivo(false); }}>⚙️ Admin</button>}
               </div>
             )}
           </div>
@@ -412,6 +416,9 @@ export default function Mercado({ usuario }) {
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
         {openModal && 
           (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
+        }
+        {openModalAdmin &&       
+          (<ModalAdmin usuario={usuario} openModal= {openModalAdmin} setOpenModal={setOpenModalAdmin}/>)
         }
         {openModalJugadorMercado && jugadorSeleccionado &&           
           (<ModalJugadorMercado jugador={jugadorSeleccionado} openModal= {openModalJugadorMercado} setOpenModal={setOpenModalJugadorMercado} />)}
@@ -540,20 +547,9 @@ export default function Mercado({ usuario }) {
                       disabled={j.stock <= 0}
                       onClick={(e) => {
                         e.stopPropagation(); // evita que se abra el modal
-                        comprarJugador(j);
-                      }}>
-                      Comprar
-                    <br />
-                      <small className="precio-compra">(-{formatearDinero(j.precio)})</small>
-                    </button>
-                    <button
-                      className="btn-comprar"
-                      disabled={j.stock <= 0}
-                      onClick={(e) => {
-                        e.stopPropagation(); // evita que se abra el modal
-                        comprarJugador(j);
+                        pujarJugador(j);
                       }}>                      
-                      Pujar                    
+                      Pujar por el jugador                    
                     </button>
                   </div>
                 </div>

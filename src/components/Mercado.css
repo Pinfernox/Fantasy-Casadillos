@@ -510,8 +510,7 @@ hr {
 }
 
 .btn-comprar {
-  min-width: 95px;       /* ajusta según tu diseño */
-  min-height: 57px;       /* suficiente para texto + precio */
+
   padding: 0.4rem 0.8rem;
   background: linear-gradient(
     145deg,

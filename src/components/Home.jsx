@@ -20,6 +20,7 @@ import Fondo from '../assets/fondo.png'
 import "./Home.css";
 import ModalPerfil from "./ModalPerfil"
 import ModalPerfilJugador from "./ModalJugador";
+import ModalAdmin from './ModalAdmin'
 import Swal from "sweetalert2";
 
 const db = getFirestore(appFirebase);
@@ -96,6 +97,7 @@ export default function Home({ usuario }) {
   const [equipocreado, setEquipocreado] = useState(usuario?.equipocreado);
   const [openModal, setOpenModal] = useState(false)
   const [openModalJugador, setOpenModalJugador] = useState(false)
+  const [openModalAdmin, setOpenModalAdmin] = useState(false)
   const [menuActivo, setMenuActivo] = useState(false);
   const refMenu = useRef(null);
   const logout = () => signOut(auth);
@@ -295,7 +297,7 @@ export default function Home({ usuario }) {
         }
 
         // 👉 Si TODOS los seleccionados son baratos (≤ 15M), añadimos bonus
-        if (seleccionados.every((j) => j.precio <= 15000000)) {
+        if (seleccionados.every((j) => j.precio < 15000000)) {
           bonusDinero = 10000000; // +10M
         }
       }
@@ -418,7 +420,6 @@ export default function Home({ usuario }) {
               alt="Foto de perfil"
               onClick={() => setMenuActivo(!menuActivo)} // toggle con clic
               onMouseEnter={() => setMenuActivo(true)} // hover
-
             />
 
             {menuActivo && (
@@ -427,9 +428,12 @@ export default function Home({ usuario }) {
                 ref={refMenu}
                 onMouseLeave={() => setMenuActivo(false)} // solo se cierra al salir del menú
               >
-                <div className="triangulo" />
+              <div className="triangulo" />
                   <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
+                  
                   <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
+
+                  {usuario?.rol === 'admin' && <button className="btn-admin" onClick={() => { setOpenModalAdmin(true); setMenuActivo(false); }}>⚙️ Admin</button>}
               </div>
             )}
           </div>
@@ -471,7 +475,12 @@ export default function Home({ usuario }) {
 
       <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
-
+        {openModal && 
+          (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
+        }
+        {openModalAdmin &&       
+          (<ModalAdmin usuario={usuario} openModal= {openModalAdmin} setOpenModal={setOpenModalAdmin}/>)
+        }
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <div className="campo">
             <button
@@ -518,6 +527,8 @@ export default function Home({ usuario }) {
                   <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
                   
                   <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
+
+                  {usuario?.rol === 'admin' && <button className="btn-admin" onClick={() => { setOpenModalAdmin(true); setMenuActivo(false); }}>⚙️ Admin</button>}
               </div>
             )}
           </div>
@@ -561,6 +572,9 @@ export default function Home({ usuario }) {
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
         {openModal && 
           (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
+        }
+        {openModalAdmin &&       
+          (<ModalAdmin usuario={usuario} openModal= {openModalAdmin} setOpenModal={setOpenModalAdmin}/>)
         }
         {openModalJugador && jugadorSeleccionado &&           
         (<ModalPerfilJugador jugador={jugadorSeleccionado}     

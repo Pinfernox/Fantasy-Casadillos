@@ -3,7 +3,8 @@ import {
   doc, 
   getDoc, 
   getDocs, 
-  updateDoc, 
+  updateDoc,
+  deleteDoc,  
   collection, 
   increment, 
   arrayUnion, 
@@ -85,6 +86,46 @@ export const refrescarMercado = async () => {
     return [...seleccionados, ...jugadoresUsuarios]; // devolvemos lista
   } catch (error) {
     console.error("Error al refrescar mercado:", error);
+    throw error;
+  }
+};
+
+export const resetearMercado = async () => {
+  try {
+    const refMercado = doc(db, "mercado", "actual");
+    const snapMercado = await getDoc(refMercado);
+
+    if (!snapMercado.exists()) return;
+
+    const data = snapMercado.data();
+
+    // --- devolver stock de jugadores del sistema ---
+    for (const j of data.jugadores || []) {
+      if (j.vendedor === "Fantasy Casadillos") {
+        const jugadorRef = doc(db, "jugadores", j.idJugador);
+        await updateDoc(jugadorRef, {
+          stockLibre: increment(j.stock || 1),
+          dueños: arrayRemove("mercado"),
+        });
+      }
+    }
+
+    // --- eliminar las ventas de usuarios ---
+    const refUsuarios = collection(db, "mercado/actual/usuarios");
+    const snapUsuarios = await getDocs(refUsuarios);
+    for (const d of snapUsuarios.docs) {
+      await deleteDoc(d.ref);
+    }
+
+    // --- dejar mercado vacío ---
+    await updateDoc(refMercado, {
+      jugadores: [],
+      ultimaActualizacion: null,
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Error al resetear mercado:", error);
     throw error;
   }
 };

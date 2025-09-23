@@ -315,7 +315,6 @@ hr {
   transform: none !important;
   cursor: not-allowed;
 }
-
 /* evita hover en botones deshabilitados */
 .btn-capitan:disabled:hover {
   background: #888;
@@ -365,6 +364,7 @@ hr {
   background-color: #888;
   cursor: not-allowed;
 }
+
 
 
 /* Cabecera responsive */

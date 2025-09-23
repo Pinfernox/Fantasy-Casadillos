@@ -274,31 +274,6 @@ hr {
   margin: 1rem;
 }
 
-.modal-admin-btn {
-  background: linear-gradient(145deg, #d4d4d4, #f0f0f0); /* tono plateado degradado */
-  color: #1a1a1a;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-  transition: all 0.3s ease;
-}
-
-.modal-admin-btn:hover {
-  background: linear-gradient(145deg, #f0f0f0, #d4d4d4); /* invierte degradado al pasar el mouse */
-  box-shadow: 0 5px 10px rgba(0,0,0,0.15);
-  transform: translateY(-2px);
-}
-
-.modal-admin-btn:active {
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  transform: translateY(0);
-}
-
-
 @media screen and (max-width: 500px) {
 
   .field-group small{

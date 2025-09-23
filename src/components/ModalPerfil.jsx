@@ -8,8 +8,6 @@ import { getAuth, updateProfile, updateEmail, updatePassword, deleteUser, EmailA
 import { collection, query, where, deleteDoc, getFirestore, doc, updateDoc, getDoc, getDocs, arrayRemove, increment } from 'firebase/firestore'
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import ImagenProfile from '/SinPerfil.jpg'
-import { refrescarMercado } from "../utils/mercadoUtils";
-
 
 export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
   const auth = getAuth()
@@ -381,34 +379,6 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
             disabled={isSaving}>
             Borrar cuenta
           </button>
-
-          
-            {usuario.rol === "admin" && (
-              <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
-                <button 
-                  type="button" 
-                  className="modal-admin-btn"
-                  onClick={async () => {
-                    try {
-                      await refrescarMercado(); // función que ya tienes creada
-                      Swal.fire("Mercado actualizado", "Se ha refrescado el mercado correctamente", "success");
-                    } catch (err) {
-                      console.error(err);
-                      Swal.fire("Error", "No se pudo actualizar el mercado", "error");
-                    }
-                  }}>
-                  ⟳ Actualizar mercado
-                </button>
-
-                <button 
-                  type="button" 
-                  className="modal-admin-btn"
-                  onClick={() => Swal.fire("Aviso", "Funcionalidad aún no implementada", "info")}
-                >
-                  Repartir puntos
-                </button>
-              </div>
-            )}
         </div>
       </div>
     </div>

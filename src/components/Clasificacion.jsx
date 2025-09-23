@@ -8,6 +8,7 @@ import ImagenProfile from '/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
 import "./Clasificacion.css";
 import ModalPerfil from "./ModalPerfil"
+import ModalAdmin from './ModalAdmin'
 
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
@@ -39,6 +40,7 @@ export default function Clasificacion({ usuario }) {
   const [dinero, setDinero] = useState(null)
   const [menu, setMenu] = useState(false)
   const [openModal, setOpenModal] = useState(false)
+  const [openModalAdmin, setOpenModalAdmin] = useState(false)
   const [menuActivo, setMenuActivo] = useState(false);
   const refMenu = useRef(null);
   const logout = () => signOut(auth);
@@ -280,7 +282,6 @@ export default function Clasificacion({ usuario }) {
               alt="Foto de perfil"
               onClick={() => setMenuActivo(!menuActivo)} // toggle con clic
               onMouseEnter={() => setMenuActivo(true)} // hover
-
             />
 
             {menuActivo && (
@@ -289,9 +290,12 @@ export default function Clasificacion({ usuario }) {
                 ref={refMenu}
                 onMouseLeave={() => setMenuActivo(false)} // solo se cierra al salir del menú
               >
-                <div className="triangulo" />
+              <div className="triangulo" />
                   <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
+                  
                   <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
+
+                  {usuario?.rol === 'admin' && <button className="btn-admin" onClick={() => { setOpenModalAdmin(true); setMenuActivo(false); }}>⚙️ Admin</button>}
               </div>
             )}
           </div>
@@ -335,6 +339,9 @@ export default function Clasificacion({ usuario }) {
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
         {openModal && 
           (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
+        }
+        {openModalAdmin &&       
+          (<ModalAdmin usuario={usuario} openModal= {openModalAdmin} setOpenModal={setOpenModalAdmin}/>)
         }
         <div className="container-tabla" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <DataTable
