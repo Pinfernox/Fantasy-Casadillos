@@ -642,6 +642,37 @@ hr {
   100% { transform: rotate(360deg); }
 }
 
+@media screen and (max-width: 640px) {
+  .Cabecera-button {
+    display: flex !important;
+    cursor: pointer !important;
+  }
+
+  .Cabecera-nav {
+    width: 100% !important;
+    display: flex !important;
+    flex-flow: column nowrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+    height: 0vh !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    transition: all 0.5s ease !important;
+  }
+
+  .Cabecera-nav.isActive {
+    height: 8rem !important;
+    opacity: 1 !important;
+  }
+
+  .Cabecera-ul {
+    flex-direction: column !important;
+  }
+
+  .Cabecera-li {
+    margin: 0.5em 0 !important;
+  }
+} 
 
 @media screen and (max-width: 500px) {
 .triangulo {

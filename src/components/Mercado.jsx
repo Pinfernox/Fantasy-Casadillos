@@ -406,10 +406,11 @@ export default function Mercado({ usuario }) {
             <li className="Cabecera-li">
               <Link to="/clasificacion" className="Cabecera-a">CLASIFICACIÓN</Link>
             </li>
-
+            <li className="Cabecera-li">
+              <Link to="/historial" className="Cabecera-a">HISTORIAL</Link>
+            </li>
           </ul>
         </nav>
-
       </header>
 
       <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>

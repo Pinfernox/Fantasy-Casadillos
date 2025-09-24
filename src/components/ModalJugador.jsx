@@ -5,17 +5,125 @@ import { getAuth, updateProfile, updateEmail, updatePassword, deleteUser, EmailA
   GoogleAuthProvider, 
   reauthenticateWithCredential, 
   reauthenticateWithPopup, sendPasswordResetEmail} from 'firebase/auth'
-import { collection, query, where, deleteDoc, getFirestore, doc, updateDoc, getDoc, getDocs, arrayRemove, increment } from 'firebase/firestore'
+import { collection, query, where, deleteDoc, getFirestore, doc, updateDoc, getDoc, getDocs, arrayRemove, increment, addDoc } from 'firebase/firestore'
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import ImagenProfile from '/SinPerfil.jpg'
 
 
-export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModal, setOpenModal, user }) {
+export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModal, setOpenModal, user, edicionActiva }) {
   const auth = getAuth()
   const db = getFirestore()
   const storage = getStorage()
   const fotoURL = jugador?.foto || ImagenProfile
   const [capitanId, setCapitanId] = useState(null)
+
+  const venta = async () => {
+    if (!jugador || !user) return;
+
+    if (!edicionActiva) {
+      await Swal.fire({
+        icon: "error",
+        title: "Jornada Empezada",
+        text: "No se puede vender con la jornada empezada.",
+        confirmButtonText: "Ok",
+      });
+      return;
+    }
+
+    const ventaInmediata = Math.round(jugador.precio * 0.6);
+
+    const userRef = doc(db, "usuarios", user.uid);
+    const jugadorRef = doc(db, "jugadores", jugador.id);
+
+    try {
+      // 1️⃣ Actualizar dinero del usuario
+      await updateDoc(userRef, {
+        dinero: increment(ventaInmediata),
+      });
+
+      // 2️⃣ Actualizar stock del jugador y dueños
+      await updateDoc(jugadorRef, {
+        stockLibre: increment(1),
+        dueños: arrayRemove(user.uid),
+      });
+
+      // 3️⃣ Poner a null el jugador en titulares o banquillo
+      const snapUser = await getDoc(userRef);
+      if (snapUser.exists()) {
+        const data = snapUser.data();
+        const titulares = data.equipo.titulares.map(j =>
+          j.jugadorId === jugador.id ? { jugadorId: null, clausulaPersonal: null } : j
+        );
+        const banquillo = data.equipo.banquillo.map(j =>
+          j.jugadorId === jugador.id ? { jugadorId: null, clausulaPersonal: null } : j
+        );
+
+        await updateDoc(userRef, {
+          "equipo.titulares": titulares,
+          "equipo.banquillo": banquillo,
+        });
+      }
+
+      // 4️⃣ Guardar historial de venta
+      await addDoc(collection(db, "historial"), {
+        tipoVenta: 'Venta directa', 
+        usuario: {
+          uid: user.uid,
+          nombre: user.nick || user.displayName,
+        },
+        jugador: {
+          id: jugador.id,
+          nombre: jugador.nombre,
+          precio: ventaInmediata,
+        },
+        fecha: new Date(),
+      });
+
+      // 5️⃣ Feedback al usuario
+      await Swal.fire({
+        icon: "success",
+        title: "¡Jugador vendido!",
+        html: `Has recibido <strong>${ventaInmediata.toLocaleString("es-ES")}€</strong>`,
+        confirmButtonText: "Aceptar",
+        background: "#1e1e1e",
+        color: "#fff",
+      });
+
+      window.location.reload();
+
+    } catch (error) {
+      console.error("Error en la venta:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudo completar la venta.",
+        confirmButtonText: "Ok",
+      });
+    }
+  };
+
+  const handleVenta = () => {
+    const ventaInmediata = Math.round(jugador.precio * 0.6); // redondea al entero más cercano
+
+    Swal.fire({
+      title: "¿Cómo quieres vender?",
+      showDenyButton: true,
+      confirmButtonText: "💰 Poner en el Mercado",
+      denyButtonText: `Venta Directa\n(<span style="color:#2ecc71">+${ventaInmediata.toLocaleString("es-ES")}€</span>)`,
+      confirmButtonColor: "#28a745",
+      denyButtonColor: "#4878a4ff",
+      background: "#1e1e1e",
+      color: "#fff",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        console.log("Venta en mercado");
+      } else if (result.isDenied) {
+        venta()
+        console.log("Venta directa por", ventaInmediata);
+      }
+    });
+  };
+
   const traducirPosicion = (pos) => {
     switch (pos) {
       case "DEF":
@@ -223,48 +331,32 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
             <small>Asistencias</small>
           </div>
         </div>
-
         <hr/>
         <div className="modal-footer">
-          <button
-            className="btn-accion"
-            disabled={jugador.stock <= 0}
-            onClick={() => {
-              const ventaInmediata = jugador.precio * 0.6;
+          {!edicionActiva ? (
+            <button className="btn-accion" disabled>
+              🔒 Jornada empezada
+            </button>
+          ) : (
+            <>
+              <button
+                className="btn-accion"
+                onClick={() => handleVenta()}
+              >
+                Vender
+              </button>
 
-              Swal.fire({
-                title: "¿Cómo quieres vender?",
-                showDenyButton: true,
-                confirmButtonText: "💰 Poner en el Mercado",
-                denyButtonText: `Venta Directa\n(<span style="color:#2ecc71">+${ventaInmediata.toLocaleString(
-                  "es-ES"
-                )}€</span>)`,
-                confirmButtonColor: "#28a745",
-                denyButtonColor: "#4878a4ff",
-                background: "#1e1e1e",
-                color: "#fff",
-              }).then((result) => {
-                if (result.isConfirmed) {
-                  // 👉 lógica para poner en mercado
-                  console.log("Venta en mercado");
-                } else if (result.isDenied) {
-                  // 👉 lógica para venta directa
-                  console.log("Venta directa por", ventaInmediata);
-                  // ejemplo: sumarle dinero al usuario y devolver stock
-                }
-              });
-            }}
-          >
-            Vender
-          </button>
-
-            <button
-              className="btn-capitan"
-              disabled={capitanId === jugador.id}
-              onClick={() => hacerCapitan(jugador.id)}>
-              {capitanId === jugador.id ? "Ya es capitán" : "Nombrar capitán"}                   
-            </button>                
+              <button
+                className="btn-capitan"
+                disabled={capitanId === jugador.id}
+                onClick={() => hacerCapitan(jugador.id)}
+              >
+                {capitanId === jugador.id ? "Ya es capitán" : "Nombrar capitán"}
+              </button>
+            </>
+          )}
         </div>
+
       </div>
     </div>
   )

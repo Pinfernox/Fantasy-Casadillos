@@ -103,6 +103,24 @@ export default function Home({ usuario }) {
   const logout = () => signOut(auth);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [jugadorSeleccionadoEdicion, setJugadorSeleccionadoEdicion] = useState(null);
+  const [edicionActiva, setEdicionActiva] = useState(false);
+
+  useEffect(() => {
+    const cargarEstadoEdicion = async () => {
+      try {
+        const ref = doc(db, "admin", "controles");
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data();
+          setEdicionActiva(data.edicionActiva === true);
+        }
+      } catch (error) {
+        console.error("Error al obtener estado de edición:", error);
+      }
+    };
+
+    cargarEstadoEdicion();
+  }, []);
 
   const toggleModoEdicion = () => {
     setModoEdicion(!modoEdicion);
@@ -467,10 +485,11 @@ export default function Home({ usuario }) {
             <li className="Cabecera-li">
               <Link to="/clasificacion" className="Cabecera-a">CLASIFICACIÓN</Link>
             </li>
-
+            <li className="Cabecera-li">
+              <Link to="/historial" className="Cabecera-a">HISTORIAL</Link>
+            </li>
           </ul>
         </nav>
-
       </header>
 
       <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
@@ -562,10 +581,11 @@ export default function Home({ usuario }) {
             <li className="Cabecera-li">
               <Link to="/clasificacion" className="Cabecera-a">CLASIFICACIÓN</Link>
             </li>
-
+            <li className="Cabecera-li">
+              <Link to="/historial" className="Cabecera-a">HISTORIAL</Link>
+            </li>
           </ul>
         </nav>
-
       </header>
 
       <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
@@ -582,13 +602,13 @@ export default function Home({ usuario }) {
             usuario?.equipo?.titulares?.find(j => j.jugadorId === jugadorSeleccionado.id)?.clausulaPersonal ??
             usuario?.equipo?.banquillo?.find(j => j.jugadorId === jugadorSeleccionado.id)?.clausulaPersonal
           } 
-          openModal= {openModalJugador} setOpenModal={setOpenModalJugador} user={usuario} />)}
+          openModal= {openModalJugador} setOpenModal={setOpenModalJugador} user={usuario} edicionActiva={edicionActiva}/>)}
 
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
           {/* Selector de formaciones */}
           <div className="formacion-selector">
             <label htmlFor="formacion-select">Formación:</label>
-            <select id="formacion-select" value={formacionSeleccionada} onChange={handleSelect}>
+            <select id="formacion-select" value={formacionSeleccionada} onChange={handleSelect}  disabled={!edicionActiva}>
               {formacionesDisponibles.map((f) => (
                 <option key={f} value={f}>
                   {f}
@@ -603,8 +623,12 @@ export default function Home({ usuario }) {
 
           </div>
           <div className="modo-edicion-buttons">
-            <button onClick={toggleModoEdicion}>
-              {modoEdicion ? "Desactivar modo edición" : "Activar modo edición"}
+            <button onClick={toggleModoEdicion} disabled={!edicionActiva}>
+              {!edicionActiva
+                ? "🔒 Jornada Empezada"
+                : modoEdicion
+                ? "Desactivar modo edición"
+                : "Activar modo edición"}
             </button>
           </div>
           <div className="campo">

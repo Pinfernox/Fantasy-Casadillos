@@ -8,7 +8,8 @@ import Home from "./components/Home";
 import Mercado from "./components/Mercado";
 import Clasificacion from "./components/Clasificacion";
 import EquipoJugador from "./components/EquipoJugador";
-
+import Historial from "./components/Historial";
+import NotFoundFallback from "./fallback/NotFoundFallback";
 
 
 const auth = getAuth(appFirebase);
@@ -80,9 +81,11 @@ function App() {
           <Route
             path="/equipo/:jugadorId"
             element={usuario ? <EquipoJugador usuario={usuario}/> : <Navigate to="/" replace/>} />
-            
+          <Route 
+            path="/historial" 
+            element={usuario ? <Historial usuario={usuario}/> : <Navigate to="/" replace />} />  
           {/* Ruta fallback */}
-          <Route path="*" element={<Navigate to={usuario ? "/home" : "/"} replace />} />
+          <Route path="*" element={<NotFoundFallback usuario={usuario} />} />
       </Routes>
     </Router>
 

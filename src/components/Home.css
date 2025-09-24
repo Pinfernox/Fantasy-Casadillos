@@ -370,6 +370,12 @@ a {
   align-items: center;
   text-align: center;
 }
+.formacion-selector select:disabled {
+  background-color: #444;
+  color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
 
 .formacion-selector label {
   font-weight: bold;
@@ -441,6 +447,14 @@ a {
 .modo-edicion-buttons button:hover {
   transform: scale(1.05);
 }
+.modo-edicion-buttons button:disabled {
+  background: #2a2e5e ; /* gris apagado */
+  color: #ccc ;
+  cursor: not-allowed ;
+  transform: none ;
+  box-shadow: none ;
+  opacity: 0.6;
+}
 
 /* Sección de banquillo */
 .banquillo-section {
@@ -508,6 +522,38 @@ a {
   transform: scale(1.1);
   box-shadow: 0 0 15px rgba(40,167,69,1);
 }
+
+@media screen and (max-width: 640px) {
+  .Cabecera-button {
+    display: flex !important;
+    cursor: pointer !important;
+  }
+
+  .Cabecera-nav {
+    width: 100% !important;
+    display: flex !important;
+    flex-flow: column nowrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+    height: 0vh !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    transition: all 0.5s ease !important;
+  }
+
+  .Cabecera-nav.isActive {
+    height: 8rem !important;
+    opacity: 1 !important;
+  }
+
+  .Cabecera-ul {
+    flex-direction: column !important;
+  }
+
+  .Cabecera-li {
+    margin: 0.5em 0 !important;
+  }
+} 
 
 @media screen and (max-width: 500px) {
 

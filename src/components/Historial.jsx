@@ -6,7 +6,7 @@ import { getAuth, signOut } from 'firebase/auth'
 import { getFirestore, doc, getDoc, updateDoc, collection, getDocs, where } from 'firebase/firestore'
 import ImagenProfile from '/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
-import "./Clasificacion.css";
+import "./Historial.css";
 import ModalPerfil from "./ModalPerfil"
 import ModalAdmin from './ModalAdmin'
 
@@ -35,7 +35,7 @@ createTheme('solarized', {
   },
 }, 'dark');
 
-export default function Clasificacion({ usuario }) {
+export default function Historial({ usuario }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [dinero, setDinero] = useState(null)
   const [menu, setMenu] = useState(false)

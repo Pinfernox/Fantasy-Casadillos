@@ -111,15 +111,63 @@ export default function ModalAdmin({user, openModal, setOpenModal}) {
             <button 
               type="button" 
               className="modal-admin-btn"
-              onClick={() => Swal.fire("Aviso", "Funcionalidad aún no implementada", "info")}>
-              📊 Repartir puntos
+              onClick={async () => {
+                try {
+                  const ref = doc(db, "admin", "controles");
+                  await updateDoc(ref, { edicionActiva: false });
+
+                  await Swal.fire({
+                    title: "Jornada iniciada",
+                    text: "Se han bloqueado los cambios de formaciones y mercado",
+                    icon: "success",
+                    confirmButtonText: "Aceptar",
+                  });
+                  window.location.reload();
+                } catch (err) {
+                  console.error("Error al empezar jornada:", err);
+                  await Swal.fire({
+                    title: "Error",
+                    text: "No se pudo empezar la jornada",
+                    icon: "error",
+                    confirmButtonText: "Aceptar",
+                  });
+                }
+              }}
+            >
+              ⏱️ Empezar jornada
             </button>
+            
             <button 
               type="button" 
               className="modal-admin-btn"
-              onClick={() => Swal.fire("Aviso", "Funcionalidad aún no implementada", "info")}>
-              ⏱️ Empezar jornada
+              onClick={async () => {
+                try {
+                  const ref = doc(db, "admin", "controles");
+                  await updateDoc(ref, { edicionActiva: true });
+
+                  await Swal.fire({
+                    title: "Jornada finalizada",
+                    text: "Se han repartido los puntos y desbloqueado la edición",
+                    icon: "success",
+                    confirmButtonText: "Aceptar",
+                  });
+                  window.location.reload();
+
+                } catch (err) {
+                  console.error("Error al finalizar la jornada:", err);
+                  await Swal.fire({
+                    title: "Error",
+                    text: "No se pudo acabar la jornada",
+                    icon: "error",
+                    confirmButtonText: "Aceptar",
+                  });
+                }
+              }} >
+              📊 Repartir puntos
             </button>
+
+
+
           </div>
       </div>
     </div>
