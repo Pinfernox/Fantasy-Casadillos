@@ -1,18 +1,26 @@
-.login-hero-Cabecera { 
-  position: relative; /* referencia para posicionar #particles-js */
-  inset: 0; 
-  margin: 0; 
-  height: 100vh; /* 100% de la altura visible */ 
-  overflow: hidden; 
-  min-height: 100vh; 
-  background-color: black; /* fondo negro base */
-  background-size: contain; 
-  background-position: center; 
-  background-repeat: no-repeat; 
-  display: flex; align-items: center; 
-  justify-content: center; 
+.login-hero-Cabecera {
+  position: relative;
+  inset: 0;
+  margin: 0;
 
+  /* Permite que la sección crezca más allá de la altura de la pantalla */
+  min-height: 100vh;
+  height: 100%;    
+
+  /* Empuja el contenido hacia abajo para no quedar bajo el header */
+  padding-top: 4rem;    /* O la altura real de tu header */
+  padding-bottom: 4rem;
+  background-color: black;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  /* Si necesitas centrar en horizontal, deja solo justify-content */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
+
 
 .Cabecera {
   background-color: rgb(1, 1, 33);
@@ -60,7 +68,6 @@ a {
   list-style: none; /* quita los puntos */
   padding-left: 0;  /* opcional: elimina sangrado */
   margin-left: 0;   /* opcional: elimina margen izquierdo */
-
 }
 
 .Cabecera-li {
@@ -70,6 +77,13 @@ a {
   margin-bottom: 0.2rem;
 }
 
+/* Perfil */
+.container-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .perfil-bocadillo {
   position: absolute;
   top: 110%;
@@ -77,7 +91,7 @@ a {
   background: white;
   border-radius: 6px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  z-index: 10;
+  z-index: 4 !important;
   display: flex;
   flex-direction: column;
   width: 9rem;
@@ -114,36 +128,6 @@ a {
   border-bottom: 1px solid rgb(0, 0, 0, 0.15) !important;
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
-}
-
-.container-tabla{
-    width: 100%;
-    max-width: 40rem;
-    margin: 0.3rem;
-}
-
-.rdt_TableRow:hover {
-  background-color: rgb(117, 115, 115) !important; /* color de tu preferencia */
-  color: black !important;
-}
-
-/* Negrita en los encabezados de columna */
-.rdt_TableHead, .rdt_TableCol {
-  font-weight: bold !important;
-  font-size: 1rem;
-}
-
-div.rdt_TableHeader > div:first-child {
-  font-weight: bold;
-  font-size: clamp(1.2rem, 2vw, 1.6rem);
-  text-transform: uppercase;
-}
-
-/* Perfil */
-.container-profile {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
 }
 
 .info-profile {
@@ -196,6 +180,397 @@ div.rdt_TableHeader > div:first-child {
   animation: blink 1s infinite;
 }
 
+/* Pagina de Equipo */
+.historial-container {
+  background-color: rgb(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 0px 0px 15px 15px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 420px;
+  border: 0; /* por si Bootstrap agrega borde */
+  text-align: center;
+  color: white;
+  position: relative;
+  z-index: 1;
+  height: auto;
+  max-height: 80vh; /* altura máxima visible */
+  min-height: 70vh;
+  overflow-y:hidden; /* permite scroll interno */
+}
+
+.lista-historial {
+  display: flex;
+  flex-direction: column; /* apila verticalmente */
+  gap: 0.8rem;
+  padding: 1rem;
+  list-style: none;
+  overflow-y: auto; /* permite scroll vertical */
+  max-height: 60vh; /* ajusta según tu diseño */
+  transition: all 0.3s ease;
+}
+
+.sin-historial {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px; /* o 100% según quieras */
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #ccc;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+hr {
+  border: none;
+  height: 3px;
+  background-color: white;
+  margin-bottom: 0;
+}
+/* ventana centrada */
+.jugador-perfil {
+  position: relative;
+  background-color: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);  border-radius: 12px;
+  width: 100%;
+  max-width: 40rem;
+  padding: 1rem 0 1.5rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  margin: 0 auto;
+  box-sizing: border-box; /* asegura que el padding no se sume al ancho */
+  /* animación */
+  animation: modalFadeIn 0.35s ease-out;
+  transform-origin: center;
+}
+
+.jugador-perfil input {
+  padding-left: 0.4rem;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.85) translateY(20px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+
+/* cabecera: avatar + info */
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1rem;
+}
+
+.modal-avatar {
+  position: relative;
+  width: 75px; height: 75px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-block;
+}
+
+.modal-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modal-jugadorinfo h2 {
+  margin: 0; 
+  font-size: 1.2rem;
+  color: white;
+  font-weight: bold;
+  margin-top: 0.3rem;
+  text-align: left;
+}
+
+.modal-jugadorinfo{
+  background-color: transparent;
+}
+
+.posicion-precio{
+  display: flex;
+  flex-direction: column;       /* elementos en fila */
+  justify-content: space-between; /* separa a los extremos */
+  margin-bottom: 0.5rem;
+  text-align: left;          /* mejor para lectura horizontal */
+}
+.precio-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.precio{
+  color: lightgreen;
+  font-weight: bold;
+}
+.precio-clausula{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+.precio-clausula small{
+  color: lightgreen;
+  font-weight: bold;
+}
+.texto-blanco{
+  color: white;
+}
+.posicion-texto{
+  font-weight: bold;
+  display: flex;
+  margin-top: 0.3rem;
+}
+.posicion-texto.DEF {
+  color: orange; /* azul para defensa */
+}
+
+.posicion-texto.MED {
+  color: #1e90ff; /* verde para mediocampo */
+}
+
+.posicion-texto.DEL {
+  color: #dc3545; /* rojo para delantero */
+}
+
+.posicion-texto.POR {
+  color: darkgreen; /* amarillo para portero */
+}
+
+.texto-vendedor{
+  font-weight: bold;
+  display: flex;
+}
+.vendedor{
+  font-weight: lighter;
+}
+
+.estadisticas-extra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ultimas-jornadas {
+  flex-wrap: wrap;
+  display: flex;
+  gap: 8px;
+  justify-content: center;   /* centrado horizontal */
+  align-items: center;       /* opcional, centrado vertical */
+}
+
+.jornada-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.jornada-nombre {
+  font-size: 10px;
+  margin-bottom: 2px;
+  color: white;
+}
+
+.jornada-cuadro {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: black;
+}
+
+.jornada-cuadro.verde {
+  background: #4caf50;
+  color: #fff;
+  border-color: #388e3c;
+}
+
+.jornada-cuadro.rojo {
+  background: #f44336;
+  color: #fff;
+  border-color: #d32f2f;
+}
+
+
+.diferencia-precio {
+  font-weight: bold;
+  color: white;
+}
+
+.diferencia-precio .subida {
+  color: green;
+}
+
+.diferencia-precio .bajada {
+  color: red;
+}
+
+.modal-jugadorbody {
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  color: white;
+}
+
+.stat-card {
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 0.75rem;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+}
+
+.stat-card h4 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.stat-card small {
+  font-size: 0.9rem;
+  color: white;
+}
+
+/* footer con botón guardar */
+.modal-footer {
+  text-align: center;
+  padding-top: 0.5rem;
+}
+
+.modal-save-btn {
+  background: #0069d9;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin: 1rem;
+}
+
+.modal-save-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.modal-delete-btn{
+  background: red;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin: 1rem;
+}
+
+.historial-item {
+  transition: transform 0.3s ease;
+  cursor: pointer;
+  list-style: none;
+  padding-left: 0; /* opcional: elimina sangrado izquierdo */
+  margin-left: 0;  /* opcional: elimina margen izquierdo */
+  width: auto;
+  background-color: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);  
+  border-radius: 12px;  
+  padding: 1rem 0 1.5rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+
+.historial-item:hover {
+  transform: scale(1.03);
+}
+
+.historial-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.historial-foto {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-left: 1rem;
+    border: 2px solid white !important;
+
+}
+
+.historial-info p {
+  margin: 0;
+}
+
+.lista-historial::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lista-historial::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.tabs-wrapper {
+  width: 100%;         /* ocupa todo el ancho disponible */
+  max-width: 420px;
+  margin: 0 auto;      /* centrado */
+  z-index: 2 !important;
+
+}
+
+.tabs-container {
+  display: flex;
+  justify-content: flex-start;
+  background-color: rgb(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);  padding: 0.5rem;
+  border-radius: 8px 8px 0 0;
+  
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: white;
+  font-weight: bold;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.tab-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab-btn.active {
+  border-bottom: 3px solid gold;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 @media screen and (max-width: 640px) {
   .Cabecera-button {
     display: flex !important;
@@ -229,8 +604,7 @@ div.rdt_TableHeader > div:first-child {
 } 
 
 @media screen and (max-width: 500px) {
-
-  .triangulo {
+.triangulo {
     right: 7.2rem;
   }
 
@@ -264,4 +638,90 @@ div.rdt_TableHeader > div:first-child {
     margin: 0.5em 0;
   }
 
+  .modal-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .modal-avatar {
+    width: 80px;
+    height: 80px;
+  }
+
+  .modal-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .modal-jugadorinfo h2 {
+    margin: 0; 
+    text-align: center;
+  }
+
+  .modal-jugadorinfo {
+    width: 100%;
+  }
+
+  .precio-container {
+    justify-content: center;
+  }
+  .precio-clausula{
+    justify-content: center;
+  }
+  .posicion-precio {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .posicion-texto{
+      justify-content: center;
+  }
+  .texto-vendedor{
+    justify-content: center;
+  }
+  .estadisticas-extra {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .ultimas-jornadas {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .jornada-item .jornada-nombre {
+    font-size: 9px;
+  }
+
+  .jornada-cuadro {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+
+  .operaciones-container{
+    min-height: 71vh;
+  }
+  .mercado-jugadores {
+    min-height: 71vh;
+
+  }
+}
+
+@media screen and (max-width: 350px) {
+  .modal-footer {
+    gap: 2rem; /* espacio entre botones */
+  }
+
+  .operaciones-container{
+    min-height: 73vh;
+  }
+  .mercado-jugadores {
+    min-height: 73vh;
+
+  }
 }

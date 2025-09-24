@@ -117,6 +117,12 @@ console.log("DEBUG jugador en modal:", jugador);
 
               </div>      
               <small className="texto-vendedor">Vendedor:&nbsp;<span className="vendedor">{jugador?.vendedor}</span></small>
+              <small className="texto-vendedor">Media de puntos:&nbsp;<span className="media"> {
+                jugador.puntosPorJornada && jugador.puntosPorJornada.length > 0
+                  ? (
+                  jugador.puntosPorJornada.filter(p => typeof p === "number").reduce((acc, val, _, arr) => acc + val / arr.length, 0).toFixed(2))
+                  : "-"
+              }</span></small>
             </div>
 
             {/* Nuevo bloque debajo */}

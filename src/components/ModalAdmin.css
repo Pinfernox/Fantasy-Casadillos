@@ -42,12 +42,14 @@
 
 .modal-footer-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, 1fr); /* 2 columnas */
+  grid-auto-rows: auto;                 /* altura automática */
   gap: 1rem;
   padding: 1rem;
   justify-items: center;
   margin-top: 1rem;
 }
+
 
 .modal-admin-btn {
   background: linear-gradient(145deg, #d4d4d4, #f0f0f0); /* tono plateado degradado */

@@ -20,6 +20,7 @@ import "./Home.css";
 import "./EquipoJugador.css"
 import ModalPerfil from "./ModalPerfil"
 import ModalPerfilJugadorUsuario from "./ModalJugadorUsuario";
+import ModalAdmin from "./ModalAdmin";
 
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
@@ -99,6 +100,7 @@ export default function EquipoJugador({ usuario }) {
 
   const [openModal, setOpenModal] = useState(false)
   const [openModalJugadorUsuario, setOpenModalJugadorUsuario] = useState(false)
+  const [openModalAdmin, setOpenModalAdmin] = useState(false)
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)
   const [menuActivo, setMenuActivo] = useState(false);
   const refMenu = useRef(null);
@@ -230,7 +232,6 @@ export default function EquipoJugador({ usuario }) {
               alt="Foto de perfil"
               onClick={() => setMenuActivo(!menuActivo)} // toggle con clic
               onMouseEnter={() => setMenuActivo(true)} // hover
-
             />
 
             {menuActivo && (
@@ -239,9 +240,12 @@ export default function EquipoJugador({ usuario }) {
                 ref={refMenu}
                 onMouseLeave={() => setMenuActivo(false)} // solo se cierra al salir del menú
               >
-                <div className="triangulo" />
+              <div className="triangulo" />
                   <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
+                  
                   <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
+
+                  {usuario?.rol === 'admin' && <button className="btn-admin" onClick={() => { setOpenModalAdmin(true); setMenuActivo(false); }}>⚙️ Admin</button>}
               </div>
             )}
           </div>
@@ -275,10 +279,11 @@ export default function EquipoJugador({ usuario }) {
             <li className="Cabecera-li">
               <Link to="/clasificacion" className="Cabecera-a">CLASIFICACIÓN</Link>
             </li>
-
+            <li className="Cabecera-li">
+              <Link to="/historial" className="Cabecera-a">HISTORIAL</Link>
+            </li>
           </ul>
         </nav>
-
       </header>
 
       <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
@@ -286,13 +291,16 @@ export default function EquipoJugador({ usuario }) {
         {openModal && 
           (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
         }
+        {openModalAdmin &&       
+          (<ModalAdmin usuario={usuario} openModal= {openModalAdmin} setOpenModal={setOpenModalAdmin}/>)
+        }
         {openModalJugadorUsuario && jugadorSeleccionado &&           
         (<ModalPerfilJugadorUsuario jugador={jugadorSeleccionado} 
           clausulaPersonal={
             jugadorData?.equipo?.titulares?.find(j => j.jugadorId === jugadorSeleccionado.id)?.clausulaPersonal ??
             jugadorData?.equipo?.banquillo?.find(j => j.jugadorId === jugadorSeleccionado.id)?.clausulaPersonal
           } 
-          openModal= {openModalJugadorUsuario} setOpenModal={setOpenModalJugadorUsuario} />)}
+          openModal= {openModalJugadorUsuario} setOpenModal={setOpenModalJugadorUsuario} idUsuario={jugadorData?.uid}/>)}
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 , marginTop: '0rem'}}>
           <div className="datos-equipo">
             <p><strong>Formación:</strong> <small>{formacionSeleccionada}</small> </p>
@@ -335,7 +343,6 @@ export default function EquipoJugador({ usuario }) {
             {FORMACIONES[formacionSeleccionada]?.map((pos, index) => {
               const slot = titulares[index]; // { jugadorId, clausulaPersonal }
               const jugador = jugadores.find(j => j.id === slot?.jugadorId);
-
 
               return (
                 <div

@@ -336,7 +336,7 @@ export default function Home({ usuario }) {
       await updateDoc(userRef, {
         "equipo.titulares": seleccionados.map((j) => ({
           jugadorId: j.id,
-          clausulaPersonal: j.clausulaInicial ?? j.precio,
+          clausulaPersonal: j.precioClausula,
         })),
         "equipo.banquillo": [
           { jugadorId: null, clausulaPersonal: null },
@@ -385,7 +385,6 @@ export default function Home({ usuario }) {
         console.log('Particles.js config cargado')
       })
     }
-    
     // Leer dinero de Firestore
     if (usuario) {
       const ref = doc(db, 'usuarios', usuario.uid)
@@ -420,8 +419,7 @@ export default function Home({ usuario }) {
       setJugadores(data);
     };
 
-
-  fetchJugadores();
+    fetchJugadores();
   }, [usuario], [titulares, banquillo], );
 
 

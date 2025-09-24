@@ -44,11 +44,29 @@ export default function Mercado({ usuario }) {
   const [openModalAdmin, setOpenModalAdmin] = useState(false)
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)
   const [menuActivo, setMenuActivo] = useState(false);
+  const [edicionActiva, setEdicionActiva] = useState(false);
   const refMenu = useRef(null);
   // NUEVO: añadir estado para controlar la pestaña activa
   const [tabActiva, setTabActiva] = useState("mercado");
   const logout = () => signOut(auth);
 
+  useEffect(() => {
+    const cargarEstadoEdicion = async () => {
+      try {
+        const ref = doc(db, "admin", "controles");
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data();
+          setEdicionActiva(data.edicionActiva === true);
+        }
+      } catch (error) {
+        console.error("Error al obtener estado de edición:", error);
+      }
+    };
+
+    cargarEstadoEdicion();
+  }, []);
+  
   // Cerramos el menú si clicas fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -188,27 +206,10 @@ export default function Mercado({ usuario }) {
     }
   };
 
-  // cargar titulares usuario
-  useEffect(() => {
-    const fetchJugadoresUsuario = async () => {
-      if (!titulares || titulares.length === 0) return;
-
-      const jugadoresRef = collection(db, "jugadores");
-      const q = query(jugadoresRef, where("__name__", "in", titulares));
-      const snap = await getDocs(q);
-
-      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setJugadoresUsuario(data);
-    };
-
-    fetchJugadoresUsuario();
-  }, [titulares]);
-
   // para que se reflejen los cambios sin actualizar
   useEffect(() => {
     const db = getFirestore(appFirebase);
     const mercadoRef = doc(db, "mercado", "actual");
-
     // Nos suscribimos a cambios en el documento
     const unsubscribe = onSnapshot(mercadoRef, (snap) => {
       if (snap.exists()) {
@@ -441,15 +442,6 @@ export default function Mercado({ usuario }) {
         </div>
   
         {tabActiva === "mercado" && (<div className="mercado-jugadores">
-          {/* {usuario?.rol === "admin" && (
-            <button 
-              onClick={refrescarMercado} 
-              className="btn-actualizar-mercado"
-              disabled={loadingMercado} // desactivar mientras carga
-            >
-            {loadingMercado ? <>⏳ Actualizando <span className="spinner"></span></> : "⟳ Actualizar mercado"}
-            </button>
-          )}*/}
           {jugadoresMercado.length === 0 ? (
             <div className="sin-mercado">
               <p>No hay mercado disponible</p>
@@ -501,6 +493,16 @@ export default function Mercado({ usuario }) {
 
                         </div>
                         <small className="texto-vendedor">Vendedor:&nbsp;<span className="vendedor">{j.vendedor}</span></small>
+                        <small className="texto-vendedor">Media de puntos:&nbsp;<span className="media"> {
+                            j.puntosPorJornada && j.puntosPorJornada.length > 0
+                              ? (
+                                  j.puntosPorJornada
+                                    .filter(p => typeof p === "number")
+                                    .reduce((acc, val, _, arr) => acc + val / arr.length, 0)
+                                    .toFixed(2)
+                                )
+                              : "-"
+                          }</span></small>
                       </div>
                       {/* Nuevo bloque debajo */}
                       <div className="estadisticas-extra">
@@ -545,7 +547,7 @@ export default function Mercado({ usuario }) {
                   <div className="modal-footer">
                     <button
                       className="btn-comprar"
-                      disabled={j.stock <= 0}
+                      disabled={!edicionActiva}
                       onClick={(e) => {
                         e.stopPropagation(); // evita que se abra el modal
                         pujarJugador(j);

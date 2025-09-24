@@ -132,8 +132,7 @@ export default function ModalAdmin({user, openModal, setOpenModal}) {
                     confirmButtonText: "Aceptar",
                   });
                 }
-              }}
-            >
+              }}>
               ⏱️ Empezar jornada
             </button>
             
@@ -144,6 +143,7 @@ export default function ModalAdmin({user, openModal, setOpenModal}) {
                 try {
                   const ref = doc(db, "admin", "controles");
                   await updateDoc(ref, { edicionActiva: true });
+                  await updateDoc(ref, { clausulaPermitida: true });
 
                   await Swal.fire({
                     title: "Jornada finalizada",
@@ -162,11 +162,69 @@ export default function ModalAdmin({user, openModal, setOpenModal}) {
                     confirmButtonText: "Aceptar",
                   });
                 }
-              }} >
+              }}>
               📊 Repartir puntos
             </button>
 
+            <button 
+              type="button" 
+              className="modal-admin-btn"
+              onClick={async () => {
+                try {
+                  const ref = doc(db, "admin", "controles");
+                  await updateDoc(ref, { clausulaPermitida: true });
 
+                  await Swal.fire({
+                    title: "Cláusulas activadas",
+                    text: "Los jugadores pueden ser comprados por cláusula",
+                    icon: "success",
+                    confirmButtonText: "Aceptar",
+                  });
+                  window.location.reload();
+
+                } catch (err) {
+                  console.error("Error al activar cláusulas:", err);
+                  await Swal.fire({
+                    title: "Error",
+                    text: "No se pudo activar la cláusula",
+                    icon: "error",
+                    confirmButtonText: "Aceptar",
+                  });
+                }
+              }}
+            >
+              📝 Activar cláusulas
+            </button>
+
+            <button 
+              type="button" 
+              className="modal-admin-btn"
+              onClick={async () => {
+                try {
+                  const ref = doc(db, "admin", "controles");
+                  await updateDoc(ref, { clausulaPermitida: false });
+
+                  await Swal.fire({
+                    title: "Cláusulas desactivadas",
+                    text: "Las cláusulas de rescisión han sido bloqueadas",
+                    icon: "success",
+                    confirmButtonText: "Aceptar",
+                  });
+                  window.location.reload();
+
+                } catch (err) {
+                  console.error("Error al desactivar cláusulas:", err);
+                  await Swal.fire({
+                    title: "Error",
+                    text: "No se pudo desactivar la cláusula",
+                    icon: "error",
+                    confirmButtonText: "Aceptar",
+                  });
+                }
+              }}
+            >
+              🚫 Bloquear cláusulas
+            </button>
 
           </div>
       </div>

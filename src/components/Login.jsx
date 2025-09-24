@@ -8,7 +8,6 @@ import googleLogo from '../assets/google.png'
 import ojoAbierto from '../assets/ojoabierto.png';
 import ojoCerrado from '../assets/ojocerrado.png';
 import './Login.css'
-
 import { 
   getAuth,
   createUserWithEmailAndPassword,
@@ -18,7 +17,16 @@ import {
   signInWithPopup,
   sendPasswordResetEmail
 } from 'firebase/auth'
-import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  collection, 
+  query, 
+  where, 
+  getDocs 
+} from "firebase/firestore";
 import appFirebase from '../credenciales.js';
 
 const auth = getAuth(appFirebase)
@@ -47,8 +55,24 @@ export const Login = () => {
 
     if (registrando) {
       try {
-        const { user } = await createUserWithEmailAndPassword(auth, correo, contraseña);
         const nick = form.get('nick');
+
+        // 1️⃣ Comprobar si ya existe un usuario con ese nick
+        const usuariosRef = collection(firestore, "usuarios");
+        const q = query(usuariosRef, where("nick", "==", nick));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Nick en uso',
+            text: 'Ese nombre de usuario ya está ocupado. Elige otro.'
+          });
+          return; // detenemos el registro
+        }
+
+        // 2️⃣ Si no existe, procedemos a crear usuario con Firebase Auth
+        const { user } = await createUserWithEmailAndPassword(auth, correo, contraseña);
 
         await updateProfile(auth.currentUser, {
           displayName: nick,
@@ -83,7 +107,6 @@ export const Login = () => {
 
         await setDoc(doc(firestore, "usuarios", user.uid), userData, { merge: true });
 
-
         // navigate("/home")
 
       } catch (error) {
@@ -106,7 +129,8 @@ export const Login = () => {
           text: mensaje
         });
       }
-    } else {
+    }
+    else {
       // Inicio de sesión
       try {
         await signInWithEmailAndPassword(auth, correo, contraseña);

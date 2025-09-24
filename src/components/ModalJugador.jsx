@@ -66,16 +66,12 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
 
       // 4️⃣ Guardar historial de venta
       await addDoc(collection(db, "historial"), {
-        tipoVenta: 'Venta directa', 
-        usuario: {
-          uid: user.uid,
-          nombre: user.nick || user.displayName,
-        },
-        jugador: {
-          id: jugador.id,
-          nombre: jugador.nombre,
-          precio: ventaInmediata,
-        },
+        tipo: 'venta directa', 
+        vendedorNombre: user.nick,
+        compradorNombre: '',
+        jugadorNombre: jugador.nombre,
+        fotoJugador: jugador?.foto,
+        precio: ventaInmediata,
         fecha: new Date(),
       });
 
@@ -261,6 +257,18 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
               </div>      
               <div className='precio-clausula'>
                 <small><span className='texto-blanco'>Claúsula:</span> {formatearDinero(clausulaPersonal)}</small>
+              </div>
+              <div className='precio-clausula'>
+                <small><span className='texto-blanco'>Media de puntos:</span> {
+                  jugador.puntosPorJornada && jugador.puntosPorJornada.length > 0
+                    ? (
+                        jugador.puntosPorJornada
+                          .filter(p => typeof p === "number")
+                          .reduce((acc, val, _, arr) => acc + val / arr.length, 0)
+                          .toFixed(2)
+                      )
+                    : "-"
+                }</small>
               </div>
             </div>
 
