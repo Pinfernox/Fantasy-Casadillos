@@ -512,12 +512,18 @@ hr {
   border-radius: 50%;
   object-fit: cover;
   margin-left: 1rem;
-    border: 2px solid white !important;
+  border: 2px solid white !important;
 
 }
 
-.historial-info p {
-  margin: 0;
+.historial-info p{
+  margin-bottom: 0;
+}
+
+.historial-info {
+  margin-right: 0.5rem;
+  margin-left: 0.5rem;
+  text-align: left;
 }
 
 .lista-historial::-webkit-scrollbar {
@@ -708,7 +714,9 @@ hr {
   }
   .mercado-jugadores {
     min-height: 71vh;
-
+  }
+  .historial-info {
+    font-size: 0.9rem;
   }
 }
 
@@ -723,5 +731,9 @@ hr {
   .mercado-jugadores {
     min-height: 73vh;
 
+  }
+
+  .historial-info {
+    font-size: 0.8rem;
   }
 }

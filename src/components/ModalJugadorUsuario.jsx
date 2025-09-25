@@ -27,74 +27,6 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
   const [edicionActiva, setEdicionActiva] = useState(false);
   const [clausulaPermitida, setClausulaPermitida] = useState(false);
 
-  useEffect(() => {
-    const cargarEstadoEdicionClausula = async () => {
-      try {
-        const ref = doc(db, "admin", "controles");
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          const data = snap.data();
-          setEdicionActiva(data.edicionActiva === true);
-          setClausulaPermitida(data.clausulaPermitida === true);
-        }
-      } catch (error) {
-        console.error("Error al obtener estado de edición:", error);
-      }
-    };
-
-    cargarEstadoEdicionClausula();
-  }, []);
-
-  const traducirPosicion = (pos) => {
-    switch (pos) {
-      case "DEF":
-        return "Defensa";
-      case "MED":
-        return "Mediocentro";
-      case "DEL":
-        return "Delantero";
-      case "POR":
-        return "Portero";
-      default:
-        return pos || "Sin posición";
-    }
-  };
-
-  // para cerrar al pulsar fuera
-  const overlayRef = useRef()
-
-  const handleOverlayClick = e => {
-    if (e.target === overlayRef.current) {
-      setOpenModal(false)
-    }
-  }
-
-  const formatearDinero = (valor) => {
-    return valor.toLocaleString('es-ES') + '€';
-  };
-
-  const abreviarnombre = (nombre) => {
-    if (!nombre) return "";
-
-    const maxLength = 15
-    const firstSpace = nombre.indexOf(" ");
-
-    let corte;
-
-    if (firstSpace !== -1 && firstSpace <= maxLength) {
-      corte = firstSpace; // cortar en el espacio si está antes de 9
-      return nombre.slice(0, corte) + "...";
-      
-    } else if (nombre.length > maxLength) {
-      corte = maxLength-3; // cortar en 9 si es más largo
-
-      return nombre.slice(0, corte) + "...";
-    } else {
-      return nombre; // no hace falta cortar
-    }
-
-  };
-
   const pagarClausula = async () => {
     if (!jugador || !auth.currentUser) return;
 
@@ -323,6 +255,75 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
         });
       }
   };
+
+  useEffect(() => {
+    const cargarEstadoEdicionClausula = async () => {
+      try {
+        const ref = doc(db, "admin", "controles");
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data();
+          setEdicionActiva(data.edicionActiva === true);
+          setClausulaPermitida(data.clausulaPermitida === true);
+        }
+      } catch (error) {
+        console.error("Error al obtener estado de edición:", error);
+      }
+    };
+
+    cargarEstadoEdicionClausula();
+  }, []);
+
+  const traducirPosicion = (pos) => {
+    switch (pos) {
+      case "DEF":
+        return "Defensa";
+      case "MED":
+        return "Mediocentro";
+      case "DEL":
+        return "Delantero";
+      case "POR":
+        return "Portero";
+      default:
+        return pos || "Sin posición";
+    }
+  };
+
+  // para cerrar al pulsar fuera
+  const overlayRef = useRef()
+
+  const handleOverlayClick = e => {
+    if (e.target === overlayRef.current) {
+      setOpenModal(false)
+    }
+  }
+
+  const formatearDinero = (valor) => {
+    return valor.toLocaleString('es-ES') + '€';
+  };
+
+  const abreviarnombre = (nombre) => {
+    if (!nombre) return "";
+
+    const maxLength = 15
+    const firstSpace = nombre.indexOf(" ");
+
+    let corte;
+
+    if (firstSpace !== -1 && firstSpace <= maxLength) {
+      corte = firstSpace; // cortar en el espacio si está antes de 9
+      return nombre.slice(0, corte) + "...";
+      
+    } else if (nombre.length > maxLength) {
+      corte = maxLength-3; // cortar en 9 si es más largo
+
+      return nombre.slice(0, corte) + "...";
+    } else {
+      return nombre; // no hace falta cortar
+    }
+
+  };
+
 
   if (!openModal) return null
 

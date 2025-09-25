@@ -300,7 +300,7 @@ export default function EquipoJugador({ usuario }) {
             jugadorData?.equipo?.titulares?.find(j => j.jugadorId === jugadorSeleccionado.id)?.clausulaPersonal ??
             jugadorData?.equipo?.banquillo?.find(j => j.jugadorId === jugadorSeleccionado.id)?.clausulaPersonal
           } 
-          openModal= {openModalJugadorUsuario} setOpenModal={setOpenModalJugadorUsuario} idUsuario={jugadorData?.uid}/>)}
+          openModal= {openModalJugadorUsuario} setOpenModal={setOpenModalJugadorUsuario} idUsuario={jugadorData?.id}/>)}
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 , marginTop: '0rem'}}>
           <div className="datos-equipo">
             <p><strong>Formación:</strong> <small>{formacionSeleccionada}</small> </p>

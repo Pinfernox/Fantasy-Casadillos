@@ -5,14 +5,14 @@ import { getAuth, updateProfile, updateEmail, updatePassword, deleteUser, EmailA
   GoogleAuthProvider, 
   reauthenticateWithCredential, 
   reauthenticateWithPopup, sendPasswordResetEmail} from 'firebase/auth'
-import { collection, query, where, deleteDoc, getFirestore, doc, updateDoc, getDoc, getDocs, arrayRemove, increment, addDoc } from 'firebase/firestore'
+import { collection, query, where, deleteDoc, getFirestore, doc, updateDoc, getDoc, getDocs, arrayRemove, arrayUnion, increment, addDoc } from 'firebase/firestore'
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import ImagenProfile from '/SinPerfil.jpg'
-
+import appFirebase from "../credenciales";
 
 export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModal, setOpenModal, user, edicionActiva }) {
   const auth = getAuth()
-  const db = getFirestore()
+  const db = getFirestore(appFirebase)
   const storage = getStorage()
   const fotoURL = jugador?.foto || ImagenProfile
   const [capitanId, setCapitanId] = useState(null)
@@ -98,6 +98,26 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
     }
   };
 
+  // función que añade el jugador al mercado
+  async function ponerEnMercado(jugador, usuario, precio) {
+    try {
+      const mercadoRef = doc(db, "mercado", "usuarios"); // ← ajusta el docId de tu liga
+      await updateDoc(mercadoRef, {
+        jugadores: arrayUnion({
+          jugadorId: jugador.id,
+          jugadorNombre: jugador.nombre,
+          usuarioId: usuario.uid,
+          usuarioNombre: usuario.nick,
+          precio: precio,
+          fecha: new Date(),
+        }),
+      });
+    } catch (error) {
+      console.error("Error al poner en mercado:", error);
+      Swal.fire("Error", "No se pudo poner al jugador en el mercado", "error");
+    }
+  }
+
   const handleVenta = () => {
     const ventaInmediata = Math.round(jugador.precio * 0.6); // redondea al entero más cercano
 
@@ -110,15 +130,37 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
       denyButtonColor: "#4878a4ff",
       background: "#1e1e1e",
       color: "#fff",
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        console.log("Venta en mercado");
+        // segundo alerta para pedir precio
+        const { value: precio } = await Swal.fire({
+          title: "Introduce el precio de venta",
+          input: "number",
+          inputLabel: "Precio en €",
+          inputPlaceholder: "Ej: 5.000.000",
+          confirmButtonText: "Poner en venta",
+          showCancelButton: true,
+          background: "#1e1e1e",
+          color: "#fff",
+          inputValidator: (value) => {
+            if (!value || value <= 0) {
+              return "Debes introducir un precio válido";
+            }
+          },
+        });
+
+        if (precio) {
+          console.log("Venta en mercado por", precio);
+          ponerEnMercado(parseInt(precio, 10));
+        }
+
       } else if (result.isDenied) {
-        venta()
         console.log("Venta directa por", ventaInmediata);
+        venta();
       }
     });
   };
+
 
   const traducirPosicion = (pos) => {
     switch (pos) {

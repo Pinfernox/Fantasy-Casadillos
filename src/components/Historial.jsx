@@ -196,42 +196,42 @@ export default function Historial({ usuario }) {
             ) : (
               <ul className="lista-historial">
                 {historial.map((h) => {
-                  const rojo = { color: "#e74c3c" };
-                  const verde = { color: "#2ecc71" };
-                  const blanco = { color: "white" };
-  
                   let mensaje;
+                  let backgroundColor = "#2c2c2c"; // color neutro por defecto
 
                   if (h.tipo === "venta directa") {
+                    backgroundColor = "rgba(59, 1, 1, 0.64)";
                     mensaje = (
                       <>
-                        El usuario <strong style={blanco}>{h.vendedorNombre}</strong> ha vendido de forma rápida a{" "}
-                        <strong style={blanco}>{h.jugadorNombre}</strong> por{" "}
-                        <strong style={verde}>{formatearDinero(h.precio)}</strong>
+                        El usuario <strong style={{ color: "white" }}>{h.vendedorNombre}</strong> ha vendido de forma rápida a{" "}
+                        <strong style={{ color: "#e74c3c" }}>{h.jugadorNombre}</strong> por{" "}
+                        <strong style={{ color: "#e74c3c" }}>{formatearDinero(h.precio)}</strong>
                       </>
                     );
                   } else if (h.tipo === "clausulazo") {
+                    backgroundColor = "rgba(0, 67, 6, 0.64)";
                     mensaje = (
                       <>
-                        El usuario <strong style={blanco}>{h.compradorNombre}</strong> ha pagado la cláusula de{" "}
-                        <strong style={verde}>{h.jugadorNombre}</strong> a{" "}
-                        <strong style={blanco}>{h.vendedorNombre}</strong> por{" "}
-                        <strong style={verde}>{formatearDinero(h.precio)}</strong>
+                        El usuario <strong style={{ color: "white" }}>{h.compradorNombre}</strong> ha pagado la cláusula de{" "}
+                        <strong style={{ color: "#2ecc71" }}>{h.jugadorNombre}</strong> a{" "}
+                        <strong style={{ color: "#e74c3c" }}>{h.vendedorNombre}</strong> por{" "}
+                        <strong style={{ color: "#2ecc71" }}>{formatearDinero(h.precio)}</strong>
                       </>
                     );
                   } else {
+                    backgroundColor = "rgba(0, 0, 0, 0.65)";
                     mensaje = (
                       <>
-                        El usuario <strong style={blanco}>{h.compradorNombre}</strong> ha pagado{" "}
-                        <strong style={rojo}>{formatearDinero(h.precio)}</strong> por{" "}
-                        <strong style={blanco}>{h.jugadorNombre}</strong> a{" "}
-                        <strong style={blanco}>{h.vendedorNombre}</strong>
+                        El usuario <strong style={{ color: "white" }}>{h.compradorNombre}</strong> ha pagado{" "}
+                        <strong style={{ color: "#2ecc71" }}>{formatearDinero(h.precio)}</strong> por{" "}
+                        <strong style={{ color: "#2ecc71" }}>{h.jugadorNombre}</strong> a{" "}
+                        <strong style={{ color: "#e74c3c" }}>{h.vendedorNombre}</strong>
                       </>
                     );
                   }
 
                   return (
-                    <li key={h.id} className="historial-item">
+                    <li key={h.id} className="historial-item" style={{ backgroundColor }}>
                       <div className="historial-card">
                         <img src={h.fotoJugador} alt={h.jugadorNombre} className="historial-foto" />
                         <div className="historial-info">
