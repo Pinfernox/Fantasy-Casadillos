@@ -3,19 +3,8 @@ import './ModalJugador.css'
 import { getAuth} from 'firebase/auth'
 import Swal from 'sweetalert2';
 import { 
-  getFirestore, 
-  doc, 
-  getDoc, 
-  updateDoc, 
-  collection, 
-  onSnapshot, 
-  getDocs, 
-  query, 
-  where, 
-  arrayUnion,
-  arrayRemove,
-  addDoc
-} from 'firebase/firestore';
+  getFirestore, doc, getDoc, updateDoc, addDoc, collection, arrayUnion, arrayRemove, deleteDoc, query, where, getDocs 
+} from "firebase/firestore";
 import { getStorage} from 'firebase/storage'
 import ImagenProfile from '/SinPerfil.jpg'
 
@@ -26,6 +15,7 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
   const fotoURL = jugador?.foto || ImagenProfile
   const [edicionActiva, setEdicionActiva] = useState(false);
   const [clausulaPermitida, setClausulaPermitida] = useState(false);
+
 
   const pagarClausula = async () => {
     if (!jugador || !auth.currentUser) return;
@@ -42,7 +32,7 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
 
     const user = auth.currentUser; // usuario comprador (quien ficha)
     const userRef = doc(db, "usuarios", user.uid);
-    const vendedorRef = doc(db, "usuarios", idUsuario); // 🔹 idUsuario = dueño actual del jugador
+    const vendedorRef = doc(db, "usuarios", idUsuario);
     const jugadorRef = doc(db, "jugadores", jugador.id);
 
     try {
@@ -59,7 +49,7 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
       const dataComprador = snapComprador.data();
       const dataVendedor = snapVendedor.data();
 
-      // 2️⃣ Verificar hueco en titulares o banquillo SOLO en la primera posición libre
+      // 2️⃣ Verificar hueco
       const huecoTitulares = dataComprador.equipo.titulares.findIndex(j => j.jugadorId === null);
       const huecoBanquillo = dataComprador.equipo.banquillo.findIndex(j => j.jugadorId === null);
 
@@ -73,7 +63,7 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
         return;
       }
 
-      // 3️⃣ Verificar fondos del comprador
+      // 3️⃣ Verificar fondos
       if (dataComprador.dinero < clausulaPersonal) {
         await Swal.fire({
           icon: "error",
@@ -84,7 +74,7 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
         return;
       }
 
-      // 4️⃣ Transferencia de dinero: comprador paga, vendedor recibe
+      // 4️⃣ Transferencia de dinero
       await updateDoc(userRef, {
         dinero: dataComprador.dinero - clausulaPersonal,
       });
@@ -92,7 +82,7 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
         dinero: dataVendedor.dinero + clausulaPersonal,
       });
 
-      // 5️⃣ Actualizar equipo comprador: añadir jugador SOLO en la primera posición libre
+      // 5️⃣ Actualizar equipo comprador
       let nuevosTitulares = [...dataComprador.equipo.titulares];
       let nuevoBanquillo = [...dataComprador.equipo.banquillo];
 
@@ -113,7 +103,7 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
         "equipo.banquillo": nuevoBanquillo,
       });
 
-      // 6️⃣ Actualizar equipo vendedor: eliminar al jugador de su plantilla
+      // 6️⃣ Actualizar equipo vendedor
       let titularesVend = [...dataVendedor.equipo.titulares];
       let banquilloVend = [...dataVendedor.equipo.banquillo];
 
@@ -129,15 +119,15 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
         "equipo.banquillo": banquilloVend,
       });
 
-      // 7️⃣ Actualizar dueños del jugador → quitar vendedor y añadir comprador
+      // 7️⃣ Actualizar dueños
       await updateDoc(jugadorRef, {
-        dueños: arrayRemove(idUsuario), // 🔹 eliminar al vendedor
+        dueños: arrayRemove(idUsuario),
       });
       await updateDoc(jugadorRef, {
-        dueños: arrayUnion(user.uid),   // 🔹 añadir al comprador
+        dueños: arrayUnion(user.uid),
       });
 
-      // 8️⃣ Registrar en historial la operación
+      // 8️⃣ Registrar en historial
       await addDoc(collection(db, "historial"), {
         tipo: "clausulazo",
         compradorUid: user.uid,
@@ -146,7 +136,6 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
         vendedorNombre: dataVendedor.nick,
         jugadorId: jugador.id,
         jugadorNombre: jugador.nombre,
-        fotoJugador: jugador?.foto || null,
         precio: clausulaPersonal,
         fecha: new Date(),
       });
@@ -160,6 +149,15 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
         background: "#1e1e1e",
         color: "#fff",
       });
+
+      // 🔟 Eliminar si estaba en el mercado de usuarios
+      const mercadoRef = collection(db, "mercado/usuarios");
+      const q = query(mercadoRef, where("jugadorId", "==", jugador.id));
+      const snapMercado = await getDocs(q);
+
+      for (const docSnap of snapMercado.docs) {
+        await deleteDoc(doc(db, "mercado/usuarios", docSnap.id));
+      }
 
       // 🔄 Refrescar vista
       window.location.reload();

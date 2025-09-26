@@ -3,17 +3,14 @@ import { Link } from 'react-router-dom';
 import appFirebase from "../credenciales";
 import { arrayRemove, arrayUnion } from "firebase/firestore";
 import { getAuth, signOut } from 'firebase/auth'
-import { 
-  getFirestore, 
-  doc, 
-  getDoc, 
-  updateDoc, 
-  collection, 
-  onSnapshot, 
-  getDocs, 
-  query, 
-  where,
-  setDoc,
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  updateDoc,
+  collection,
+  onSnapshot,
+  getDocs,
   increment,
   serverTimestamp
 } from 'firebase/firestore';
@@ -27,7 +24,6 @@ import ModalJugadorMercado from "./ModalJugadorMercado";
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
 
-
 export default function Mercado({ usuario }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [dinero, setDinero] = useState(null)
@@ -36,9 +32,11 @@ export default function Mercado({ usuario }) {
   const titulares = usuario?.equipo?.titulares || [];
   const [loadingMercado, setLoadingMercado] = useState(false);
   const banquillo = usuario?.equipo?.banquillo || [];
-  const [jugadoresMercado, setJugadoresMercado] = useState([]);
-  const [jugadoresUsuario, setJugadoresUsuario] = useState([]);    // Estado inicial: la formación actual del usuario
-  const [guardando, setGuardando] = useState(false);
+  // Estados principales
+  const [sistemaEnr, setSistemaEnr] = useState([]); // mercado del sistema enriquecido
+  const [usuariosEnr, setUsuariosEnr] = useState([]); // mercado Usuarios enriquecido
+  const [jugadoresMercado, setJugadoresMercado] = useState([]); // lista combinada (render)
+  const [jugadoresUsuario, setJugadoresUsuario] = useState([]); // solo mis operaciones (listados que yo puse)
   const [openModal, setOpenModal] = useState(false);
   const [openModalJugadorMercado, setOpenModalJugadorMercado] = useState(false)
   const [openModalAdmin, setOpenModalAdmin] = useState(false)
@@ -46,10 +44,149 @@ export default function Mercado({ usuario }) {
   const [menuActivo, setMenuActivo] = useState(false);
   const [edicionActiva, setEdicionActiva] = useState(false);
   const refMenu = useRef(null);
-  // NUEVO: añadir estado para controlar la pestaña activa
   const [tabActiva, setTabActiva] = useState("mercado");
   const logout = () => signOut(auth);
 
+  // --- helper ---
+  const formatearDinero = (valor) => {
+    if (typeof valor !== "number" || isNaN(valor)) return "—";
+    return valor.toLocaleString("es-ES") + "€";
+  };
+
+  const traducirPosicion = (pos) => {
+    switch (pos) {
+      case "DEF": return "Defensa";
+      case "MED": return "Mediocentro";
+      case "DEL": return "Delantero";
+      case "POR": return "Portero";
+      default: return pos || "Sin posición";
+    }
+  };
+
+  // -------------------------------
+  // Suscripción: mercado del SISTEMA (mercado/actual)
+  // Enriquecemos con la data real de la colección 'jugadores'
+  // -------------------------------
+  useEffect(() => {
+    const refSistema = doc(db, "mercado", "actual");
+    const unsub = onSnapshot(refSistema, async (snap) => {
+      const jugadores = snap.exists() ? (snap.data().jugadores || []) : [];
+      try {
+        const enriched = await Promise.all(jugadores.map(async (p) => {
+          // p.idJugador debe contener el doc id en 'jugadores'
+          const jDocRef = doc(db, "jugadores", p.idJugador);
+          const jSnap = await getDoc(jDocRef);
+          const jData = jSnap.exists() ? jSnap.data() : {};
+          return {
+            source: 'system',
+            idJugador: p.idJugador,
+            nombre: jData.nombre || p.nombre || "Sin nombre",
+            foto: jData.foto || p.foto || ImagenProfile,
+            posicion: jData.posicion || p.posicion || "—",
+            precio: typeof p.precio === 'number' ? p.precio : Number(p.precio) || jData.precio || 0,
+            stock: p.stock ?? 1,
+            historialPrecios: jData.historialPrecios || p.historialPrecios || [],
+            puntosPorJornada: jData.puntosPorJornada || p.puntosPorJornada || [],
+            vendedor: p.vendedor || "Fantasy Casadillos",
+            goles: jData.goles,
+            asistencias: jData.asistencias,
+            partidos: jData.partidos,
+            valoracion: jData.valoracion,
+            nota: jData.nota,
+            puntosTotales: jData.puntosTotales,
+            // guardar original por si hace falta
+            _raw: p,
+          };
+        }));
+        setSistemaEnr(enriched.filter(Boolean));
+      } catch (err) {
+        console.error("Error enriqueciendo mercado sistema:", err);
+        setSistemaEnr([]);
+      }
+    });
+
+    return () => unsub();
+  }, []); // se suscribe una vez
+
+  // -------------------------------
+  // Suscripción: mercado de USUARIOS (mercadoUsuarios/actual)
+  // Estructura esperada: documento "actual" con array jugadores: [{ jugadorId, precioVenta, vendedorNick, vendedorUid, fecha }, ...]
+  // -------------------------------
+  useEffect(() => {
+    const refUsuarios = doc(db, "mercadoUsuarios", "actual");
+    const unsub = onSnapshot(refUsuarios, async (snap) => {
+      const list = snap.exists() ? (snap.data().jugadores || []) : [];
+      try {
+        const enriched = await Promise.all(list.map(async (listing) => {
+          if (!listing || !listing.jugadorId) return null;
+          const jDocRef = doc(db, "jugadores", listing.jugadorId);
+          const jSnap = await getDoc(jDocRef);
+          const jData = jSnap.exists() ? jSnap.data() : null;
+
+          // Si no existe el jugador en 'jugadores' devolvemos un fallback (o null para eliminarlo)
+          if (!jData) {
+            // Puedes optar por devolver null para filtrar listados huérfanos
+            return {
+              source: 'user',
+              idJugador: listing.jugadorId,
+              nombre: "Jugador no encontrado",
+              foto: ImagenProfile,
+              posicion: "—",
+              precio: listing.precioVenta ?? 0,
+              historialPrecios: [],
+              puntosPorJornada: [],
+              vendedor: listing.vendedorNick || "Usuario",
+              vendedorUid: listing.vendedorUid,
+              fecha: listing.fecha || null
+            };
+          }
+
+          return {
+            source: 'user',
+            idJugador: listing.jugadorId,
+            nombre: jData.nombre || "Sin nombre",
+            foto: jData.foto || ImagenProfile,
+            posicion: jData.posicion || "—",
+            precio: jData.precio || 0,
+            precioVenta: typeof listing.precioVenta === 'number' ? listing.precioVenta : Number(listing.precioVenta),
+            historialPrecios: jData.historialPrecios || [],
+            puntosPorJornada: jData.puntosPorJornada || [],
+            vendedor: listing.vendedorNick || "Usuario",
+            vendedorUid: listing.vendedorUid,
+            goles: jData.goles,
+            asistencias: jData.asistencias,
+            partidos: jData.partidos,
+            valoracion: jData.valoracion,
+            nota: jData.nota,
+            puntosTotales: jData.puntosTotales,
+            fecha: listing.fecha || null
+          };
+        }));
+
+        const filtered = enriched.filter(Boolean);
+        setUsuariosEnr(filtered);
+        // operaciones del usuario autenticado (listados que yo puse)
+        if (usuario && usuario.uid) {
+          setJugadoresUsuario(filtered.filter(l => l.vendedorUid === usuario.uid));
+        } else {
+          setJugadoresUsuario([]);
+        }
+      } catch (err) {
+        console.error("Error enriqueciendo mercado usuarios:", err);
+        setUsuariosEnr([]);
+        setJugadoresUsuario([]);
+      }
+    });
+
+    return () => unsub();
+  }, [usuario]);
+
+  // Combinar sistema + usuarios en una sola lista que renderizamos
+  useEffect(() => {
+    // podrías aplicar un orden: primero sistema, luego usuarios (ahora así)
+    setJugadoresMercado([...sistemaEnr, ...usuariosEnr]);
+  }, [sistemaEnr, usuariosEnr]);
+  
   useEffect(() => {
     const cargarEstadoEdicion = async () => {
       try {
@@ -66,8 +203,55 @@ export default function Mercado({ usuario }) {
 
     cargarEstadoEdicion();
   }, []);
-  
-  // Cerramos el menú si clicas fuera
+  // -------------------------------
+  // Otras utilidades: compra (solo sistema)...
+  // -------------------------------
+  const pujarJugador = async (jugador) => {
+    // solo permitir para source === 'system'
+    if (jugador.source !== 'system') {
+      alert("Las pujas directas solo están permitidas para jugadores del mercado del sistema. Para jugadores puestos por usuarios, abre el detalle.");
+      return;
+    }
+
+    if (jugador.stock <= 0) {
+      alert("Ya no queda stock de este jugador");
+      return;
+    }
+
+    try {
+      const refMercado = doc(db, "mercado", "actual");
+      const snap = await getDoc(refMercado);
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const lista = (data.jugadores || []).map((j) =>
+        j.idJugador === jugador.idJugador ? { ...j, stock: j.stock - 1 } : j
+      );
+      await updateDoc(refMercado, { jugadores: lista });
+
+      // Reducir stock en la colección global de jugadores
+      await updateDoc(doc(db, "jugadores", jugador.idJugador), {
+        stockTotal: increment(-1),
+      });
+
+      // Añadir jugador al usuario comprador (ejemplo sencillo: al banquillo)
+      const refUsuario = doc(db, "usuarios", auth.currentUser.uid);
+      await updateDoc(refUsuario, {
+        "equipo.banquillo": [...(usuario.equipo?.banquillo || []), jugador.idJugador]
+      });
+
+      // Actualizamos estado local (para respuesta rápida)
+      setSistemaEnr(prev => prev.map(p => p.idJugador === jugador.idJugador ? { ...p, stock: (p.stock || 1) - 1 } : p));
+      alert(`Has comprado a ${jugador.nombre}`);
+    } catch (err) {
+      console.error("Error comprando jugador:", err);
+      alert("Error al comprar el jugador");
+    }
+  };
+
+  // -------------------------------
+  // UI / Render
+  // -------------------------------
+  // cerrar menú al click fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (refMenu.current && !refMenu.current.contains(event.target)) {
@@ -75,511 +259,203 @@ export default function Mercado({ usuario }) {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Onboarding y leer dinero
   useEffect(() => {
-    const cargarMercado = async () => {
-      const ref = doc(db, "mercado", "actual");
-      const snap = await getDoc(ref);
-
-      if (snap.exists()) {
-        const data = snap.data();
-        // Aseguramos que todos tienen vendedor
-        const jugadoresSistema = (data.jugadores || []).map(j => ({
-          ...j,
-          vendedor: j.vendedor || "Fantasy Casadillos",
-        }));
-        setJugadoresMercado(jugadoresSistema);
-      } else {
-        setJugadoresMercado([]); 
-      }
-
-    };
-
-    cargarMercado();
-  }, []);
-
-  useEffect(() => {
-  const cargarMercado = async () => {
-    const ref = doc(db, "mercado", "actual");
-    const snap = await getDoc(ref);
-
-    let jugadoresSistema = [];
-    if (snap.exists()) {
-      const data = snap.data();
-      jugadoresSistema = data.jugadores || [];
-    }
-
-    // --- Cargar jugadores puestos por usuarios ---
-    const refUsuarios = collection(db, "mercado/actual/usuarios");
-    const snapUsuarios = await getDocs(refUsuarios);
-    const jugadoresUsuarios = snapUsuarios.docs.map(d => ({
-      idVenta: d.id,
-      ...d.data(),
-      vendedor: d.data().vendedorNick || "Usuario",
-    }));
-
-    // Unimos ambos
-    setJugadoresMercado([...jugadoresSistema, ...jugadoresUsuarios]);
-  };
-
-  cargarMercado();
-  }, []);
-
-  const refrescarMercado = async () => {
-    setLoadingMercado(true); // 👈 empieza la carga
-    try {
-      const refMercado = doc(db, "mercado", "actual");
-      const snapMercado = await getDoc(refMercado);
-
-      if (snapMercado.exists()) {
-        const data = snapMercado.data();
-
-        // ⚠️ SOLO devolvemos stock de jugadores del sistema
-        for (const j of data.jugadores) {
-          if (j.stock > 0) {
-            const jugadorRef = doc(db, "jugadores", j.idJugador);
-            await updateDoc(jugadorRef, {
-              stockLibre: increment(j.stock),
-              dueños: arrayRemove("mercado"),
-            });
-          }
-        }
-      }
-
-      // Nuevo mercado del sistema
-      const snapJugadores = await getDocs(collection(db, "jugadores"));
-      const todos = snapJugadores.docs.map(d => ({ idJugador: d.id, ...d.data() }));
-
-      const seleccionados = todos
-        .filter(j => j.stockLibre > 0)
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 15);
-
-      for (const j of seleccionados) {
-        const jugadorRef = doc(db, "jugadores", j.idJugador);
-        await updateDoc(jugadorRef, {
-          stockLibre: increment(-1),
-          dueños: arrayUnion("mercado"),
-        });
-      }
-
-      await updateDoc(refMercado, {
-        jugadores: seleccionados.map(j => ({
-          idJugador: j.idJugador,
-          nombre: j.nombre,
-          precio: j.precio,
-          precioClausula: j.precioClausula,
-          goles: j.goles,
-          asistencias: j.asistencias,
-          valoracion: j.valoracion,
-          nota: j.nota,
-          puntos: j.puntosTotales,
-          partidos: j.partidos,
-          foto: j.foto,
-          posicion: j.posicion,
-          vendedor: "Fantasy Casadillos",
-          stock: 1,
-          historialPrecios: j.historialPrecios || [],
-          puntosPorJornada: j.puntosPorJornada || [],
-        })),
-        ultimaActualizacion: serverTimestamp(),
+    if (!usuario) return;
+    if (window.particlesJS) {
+      window.particlesJS.load("particles-js", "particles.json", () => {
+        console.log("Particles.js config cargado");
       });
-
-      // jugadores de usuarios
-      const refUsuarios = collection(db, "mercado/actual/usuarios");
-      const snapUsuarios = await getDocs(refUsuarios);
-      const jugadoresUsuarios = snapUsuarios.docs.map(d => ({
-        idVenta: d.id,
-        ...d.data(),
-        vendedor: d.data().vendedorNick || "Usuario",
-      }));
-
-      setJugadoresMercado([...seleccionados, ...jugadoresUsuarios]);
-    } catch (error) {
-      console.error("Error al refrescar mercado:", error);
-    } finally {
-      setLoadingMercado(false); // 👈 termina la carga
     }
-  };
-
-  // para que se reflejen los cambios sin actualizar
-  useEffect(() => {
-    const db = getFirestore(appFirebase);
-    const mercadoRef = doc(db, "mercado", "actual");
-    // Nos suscribimos a cambios en el documento
-    const unsubscribe = onSnapshot(mercadoRef, (snap) => {
-      if (snap.exists()) {
-        const data = snap.data();
-        const jugadoresSistema = (data.jugadores || []).map(j => ({
-          ...j,
-          vendedor: j.vendedor || "Fantasy Casadillos",
-        }));
-        setJugadoresMercado(jugadoresSistema);
-      } else {
-        setJugadoresMercado([]);
-      }
-    });
-
-    return () => unsubscribe(); // cleanup al desmontar
-  }, []);
-
-  // 🛒 Pujar jugador
-  const pujarJugador = async (jugador) => {
-    if (jugador.stock <= 0) {
-      alert("Ya no queda stock de este jugador");
-      return;
-    }
-
-    const refMercado = doc(db, "mercado", "actual");
-    const snap = await getDoc(refMercado);
-    if (!snap.exists()) return;
-
-    const data = snap.data();
-
-    // Reducir stock del jugador en el mercado
-    const lista = data.jugadores.map((j) =>
-      j.idJugador === jugador.idJugador
-        ? { ...j, stock: j.stock - 1 }
-        : j
-    );
-    await updateDoc(refMercado, { jugadores: lista });
-
-    // Reducir stock en la colección global de jugadores
-    await updateDoc(doc(db, "jugadores", jugador.idJugador), {
-      stockTotal: increment(-1),
-    });
-
-    // Añadir jugador al usuario
-    const refUsuario = doc(db, "usuarios", auth.currentUser.uid);
-    await updateDoc(refUsuario, {
-      "equipo.banquillo": [...(usuario.equipo?.banquillo || []), jugador.idJugador]
-    });
-
-    setJugadoresMercado(lista); // actualizar estado en React
-    alert(`Has comprado a ${jugador.nombre}`);
-  };
-
-  const toggleMenu = () => {
-    setMenu(!menu)
-  }
-  
-  const traducirPosicion = (pos) => {
-    switch (pos) {
-      case "DEF":
-        return "Defensa";
-      case "MED":
-        return "Mediocentro";
-      case "DEL":
-        return "Delantero";
-      case "POR":
-        return "Portero";
-      default:
-        return pos || "Sin posición";
-    }
-  };
-
-  const formatearDinero = (valor) => {
-    if (typeof valor !== "number" || isNaN(valor)) {
-      return "—"; // o "0€" si prefieres
-    }
-    return valor.toLocaleString("es-ES") + "€";  
-  };
-
-  const abreviarNick = (nick) => {
-    if (!nick) return "";
-
-    const maxLength = 10
-    const firstSpace = nick.indexOf(" ");
-
-    let corte;
-
-    if (firstSpace !== -1 && firstSpace <= maxLength) {
-      corte = firstSpace; // cortar en el espacio si está antes de 9
-      return nick.slice(0, corte) + "...";
-      
-    } else if (nick.length > maxLength) {
-      corte = maxLength-3; // cortar en 9 si es más largo
-
-      return nick.slice(0, corte) + "...";
-    } else {
-      return nick; // no hace falta cortar
-    }
-
-  };
-
-  useEffect(() => {
-    if (usuario && usuario?.onboarding === false) {
+    if (usuario?.onboarding === false) {
       setShowOnboarding(true);
-
       const timer = setTimeout(async () => {
         try {
-          const userRef = doc(db, "usuarios", auth.currentUser.uid);
+          const userRef = doc(db, "usuarios", usuario.uid);
           await updateDoc(userRef, { onboarding: true });
-          window.location.reload(); // refresca la página
-        } catch (error) {
-          console.error("Error actualizando onboarding:", error);
-        }
+          window.location.reload();
+        } catch (err) { console.error(err); }
       }, 500);
-
       return () => clearTimeout(timer);
     }
 
-    console.log('Foto de perfil desde Firestore o Auth:', usuario?.fotoPerfil)
-    // Partículas
-    if (window.particlesJS) {
-      window.particlesJS.load('particles-js', 'particles.json', () => {
-        console.log('Particles.js config cargado')
-      })
-      
-    }
-    
-    // Leer dinero de Firestore
-    if (usuario) {
-      const ref = doc(db, 'usuarios', usuario.uid)
-      getDoc(ref).then((snap) => {
-        if (snap.exists()) {
-          setDinero(snap.data().dinero)
-        }
-      })
-    }
-  }, [usuario], [titulares], );
+    (async () => {
+      try {
+        const ref = doc(db, "usuarios", usuario.uid);
+        const snap = await getDoc(ref);
+        if (snap.exists()) setDinero(snap.data().dinero);
+      } catch (err) { }
+    })();
+
+  }, [usuario]);
 
   return (
     <div>
       <header className="Cabecera">
         <div className="container-profile">
-
           <div className='img-profile-small' style={{ position: 'relative' }}>
             <img
               src={fotoURL}
               onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ImagenProfile }}
               alt="Foto de perfil"
-              onClick={() => setMenuActivo(!menuActivo)} // toggle con clic
-              onMouseEnter={() => setMenuActivo(true)} // hover
+              onClick={() => setMenuActivo(!menuActivo)}
+              onMouseEnter={() => setMenuActivo(true)}
             />
-
             {menuActivo && (
-              <div
-                className="perfil-bocadillo"
-                ref={refMenu}
-                onMouseLeave={() => setMenuActivo(false)} // solo se cierra al salir del menú
-              >
-              <div className="triangulo" />
-                  <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
-                  
-                  <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
-
-                  {usuario?.rol === 'admin' && <button className="btn-admin" onClick={() => { setOpenModalAdmin(true); setMenuActivo(false); }}>⚙️ Admin</button>}
+              <div className="perfil-bocadillo" ref={refMenu} onMouseLeave={() => setMenuActivo(false)}>
+                <div className="triangulo" />
+                <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
+                <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
+                {usuario?.rol === 'admin' && <button className="btn-admin" onClick={() => { setOpenModalAdmin(true); setMenuActivo(false); }}>⚙️ Admin</button>}
               </div>
             )}
           </div>
 
           <div className="info-profile">
-            <h2 className="nombre-usuario">
-              {(usuario?.nick || usuario?.displayName)}
-            </h2>
-            {dinero !== null && (
-              <p className="dinero-usuario">
-                💰<strong>{formatearDinero(dinero)}</strong>
-              </p>
-            )}
+            <h2 className="nombre-usuario">{(usuario?.nick || usuario?.displayName)}</h2>
+            {dinero !== null && (<p className="dinero-usuario">💰<strong>{formatearDinero(dinero)}</strong></p>)}
           </div>
         </div>
 
-        <button onClick={toggleMenu} className="Cabecera-button">
-          <svg className='Cabecera-svg' xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5"/>
-          </svg>
-        </button>
-
         <nav className={`Cabecera-nav ${menu ? 'isActive' : ''}`}>
           <ul className="Cabecera-ul">
-            <li className="Cabecera-li">
-              <Link to="/home" className="Cabecera-a">EQUIPO</Link>
-            </li>
-            <li className="Cabecera-li">
-              <Link to="/mercado" className="Cabecera-a">MERCADO</Link>
-            </li>
-            <li className="Cabecera-li">
-              <Link to="/clasificacion" className="Cabecera-a">CLASIFICACIÓN</Link>
-            </li>
-            <li className="Cabecera-li">
-              <Link to="/historial" className="Cabecera-a">HISTORIAL</Link>
-            </li>
+            <li className="Cabecera-li"><Link to="/home" className="Cabecera-a">EQUIPO</Link></li>
+            <li className="Cabecera-li"><Link to="/mercado" className="Cabecera-a">MERCADO</Link></li>
+            <li className="Cabecera-li"><Link to="/clasificacion" className="Cabecera-a">CLASIFICACIÓN</Link></li>
+            <li className="Cabecera-li"><Link to="/historial" className="Cabecera-a">HISTORIAL</Link></li>
           </ul>
         </nav>
       </header>
 
-      <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
-        <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
-        {openModal && 
-          (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
-        }
-        {openModalAdmin &&       
-          (<ModalAdmin usuario={usuario} openModal= {openModalAdmin} setOpenModal={setOpenModalAdmin}/>)
-        }
-        {openModalJugadorMercado && jugadorSeleccionado &&           
-          (<ModalJugadorMercado jugador={jugadorSeleccionado} openModal= {openModalJugadorMercado} setOpenModal={setOpenModalJugadorMercado} />)}
+      <div className="login-hero-Cabecera" style={{ backgroundImage: `url(${Fondo})` }}>
+        <div id="particles-js" style={{ position: 'absolute', inset: 0 }} />
+        {openModal && (<ModalPerfil usuario={usuario} openModal={openModal} setOpenModal={setOpenModal} />)}
+        {openModalAdmin && (<ModalAdmin usuario={usuario} openModal={openModalAdmin} setOpenModal={setOpenModalAdmin} />)}
+        {openModalJugadorMercado && jugadorSeleccionado && (<ModalJugadorMercado jugador={jugadorSeleccionado} openModal={openModalJugadorMercado} setOpenModal={setOpenModalJugadorMercado}/>)}
+
         <div className="tabs-wrapper">
-                  {/* Pestañas de navegación */}
-        <div className="tabs-container" style={{}}>
-          <button
-            className={`tab-btn ${tabActiva === "mercado" ? "active" : ""}`}
-            onClick={() => setTabActiva("mercado")}
-          >
-            Mercado
-          </button>
-          <button
-            className={`tab-btn ${tabActiva === "operaciones" ? "active" : ""}`}
-            onClick={() => setTabActiva("operaciones")}
-          >
-            Mis operaciones
-          </button>
-        </div>
-  
-        {tabActiva === "mercado" && (<div className="mercado-jugadores">
-          {jugadoresMercado.length === 0 ? (
-            <div className="sin-mercado">
-              <p>No hay mercado disponible</p>
-            </div>
-          ) : (
-          <ul className="lista-jugadores">
-            {jugadoresMercado.map((j) => (
-              <li key={j.idJugador} className="jugador-card"   
-                onClick={() => {
-                  setJugadorSeleccionado(j);
-                  setOpenModalJugadorMercado(true);
-                }}>
-                <div className="jugador-perfil">
-                  {/* botón cerrar */}
-                  <div className="modal-header">
-                    <label className="modal-avatar">
-                      <img src={j.foto || ImagenProfile} alt={j.nombre} 
-                            onError={(e) => {
-                              e.currentTarget.onerror = null;
-                              e.currentTarget.src = ImagenProfile;
-                            }}/>
-                    </label>
-                    <div className="modal-jugadorinfo">
-                      <h2>{window.innerWidth < 450 ? (j.nombre) : j.nombre}</h2>
-                      <div className='posicion-precio'>
-                        <div className={`posicion-texto ${j.posicion}`}>
-                          <small>{traducirPosicion(j.posicion)}</small>
-                        </div>
-                        {/* Contenedor de precio + diferencia */}
-                        <div className='precio-container'>
-                          <div className='precio'>
-                            <small><span className='texto-blanco'>Valor:</span> {formatearDinero(j.precio)}</small>
-                          </div>
-                          
-                          <div className="diferencia-precio">
-                            {(() => {
-                              const historial = j.historialPrecios || [];
-                              if (historial.length === 0) return <small>(±0€)</small>;
-                              const ultimoPrecio = historial[historial.length - 1].precio || 0;
-                              const diferencia = j.precio - ultimoPrecio;
-                              const signo = diferencia > 0 ? "+" : diferencia < 0 ? "-" : "±";
-                              return (
-                                <small className={diferencia > 0 ? "subida" : diferencia < 0 ? "bajada" : "igual"}>
-                                  ({signo}{formatearDinero(Math.abs(diferencia))})
-                                </small>
-                              );
-                            })()}
-                          </div>
+          <div className="tabs-container">
+            <button className={`tab-btn ${tabActiva === "mercado" ? "active" : ""}`} onClick={() => setTabActiva("mercado")}>Mercado</button>
+            <button className={`tab-btn ${tabActiva === "operaciones" ? "active" : ""}`} onClick={() => setTabActiva("operaciones")}>Mis operaciones</button>
+          </div>
 
-                        </div>
-                        <small className="texto-vendedor">Vendedor:&nbsp;<span className="vendedor">{j.vendedor}</span></small>
-                        <small className="texto-vendedor">Media de puntos:&nbsp;<span className="media"> {
-                            j.puntosPorJornada && j.puntosPorJornada.length > 0
-                              ? (
-                                  j.puntosPorJornada
-                                    .filter(p => typeof p === "number")
-                                    .reduce((acc, val, _, arr) => acc + val / arr.length, 0)
-                                    .toFixed(2)
-                                )
-                              : "-"
-                          }</span></small>
-                      </div>
-                      {/* Nuevo bloque debajo */}
-                      <div className="estadisticas-extra">
-                        {/* Últimas 5 jornadas */}
-                        <div className="ultimas-jornadas">
-                          {j.puntosPorJornada && j.puntosPorJornada.length > 0
-                            ? j.puntosPorJornada.slice(-5).map((p, i) => {
-                                const puntos = p !== null && p !== undefined ? p : "-";
-                                // Calculamos el índice real de la jornada
-                                const total = j.puntosPorJornada.length;
-                                const jornadaIndex = total - 5 + i + 1; // +1 porque queremos J1, J2...
-                                
-                                // Determinar clase de color
-                                let claseColor = "";
-                                if (typeof p === "number") {
-                                  if (p >= 9) claseColor = "verde";
-                                  else if (p < 7) claseColor = "rojo";
-                                }
+          {tabActiva === "mercado" && (
+            <div className="mercado-jugadores">
+              {jugadoresMercado.length === 0 ? (
+                <div className="sin-mercado"><p>No hay mercado disponible</p></div>
+              ) : (
+                <ul className="lista-jugadores">
+                  {jugadoresMercado.map((j) => {
+                    const key = `${j.idJugador}-${j.source}-${j.vendedorUid || 'system'}`;
+                    return (
+                      <li key={key} className="jugador-card"
+                        onClick={() => { setJugadorSeleccionado(j); setOpenModalJugadorMercado(true); }}>
+                        <div className="jugador-perfil">
+                          <div className="modal-header">
+                            <label className="modal-avatar">
+                              <img src={j.foto || ImagenProfile} alt={j.nombre} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ImagenProfile }} />
+                            </label>
+                            <div className="modal-jugadorinfo">
+                              <h2>{j.nombre}</h2>
 
-                                return (
-                                  <div key={i} className="jornada-item">
-                                    <small className="jornada-nombre">J{jornadaIndex}</small>
-                                    <div className={`jornada-cuadro ${claseColor}`}>
-                                      {puntos}
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            : [...Array(5)].map((_, i) => (
-                                <div key={i} className="jornada-item">
-                                  <small className="jornada-nombre">J{i + 1}</small>
-                                  <div className="jornada-cuadro">-</div>
+                              <div className='posicion-precio'>
+                                <div className={`posicion-texto ${j.posicion || ''}`}>
+                                  <small>{traducirPosicion(j.posicion)}</small>
                                 </div>
-                              ))
-                          }
+
+                                <div className='precio-container'>
+                                  <div className='precio'>
+                                    <small><span className='texto-blanco'>Valor:</span> {Number(j.precio) ? formatearDinero(Number(j.precio)) : "—"}</small>
+                                  </div>
+                                  <div className="diferencia-precio">
+                                    {(() => {
+                                      const historial = j.historialPrecios || [];
+                                      if (historial.length === 0) return <small>(±0€)</small>;
+                                      const ultimoPrecio = historial[historial.length - 1]?.precio || 0;
+                                      const diferencia = (j.precio || 0) - ultimoPrecio;
+                                      const signo = diferencia > 0 ? "+" : diferencia < 0 ? "-" : "±";
+                                      return <small className={diferencia > 0 ? "subida" : diferencia < 0 ? "bajada" : "igual"}>({signo}{formatearDinero(Math.abs(diferencia))})</small>;
+                                    })()}
+                                  </div>
+                                </div>
+
+                                <small className="texto-vendedor">Vendedor:&nbsp;<span className="vendedor">{j.vendedor}</span></small>
+                                <small className="texto-vendedor">Media de puntos:&nbsp;<span className="media">{
+                                  j.puntosPorJornada && j.puntosPorJornada.length > 0
+                                    ? (j.puntosPorJornada.filter(p => typeof p === "number").reduce((acc, val, _, arr) => acc + val / arr.length, 0)).toFixed(2)
+                                    : "-"
+                                }</span></small>
+                              </div>
+
+                              {/* últimas jornadas */}
+                              <div className="estadisticas-extra">
+                                <div className="ultimas-jornadas">
+                                  {(j.puntosPorJornada || []).slice(-5).map((p, i) => {
+                                    const puntos = p != null ? p : "-";
+                                    const total = j.puntosPorJornada ? j.puntosPorJornada.length : 0;
+                                    const jornadaIndex = Math.max(1, total - 5 + i + 1);
+                                    let claseColor = "";
+                                    if (typeof p === "number") {
+                                      if (p >= 9) claseColor = "verde";
+                                      else if (p < 7) claseColor = "rojo";
+                                    }
+                                    return (
+                                      <div key={i} className="jornada-item">
+                                        <small className="jornada-nombre">J{jornadaIndex}</small>
+                                        <div className={`jornada-cuadro ${claseColor}`}>{puntos}</div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                            </div>
+                          </div>
+
+                          <hr />
+                          <div className="modal-footer">
+                            <button
+                              className="btn-comprar"
+                              disabled={!edicionActiva || j.source !== 'system'}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (j.source === 'system') pujarJugador(j);
+                                else { setJugadorSeleccionado(j); setOpenModalJugadorMercado(true); }
+                              }}>
+                              {j.source === 'system' ? "Pujar por el jugador" : "Ver detalles"}
+                            </button>
+                          </div>
                         </div>
-                      </div>
-
-                    </div>
-                  </div>
-                  <hr/>
-                  <div className="modal-footer">
-                    <button
-                      className="btn-comprar"
-                      disabled={!edicionActiva}
-                      onClick={(e) => {
-                        e.stopPropagation(); // evita que se abra el modal
-                        pujarJugador(j);
-                      }}>                      
-                      Pujar por el jugador                    
-                    </button>
-                  </div>
-                </div>
-
-              </li>
-            ))}
-          </ul>)}
-        </div>)}
-
-        {tabActiva === "operaciones" && (
-        <div className="operaciones-container">
-          <div className="operaciones-animacion">
-            <h2>Mis operaciones pendientes</h2>
-            {usuario?.operaciones && usuario.operaciones.length > 0 ? (
-              <ul>
-                {usuario.operaciones.map((op, i) => (
-                  <li key={i}>
-                    {op.tipo} - {op.jugador} - {formatearDinero(op.cantidad)}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No tienes operaciones pendientes</p>
-            )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
-        </div>
-        )}
+          )}
+
+          {tabActiva === "operaciones" && (
+            <div className="operaciones-container">
+              <div className="operaciones-animacion">
+                <h2>Mis operaciones pendientes</h2>
+                {jugadoresUsuario && jugadoresUsuario.length > 0 ? (
+                  <ul>
+                    {jugadoresUsuario.map((op, i) => (
+                      <li key={`${op.idJugador}-${i}`}>
+                        {op.nombre} — {formatearDinero(op.precio)} (puesto en venta)
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No tienes operaciones pendientes</p>
+                )}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 

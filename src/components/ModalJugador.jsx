@@ -5,7 +5,7 @@ import { getAuth, updateProfile, updateEmail, updatePassword, deleteUser, EmailA
   GoogleAuthProvider, 
   reauthenticateWithCredential, 
   reauthenticateWithPopup, sendPasswordResetEmail} from 'firebase/auth'
-import { collection, query, where, deleteDoc, getFirestore, doc, updateDoc, getDoc, getDocs, arrayRemove, arrayUnion, increment, addDoc } from 'firebase/firestore'
+import { collection, query, where, deleteDoc, getFirestore, doc, updateDoc, setDoc ,getDoc, getDocs, arrayRemove, arrayUnion, increment, addDoc,serverTimestamp  } from 'firebase/firestore'
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import ImagenProfile from '/SinPerfil.jpg'
 import appFirebase from "../credenciales";
@@ -16,6 +16,35 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
   const storage = getStorage()
   const fotoURL = jugador?.foto || ImagenProfile
   const [capitanId, setCapitanId] = useState(null)
+  const usuario = auth.currentUser; // usuario comprador (quien ficha)
+
+  const [yaEnVenta, setYaEnVenta] = useState(false);
+
+  useEffect(() => {
+    const comprobarVenta = async () => {
+      try {
+        const ref = doc(db, "mercadoUsuarios", "actual");
+        const snap = await getDoc(ref);
+
+        if (!snap.exists()) {
+          setYaEnVenta(false);
+          return;
+        }
+
+        const datos = snap.data();
+        const jugadores = datos.jugadores || [];
+
+        const encontrado = jugadores.some(j => j.jugadorId === jugador.id);
+        setYaEnVenta(encontrado);
+      } catch (error) {
+        console.error("Error al comprobar venta:", error);
+        setYaEnVenta(false);
+      }
+    };
+
+    if (jugador?.id) comprobarVenta();
+  }, [jugador]);
+
 
   const venta = async () => {
     if (!jugador || !user) return;
@@ -67,10 +96,10 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
       // 4️⃣ Guardar historial de venta
       await addDoc(collection(db, "historial"), {
         tipo: 'venta directa', 
-        vendedorNombre: user.nick,
-        compradorNombre: '',
+        vendedorId: usuario.uid,
+        vendedorNick: user.nick,
+        jugadorId: jugador.id,
         jugadorNombre: jugador.nombre,
-        fotoJugador: jugador?.foto,
         precio: ventaInmediata,
         fecha: new Date(),
       });
@@ -98,25 +127,50 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
     }
   };
 
-  // función que añade el jugador al mercado
-  async function ponerEnMercado(jugador, usuario, precio) {
+// función que añade el jugador al mercado de usuarios
+
+  const ponerEnMercado = async (jugador, precioVenta) => {
     try {
-      const mercadoRef = doc(db, "mercado", "usuarios"); // ← ajusta el docId de tu liga
-      await updateDoc(mercadoRef, {
-        jugadores: arrayUnion({
-          jugadorId: jugador.id,
-          jugadorNombre: jugador.nombre,
-          usuarioId: usuario.uid,
-          usuarioNombre: usuario.nick,
-          precio: precio,
-          fecha: new Date(),
-        }),
+      const user = auth.currentUser;
+      if (!user) throw new Error("Usuario no autenticado");
+
+      const usuarioRef = doc(db, "usuarios", user.uid);
+      const snap = await getDoc(usuarioRef);
+      const datosUsuario = snap.data();
+
+      if (!datosUsuario) throw new Error("No se encontró el usuario en Firestore");
+
+      const jugadorEnVenta = {
+        jugadorId: jugador.id,
+        precioVenta,
+        vendedorUid: user.uid,
+        vendedorNick: datosUsuario.nick,
+        fecha: new Date().toISOString(), // alternativa segura
+      };
+
+      const mercadoRef = doc(db, "mercadoUsuarios", "actual");
+
+      await setDoc(
+        mercadoRef,
+        {
+          jugadores: arrayUnion(jugadorEnVenta),
+          ultimaActualizacion: serverTimestamp(),
+        },
+        { merge: true } // 🔥 crea el documento si no existe
+      );
+
+      await Swal.fire({
+        icon: "success",
+        title: "¡Jugador puesto en venta!",
+        confirmButtonText: "Aceptar",
+        background: "#1e1e1e",
+        color: "#fff",
       });
     } catch (error) {
       console.error("Error al poner en mercado:", error);
-      Swal.fire("Error", "No se pudo poner al jugador en el mercado", "error");
     }
-  }
+  };
+
 
   const handleVenta = () => {
     const ventaInmediata = Math.round(jugador.precio * 0.6); // redondea al entero más cercano
@@ -139,6 +193,7 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
           inputLabel: "Precio en €",
           inputPlaceholder: "Ej: 5.000.000",
           confirmButtonText: "Poner en venta",
+          cancelButtonText: "Cancelar",
           showCancelButton: true,
           background: "#1e1e1e",
           color: "#fff",
@@ -146,12 +201,15 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
             if (!value || value <= 0) {
               return "Debes introducir un precio válido";
             }
+            if (value < jugador.precio) {
+              return "Debes introducir un precio que sea mínimo superior al valor de mercado";
+            }
           },
         });
 
         if (precio) {
           console.log("Venta en mercado por", precio);
-          ponerEnMercado(parseInt(precio, 10));
+          ponerEnMercado(jugador, parseInt(precio, 10));
         }
 
       } else if (result.isDenied) {
@@ -160,7 +218,6 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
       }
     });
   };
-
 
   const traducirPosicion = (pos) => {
     switch (pos) {
@@ -389,12 +446,18 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
             </button>
           ) : (
             <>
-              <button
-                className="btn-accion"
-                onClick={() => handleVenta()}
-              >
-                Vender
-              </button>
+              {yaEnVenta ? (
+                <button className="btn-accion" disabled>
+                  Ya está en venta
+                </button>
+              ) : (
+                <button
+                  className="btn-accion"
+                  onClick={() => handleVenta()}
+                >
+                  Vender
+                </button>
+              )}
 
               <button
                 className="btn-capitan"
@@ -406,6 +469,7 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
             </>
           )}
         </div>
+
 
       </div>
     </div>

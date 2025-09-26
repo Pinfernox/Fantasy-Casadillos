@@ -48,32 +48,73 @@ export default function Historial({ usuario }) {
     };
   }, []);
 
-  // Cargar historial desde Firestore
+// Cargar historial desde Firestore
   useEffect(() => {
     if (window.particlesJS) {
-      window.particlesJS.load('particles-js', 'particles.json', () => {
-        console.log('Particles.js config cargado')
-      })
+      window.particlesJS.load("particles-js", "particles.json", () => {
+        console.log("Particles.js config cargado");
+      });
     }
+
     // Leer dinero de Firestore
     if (usuario) {
-      const ref = doc(db, 'usuarios', usuario.uid)
+      const ref = doc(db, "usuarios", usuario.uid);
       getDoc(ref).then((snap) => {
         if (snap.exists()) {
-          setDinero(snap.data().dinero)
+          setDinero(snap.data().dinero);
         }
-      })
+      });
     }
+
     const cargarHistorial = async () => {
       try {
         const snap = await getDocs(collection(db, "historial"));
         if (!snap.empty) {
           const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-          // ordenamos descendente por fecha si tienen timestamp
-          const ordenado = data.sort(
-            (a, b) =>
-              (b.fecha?.toMillis?.() || 0) - (a.fecha?.toMillis?.() || 0)
+
+          // 🔹 Enriquecer cada entrada con los datos actuales
+          const enriquecidos = await Promise.all(
+            data.map(async (h) => {
+              let jugador = {};
+              let comprador = {};
+              let vendedor = {};
+
+              // jugador
+              if (h.jugadorId) {
+                const refJugador = doc(db, "jugadores", h.jugadorId);
+                const snapJugador = await getDoc(refJugador);
+                if (snapJugador.exists()) jugador = snapJugador.data();
+              }
+
+              // comprador
+              if (h.compradorUid) {
+                const refComprador = doc(db, "usuarios", h.compradorUid);
+                const snapComprador = await getDoc(refComprador);
+                if (snapComprador.exists()) comprador = snapComprador.data();
+              }
+
+              // vendedor
+              if (h.vendedorUid) {
+                const refVendedor = doc(db, "usuarios", h.vendedorUid);
+                const snapVendedor = await getDoc(refVendedor);
+                if (snapVendedor.exists()) vendedor = snapVendedor.data();
+              }
+
+              return {
+                ...h,
+                jugadorNombre: jugador?.nombre || "Jugador desconocido",
+                fotoJugador: jugador?.foto || ImagenProfile,
+                compradorNombre: comprador?.nick || "Desconocido",
+                vendedorNombre: vendedor?.nick || "Desconocido",
+              };
+            })
           );
+
+          // orden descendente por fecha
+          const ordenado = enriquecidos.sort(
+            (a, b) => (b.fecha?.toMillis?.() || 0) - (a.fecha?.toMillis?.() || 0)
+          );
+
           setHistorial(ordenado);
         } else {
           setHistorial([]);
@@ -85,7 +126,8 @@ export default function Historial({ usuario }) {
     };
 
     cargarHistorial();
-  }, []);
+  }, [usuario]);
+
 
   const formatearDinero = (valor) => {
     if (typeof valor !== "number" || isNaN(valor)) return "—";

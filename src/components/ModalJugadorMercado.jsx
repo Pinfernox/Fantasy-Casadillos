@@ -66,7 +66,6 @@ export default function ModalJugadorMercado({ jugador, openModal, setOpenModal }
   };
 
   if (!openModal) return null
-console.log("DEBUG jugador en modal:", jugador);
 
   return (
     <div
