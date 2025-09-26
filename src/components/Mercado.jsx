@@ -248,6 +248,9 @@ export default function Mercado({ usuario }) {
     }
   };
 
+  const verOfertas = async () =>{
+
+  }
   // -------------------------------
   // UI / Render
   // -------------------------------
@@ -389,7 +392,6 @@ export default function Mercado({ usuario }) {
                                     : "-"
                                 }</span></small>
                               </div>
-
                               {/* últimas jornadas */}
                               <div className="estadisticas-extra">
                                 <div className="ultimas-jornadas">
@@ -414,18 +416,23 @@ export default function Mercado({ usuario }) {
 
                             </div>
                           </div>
-
                           <hr />
                           <div className="modal-footer">
                             <button
                               className="btn-comprar"
-                              disabled={!edicionActiva || j.source !== 'system'}
+                              disabled={
+                                !edicionActiva || j.vendedorUid === auth.currentUser?.uid
+                              }
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (j.source === 'system') pujarJugador(j);
-                                else { setJugadorSeleccionado(j); setOpenModalJugadorMercado(true); }
-                              }}>
-                              {j.source === 'system' ? "Pujar por el jugador" : "Ver detalles"}
+                                else {
+                                  setJugadorSeleccionado(j);
+                                  setOpenModalJugadorMercado(true);
+                                }
+                              }}
+                            >
+                              {j.vendedorUid === auth.currentUser?.uid ? "Es tu venta" : "Hacer oferta"}
                             </button>
                           </div>
                         </div>
@@ -438,21 +445,110 @@ export default function Mercado({ usuario }) {
           )}
 
           {tabActiva === "operaciones" && (
-            <div className="operaciones-container">
-              <div className="operaciones-animacion">
-                <h2>Mis operaciones pendientes</h2>
-                {jugadoresUsuario && jugadoresUsuario.length > 0 ? (
-                  <ul>
-                    {jugadoresUsuario.map((op, i) => (
-                      <li key={`${op.idJugador}-${i}`}>
-                        {op.nombre} — {formatearDinero(op.precio)} (puesto en venta)
-                      </li>
-                    ))}
+            <div className="mercado-jugadores">
+              {!jugadoresMercado.some(j => j.vendedorUid === auth.currentUser?.uid) ? (
+                <div className="sin-mercado">
+                  <p>No tienes operaciones activas.</p>
+                </div>
+              ) : (
+                  <ul className="lista-jugadores">
+                    {jugadoresUsuario.map((j, i) => {
+                      const key = `${j.idJugador}-${i}-${j.vendedorUid || 'yo'}`;
+                      return (
+                        <li key={key} className="jugador-card"
+                          onClick={() => { setJugadorSeleccionado(j); setOpenModalJugadorMercado(true); }}>
+                          <div className="jugador-perfil">
+                            <div className="modal-header">
+                              <label className="modal-avatar">
+                                <img
+                                  src={j.foto || ImagenProfile}
+                                  alt={j.nombre}
+                                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ImagenProfile }}
+                                />
+                              </label>
+                              <div className="modal-jugadorinfo">
+                                <h2>{j.nombre}</h2>
+
+                                <div className='posicion-precio'>
+                                  <div className={`posicion-texto ${j.posicion || ''}`}>
+                                    <small>{traducirPosicion(j.posicion)}</small>
+                                  </div>
+
+                                  <div className='precio-container'>
+                                    <div className='precio'>
+                                      <small><span className='texto-blanco'>Valor:</span> {Number(j.precio) ? formatearDinero(Number(j.precio)) : "—"}</small>
+                                    </div>
+                                    <div className="diferencia-precio">
+                                      {(() => {
+                                        const historial = j.historialPrecios || [];
+                                        if (historial.length === 0) return <small>(±0€)</small>;
+                                        const ultimoPrecio = historial[historial.length - 1]?.precio || 0;
+                                        const diferencia = (j.precio || 0) - ultimoPrecio;
+                                        const signo = diferencia > 0 ? "+" : diferencia < 0 ? "-" : "±";
+                                        return (
+                                          <small className={diferencia > 0 ? "subida" : diferencia < 0 ? "bajada" : "igual"}>
+                                            ({signo}{formatearDinero(Math.abs(diferencia))})
+                                          </small>
+                                        );
+                                      })()}
+                                    </div>
+                                  </div>
+
+                                  <div className="precio-container">
+                                    <small className="precio"><span className='texto-blanco'>Precio Venta:</span> {Number(j.precioVenta) ? formatearDinero(Number(j.precioVenta)) : "—"} </small>
+                                  </div>      
+                                  <small className="texto-vendedor">
+                                    Media de puntos:&nbsp;<span className="media">{
+                                      j.puntosPorJornada && j.puntosPorJornada.length > 0
+                                        ? (j.puntosPorJornada.filter(p => typeof p === "number")
+                                            .reduce((acc, val, _, arr) => acc + val / arr.length, 0)).toFixed(2)
+                                        : "-"
+                                    }</span>
+                                  </small>
+                                </div>
+
+                                {/* últimas jornadas */}
+                                <div className="estadisticas-extra">
+                                  <div className="ultimas-jornadas">
+                                    {(j.puntosPorJornada || []).slice(-5).map((p, idx) => {
+                                      const puntos = p != null ? p : "-";
+                                      const total = j.puntosPorJornada ? j.puntosPorJornada.length : 0;
+                                      const jornadaIndex = Math.max(1, total - 5 + idx + 1);
+                                      let claseColor = "";
+                                      if (typeof p === "number") {
+                                        if (p >= 9) claseColor = "verde";
+                                        else if (p < 7) claseColor = "rojo";
+                                      }
+                                      return (
+                                        <div key={idx} className="jornada-item">
+                                          <small className="jornada-nombre">J{jornadaIndex}</small>
+                                          <div className={`jornada-cuadro ${claseColor}`}>{puntos}</div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                              </div>
+                            </div>
+
+                            <hr />
+                            <div className="modal-footer">
+                              <button
+                                className="btn-comprar"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  verOfertar();
+                                }}>
+                                Ver ofertas
+                              </button>
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
-                ) : (
-                  <p>No tienes operaciones pendientes</p>
-                )}
-              </div>
+              )}
             </div>
           )}
 
