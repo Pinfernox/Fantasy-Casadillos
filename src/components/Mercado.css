@@ -207,7 +207,7 @@ a {
   padding: 1rem;
   list-style: none;
   overflow-y: auto; /* permite scroll vertical */
-  max-height: 60vh; /* ajusta según tu diseño */
+  max-height: 70vh; /* ajusta según tu diseño */
   transition: all 0.3s ease;
 }
 .sin-mercado {
@@ -625,6 +625,20 @@ hr {
   transition: all 0.3s ease;
 }
 
+.temporizador {
+  font-weight: bold;
+  text-align: center;
+  color: #fff;
+  background-color: #2c3e50;
+  padding: 6px;
+  padding-bottom: 0;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 6px;
+  width: 100%;
+  max-width: 422px;
+}
+
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
@@ -784,4 +798,5 @@ hr {
     min-height: 73vh;
 
   }
+
 }

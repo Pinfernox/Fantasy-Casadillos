@@ -183,6 +183,7 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
       confirmButtonColor: "#28a745",
       denyButtonColor: "#4878a4ff",
       background: "#1e1e1e",
+      scrollbarPadding: false, // <--- evita la franja blanca por scrollbar
       color: "#fff",
     }).then(async (result) => {
       if (result.isConfirmed) {
@@ -196,6 +197,7 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
           cancelButtonText: "Cancelar",
           showCancelButton: true,
           background: "#1e1e1e",
+          scrollbarPadding: false, // <--- evita la franja blanca por scrollbar
           color: "#fff",
           inputValidator: (value) => {
             if (!value || value <= 0) {

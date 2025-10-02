@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import appFirebase from "../credenciales";
 import { arrayRemove, arrayUnion } from "firebase/firestore";
 import { getAuth, signOut } from 'firebase/auth'
+import Swal from "sweetalert2";
 import {
   getFirestore,
   doc,
@@ -12,6 +13,9 @@ import {
   onSnapshot,
   getDocs,
   increment,
+  addDoc,
+  where,
+  query,
   serverTimestamp
 } from 'firebase/firestore';
 import ImagenProfile from '/SinPerfil.jpg'
@@ -20,6 +24,7 @@ import "./Mercado.css";
 import ModalPerfil from "./ModalPerfil"
 import ModalAdmin from './ModalAdmin'
 import ModalJugadorMercado from "./ModalJugadorMercado";
+import TemporizadorRefresco from "./TemporizadorRefresco";
 
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
@@ -43,6 +48,7 @@ export default function Mercado({ usuario }) {
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)
   const [menuActivo, setMenuActivo] = useState(false);
   const [edicionActiva, setEdicionActiva] = useState(false);
+  const [conteoOfertas, setConteoOfertas] = useState({});
   const refMenu = useRef(null);
   const [tabActiva, setTabActiva] = useState("mercado");
   const logout = () => signOut(auth);
@@ -203,48 +209,46 @@ export default function Mercado({ usuario }) {
 
     cargarEstadoEdicion();
   }, []);
+
+  // Mirar número de ofertas
+  useEffect(() => {
+    const q = query(collection(db, "ofertas"));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const counts = {};
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const key = `${data.jugadorId}-${data.source}-${data.vendedorUid || 'system'}`;
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      setConteoOfertas(counts);
+    });
+    return () => unsub();
+  }, []);
   // -------------------------------
   // Otras utilidades: compra (solo sistema)...
   // -------------------------------
-  const pujarJugador = async (jugador) => {
-    // solo permitir para source === 'system'
-    if (jugador.source !== 'system') {
-      alert("Las pujas directas solo están permitidas para jugadores del mercado del sistema. Para jugadores puestos por usuarios, abre el detalle.");
-      return;
-    }
-
-    if (jugador.stock <= 0) {
-      alert("Ya no queda stock de este jugador");
+  const pujarJugador = async (jugador, precioOferta) => {
+    const user = auth.currentUser;
+    if (!user) {
+      alert("Debes iniciar sesión para hacer una oferta.");
       return;
     }
 
     try {
-      const refMercado = doc(db, "mercado", "actual");
-      const snap = await getDoc(refMercado);
-      if (!snap.exists()) return;
-      const data = snap.data();
-      const lista = (data.jugadores || []).map((j) =>
-        j.idJugador === jugador.idJugador ? { ...j, stock: j.stock - 1 } : j
-      );
-      await updateDoc(refMercado, { jugadores: lista });
-
-      // Reducir stock en la colección global de jugadores
-      await updateDoc(doc(db, "jugadores", jugador.idJugador), {
-        stockTotal: increment(-1),
+      // crear oferta
+      await addDoc(collection(db, "ofertas"), {
+        jugadorId: jugador.idJugador,
+        source: jugador.source || "system",
+        vendedorUid: jugador.vendedorUid || null, // null si es del sistema
+        compradorUid: user.uid,
+        precioOferta: precioOferta,
+        fecha: serverTimestamp(),
       });
 
-      // Añadir jugador al usuario comprador (ejemplo sencillo: al banquillo)
-      const refUsuario = doc(db, "usuarios", auth.currentUser.uid);
-      await updateDoc(refUsuario, {
-        "equipo.banquillo": [...(usuario.equipo?.banquillo || []), jugador.idJugador]
-      });
-
-      // Actualizamos estado local (para respuesta rápida)
-      setSistemaEnr(prev => prev.map(p => p.idJugador === jugador.idJugador ? { ...p, stock: (p.stock || 1) - 1 } : p));
-      alert(`Has comprado a ${jugador.nombre}`);
+      alert(`Has hecho una oferta por ${jugador.nombre}`);
     } catch (err) {
-      console.error("Error comprando jugador:", err);
-      alert("Error al comprar el jugador");
+      console.error("Error creando oferta:", err);
+      alert("Error al hacer la oferta");
     }
   };
 
@@ -338,7 +342,10 @@ export default function Mercado({ usuario }) {
         {openModal && (<ModalPerfil usuario={usuario} openModal={openModal} setOpenModal={setOpenModal} />)}
         {openModalAdmin && (<ModalAdmin usuario={usuario} openModal={openModalAdmin} setOpenModal={setOpenModalAdmin} />)}
         {openModalJugadorMercado && jugadorSeleccionado && (<ModalJugadorMercado jugador={jugadorSeleccionado} openModal={openModalJugadorMercado} setOpenModal={setOpenModalJugadorMercado}/>)}
+                <div className="temporizador">
+        <TemporizadorRefresco />
 
+    </div>
         <div className="tabs-wrapper">
           <div className="tabs-container">
             <button className={`tab-btn ${tabActiva === "mercado" ? "active" : ""}`} onClick={() => setTabActiva("mercado")}>Mercado</button>
@@ -420,19 +427,40 @@ export default function Mercado({ usuario }) {
                           <div className="modal-footer">
                             <button
                               className="btn-comprar"
-                              disabled={
-                                !edicionActiva || j.vendedorUid === auth.currentUser?.uid
-                              }
-                              onClick={(e) => {
+                              disabled={!edicionActiva || j.vendedorUid === auth.currentUser?.uid}
+                              onClick={async (e) => { // << aquí añadimos async
                                 e.stopPropagation();
-                                if (j.source === 'system') pujarJugador(j);
-                                else {
-                                  setJugadorSeleccionado(j);
-                                  setOpenModalJugadorMercado(true);
+
+                                const { value: precio } = await Swal.fire({
+                                  title: "Introduce el precio de venta",
+                                  input: "number",
+                                  inputLabel: "Precio en €",
+                                  inputPlaceholder: "Ej: 5.000.000",
+                                  confirmButtonText: "Poner en venta",
+                                  cancelButtonText: "Cancelar",
+                                  showCancelButton: true,
+                                  scrollbarPadding: false, // <--- evita la franja blanca por scrollbar
+                                  background: "#1e1e1e",
+                                  color: "#fff",
+                                  inputValidator: (value) => {
+                                    if (!value || value <= 0) {
+                                      return "Debes introducir un precio válido";
+                                    }
+                                    if (value < j.precio) {
+                                      return "Debes introducir un precio que sea mínimo superior al valor de mercado";
+                                    }
+                                  },
+                                });
+
+                                if (precio) {
+                                  console.log("Venta en mercado por", precio);
+                                  pujarJugador(j, parseInt(precio, 10));
                                 }
                               }}
                             >
-                              {j.vendedorUid === auth.currentUser?.uid ? "Es tu venta" : "Hacer oferta"}
+                              {j.vendedorUid === auth.currentUser?.uid
+                                ? "Es tu venta"
+                                : `Hacer oferta - (${conteoOfertas[`${j.idJugador}-${j.source}-${j.vendedorUid || 'system'}`] || 0})`}
                             </button>
                           </div>
                         </div>
@@ -540,7 +568,7 @@ export default function Mercado({ usuario }) {
                                   e.stopPropagation();
                                   verOfertar();
                                 }}>
-                                Ver ofertas
+                                Ver ofertas -({conteoOfertas[`${j.idJugador}-${j.vendedorUid}`] || 0})
                               </button>
                             </div>
                           </div>

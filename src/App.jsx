@@ -10,7 +10,8 @@ import Clasificacion from "./components/Clasificacion";
 import EquipoJugador from "./components/EquipoJugador";
 import Historial from "./components/Historial";
 import NotFoundFallback from "./fallback/NotFoundFallback";
-
+import { verificarRefrescoMercado } from "./utils/mercadoService";
+import { refrescarMercado } from "./utils/mercadoUtils";
 
 const auth = getAuth(appFirebase);
 const firestore = getFirestore(appFirebase);
@@ -41,6 +42,10 @@ function App() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    verificarRefrescoMercado(refrescarMercado);
   }, []);
 
   if (cargandoUsuario) {
