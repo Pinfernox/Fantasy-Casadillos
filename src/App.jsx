@@ -12,6 +12,7 @@ import Historial from "./components/Historial";
 import NotFoundFallback from "./fallback/NotFoundFallback";
 import { verificarRefrescoMercado } from "./utils/mercadoService";
 import { refrescarMercado } from "./utils/mercadoUtils";
+import { ofertasAutomaticas } from "./utils/mercadoUtils";
 
 const auth = getAuth(appFirebase);
 const firestore = getFirestore(appFirebase);
@@ -44,9 +45,20 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  
   useEffect(() => {
-    verificarRefrescoMercado(refrescarMercado);
+    const refrescar = async () => {
+      const seHaRefrescado = await verificarRefrescoMercado(refrescarMercado);
+
+      // 👇 si realmente hubo refresco, lanzamos ofertas
+      if (seHaRefrescado) {
+        await ofertasAutomaticas();
+      }
+    };
+
+    refrescar();
   }, []);
+
 
   if (cargandoUsuario) {
     return (

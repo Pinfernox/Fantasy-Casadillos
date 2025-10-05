@@ -127,8 +127,8 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
     }
   };
 
-// función que añade el jugador al mercado de usuarios
 
+// función que añade el jugador al mercado de usuarios
   const ponerEnMercado = async (jugador, precioVenta) => {
     try {
       const user = auth.currentUser;
@@ -145,7 +145,7 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
         precioVenta,
         vendedorUid: user.uid,
         vendedorNick: datosUsuario.nick,
-        fecha: new Date().toISOString(), // alternativa segura
+        fecha: new Date().toISOString() 
       };
 
       const mercadoRef = doc(db, "mercadoUsuarios", "actual");
@@ -170,7 +170,6 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
       console.error("Error al poner en mercado:", error);
     }
   };
-
 
   const handleVenta = () => {
     const ventaInmediata = Math.round(jugador.precio * 0.6); // redondea al entero más cercano

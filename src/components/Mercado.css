@@ -1,14 +1,23 @@
-.login-hero-Cabecera {
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: black; /* asegura fondo uniforme */
+  height: 100%;
+  overflow-x: hidden; /* por si hay scroll horizontal */
+}
+
+
+.login-hero-Cabecera-mercado {
   position: relative;
   inset: 0;
   margin: 0;
-
+  background-color: black;
   /* Permite que la sección crezca más allá de la altura de la pantalla */
   min-height: 100vh;
   height: 100%;    
 
   /* Empuja el contenido hacia abajo para no quedar bajo el header */
-  padding-top: 4rem;    /* O la altura real de tu header */
+  padding-top: 1.4rem;    /* O la altura real de tu header */
   padding-bottom: 4rem;
   background-color: black;
   background-size: contain;
@@ -21,11 +30,10 @@
   align-items: center;
 }
 
-
 .Cabecera {
   background-color: rgb(1, 1, 33);
   width: 100%;
-  padding: 1em;
+  padding: 1rem;
 
   display: flex;
   flex-direction: row;
@@ -550,6 +558,48 @@ hr {
   border-color: black;
 }
 
+.btn-cancelar {
+  padding: 0.4rem 0.8rem;
+  background: linear-gradient(
+    145deg,
+    #7c1c1c,   /* rojo más oscuro */
+    #dc3545,   /* rojo base */
+    #ff6b6b,   /* rojo brillante */
+    #7c1c1c    /* repetimos para dar efecto metal */
+  );
+  border: 1px solid rgba(255, 255, 255, 0.2); /* borde sutil */
+  box-shadow: 
+    inset 0 1px 3px rgba(255, 255, 255, 0.3), /* brillo interior */
+    0 4px 15px rgba(220, 53, 69, 0.4);        /* sombra exterior */
+  border: 1px solid #5c1f1f; /* borde rojo oscuro sólido */
+  border-radius: 4px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.btn-cancelar:hover {
+  transform: translateY(-4px) scale(1.03);
+  box-shadow:
+    inset 0 1px 3px rgba(255, 255, 255, 0.4),
+    0 6px 20px rgba(220, 53, 69, 0.7);
+}
+
+.btn-cancelar:disabled {
+  background: linear-gradient(145deg, #444, #666) !important;
+  color: #ddd !important;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.1);
+  cursor: not-allowed !important;
+  transform: none !important;
+  opacity: 0.7;
+  border-color: black;
+}
+
 .precio-compra {
   color: white; 
   font-weight: bold;
@@ -571,6 +621,7 @@ hr {
   max-width: 420px;
   margin: 0 auto;      /* centrado */
   z-index: 2 !important;
+  margin-bottom: 0;
 }
 
 .tabs-container {
@@ -637,6 +688,7 @@ hr {
   margin-bottom: 6px;
   width: 100%;
   max-width: 422px;
+  z-index: 5;
 }
 
 
