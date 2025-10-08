@@ -105,7 +105,7 @@ export default function Historial({ usuario }) {
                 jugadorNombre: jugador?.nombre || "Jugador desconocido",
                 fotoJugador: jugador?.foto || ImagenProfile,
                 compradorNombre: comprador?.nick || "Desconocido",
-                vendedorNombre: vendedor?.nick || "Desconocido",
+                vendedorNombre: vendedor?.nick || "Fantasy Casadillos",
               };
             })
           );

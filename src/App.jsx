@@ -46,18 +46,28 @@ function App() {
   }, []);
 
   
-  useEffect(() => {
-    const refrescar = async () => {
-      const seHaRefrescado = await verificarRefrescoMercado(refrescarMercado);
+useEffect(() => {
+  // 👇 declaramos la función interna de refresco
+  const refrescar = async () => {
+    const seHaRefrescado = await verificarRefrescoMercado(refrescarMercado);
 
-      // 👇 si realmente hubo refresco, lanzamos ofertas
-      if (seHaRefrescado) {
-        await ofertasAutomaticas();
-      }
-    };
+    // Si realmente hubo refresco, lanzamos ofertas
+    if (seHaRefrescado) {
+      await ofertasAutomaticas();
+    }
+  };
 
-    refrescar();
-  }, []);
+  // 👇 escuchamos el cambio de autenticación
+  const unsub = onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      await refrescar(); // ejecutamos solo cuando el usuario esté listo
+    }
+  });
+
+  // 👇 cleanup del listener
+  return () => unsub();
+}, []);
+
 
 
   if (cargandoUsuario) {

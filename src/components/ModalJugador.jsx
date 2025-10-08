@@ -96,7 +96,7 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
       // 4️⃣ Guardar historial de venta
       await addDoc(collection(db, "historial"), {
         tipo: 'venta directa', 
-        vendedorId: usuario.uid,
+        vendedorUid: usuario.uid,
         vendedorNick: user.nick,
         jugadorId: jugador.id,
         jugadorNombre: jugador.nombre,

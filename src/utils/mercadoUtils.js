@@ -7,6 +7,8 @@ import {
   runTransaction,
   writeBatch,
   setDoc,
+  query,
+  where,
   updateDoc,
   deleteDoc,  
   collection, 
@@ -18,6 +20,138 @@ import {
 import appFirebase from "../credenciales";
 
 const db = getFirestore(appFirebase);
+
+// 🧩 FASE 0: adjudicar ofertas más altas antes de devolver el mercado
+export const adjudicarOfertasPendientes = async () => {
+  try {
+    const refMercado = doc(db, "mercado", "actual");
+    const snapMercado = await getDoc(refMercado);
+    if (!snapMercado.exists()) return;
+
+    let jugadoresMercado = snapMercado.data().jugadores || [];
+    if (jugadoresMercado.length === 0) return;
+
+    let adjudicadas = 0;
+
+    for (const { idJugador, nombre } of [...jugadoresMercado]) {
+      const ofertasSnap = await getDocs(
+        query(collection(db, "ofertas"), where("jugadorId", "==", idJugador))
+      );
+      if (ofertasSnap.empty) continue;
+
+      const ofertasList = ofertasSnap.docs.map(d => {
+        const data = d.data();
+        const monto = Number(data.oferta ?? data.precioOferta ?? data.precio ?? 0) || 0;
+        return { id: d.id, ref: d.ref, data, monto };
+      }).sort((a, b) => b.monto - a.monto);
+
+      if (ofertasList.length === 0) continue;
+
+      const ofertaGanadora = ofertasList[0]; // mayor oferta
+
+      // recorremos todas las ofertas
+      for (const ofertaDoc of ofertasList) {
+        await runTransaction(db, async (tx) => {
+          const jugadorRef = doc(db, "jugadores", idJugador);
+          const jugadorSnap = await tx.get(jugadorRef);
+          if (!jugadorSnap.exists()) throw new Error("JUGADOR_NO_EXISTE");
+          const jugadorData = jugadorSnap.data() || {};
+
+          const compradorUid = ofertaDoc.data.compradorUid;
+          if (!compradorUid) throw new Error("OFERTA_SIN_COMPRADOR");
+
+          const compradorRef = doc(db, "usuarios", compradorUid);
+          const compradorSnap = await tx.get(compradorRef);
+          if (!compradorSnap.exists()) throw new Error("COMPRADOR_NO_EXISTE");
+          const compradorData = compradorSnap.data() || {};
+          const dineroActual = Number(compradorData.dinero ?? 0);
+
+          // si NO es el ganador, devolvemos el dinero ofertado
+          if (compradorUid !== ofertaGanadora.compradorUid) {
+            tx.update(compradorRef, { dinero: dineroActual + ofertaDoc.monto });
+          } else {
+            // ganador: se queda el dinero restado, además añadimos jugador al equipo
+            const equipo = compradorData.equipo || {};
+            const titulares = Array.isArray(equipo.titulares) ? [...equipo.titulares] : [];
+            const banquillo = Array.isArray(equipo.banquillo) ? [...equipo.banquillo] : [];
+
+            const isEmptySlot = (slot) => {
+              if (slot == null) return true;
+              if (typeof slot !== "object") return false;
+              const id = slot.jugadorId;
+              return (
+                id == null ||
+                id === "" ||
+                id === undefined ||
+                id === "null" ||
+                id === "undefined"
+              );
+            };
+
+            let colocado = false;
+            let tipo = null;
+            let idx = -1;
+
+            for (let i = 0; i < titulares.length; i++) {
+              if (isEmptySlot(titulares[i])) { tipo = "titulares"; idx = i; colocado = true; break; }
+            }
+            if (!colocado) {
+              for (let i = 0; i < banquillo.length; i++) {
+                if (isEmptySlot(banquillo[i])) { tipo = "banquillo"; idx = i; colocado = true; break; }
+              }
+            }
+            if (!colocado) throw new Error("NO_SLOT");
+
+            const nuevoSlot = { jugadorId: idJugador, clausulaPersonal: jugadorData.precioClausula };
+            if (tipo === "titulares") titulares[idx] = nuevoSlot;
+            else banquillo[idx] = nuevoSlot;
+
+            tx.update(compradorRef, {
+              "equipo.titulares": titulares,
+              "equipo.banquillo": banquillo,
+            });
+
+            // actualizar jugador: dueños
+            const owners = Array.isArray(jugadorData.dueños) ? [...jugadorData.dueños] : [];
+            const nuevosOwners = owners.filter(o => o !== "mercado");
+            if (!nuevosOwners.includes(compradorUid)) nuevosOwners.push(compradorUid);
+            tx.update(jugadorRef, { dueños: nuevosOwners });
+
+            // historial
+            const historialRef = doc(collection(db, "historial"));
+            const compradorNombre = ofertaDoc.data.comprador ?? compradorData.nick ?? compradorData.displayName ?? compradorUid;
+            tx.set(historialRef, {
+              jugadorId: idJugador,
+              jugadorNombre: nombre ?? jugadorData.nombre ?? "",
+              comprador: compradorNombre,
+              compradorUid,
+              vendedorUid: ofertaDoc.data.vendedorUid ?? 'system',
+              vendedorNick: ofertaDoc.data.vendedorNick ?? 'Fantasy Casadillos',
+              precio: ofertaDoc.monto,
+              fecha: serverTimestamp(),
+              tipo: "venta_mercado"
+            });
+          }
+
+          // borrar oferta
+          tx.delete(doc(db, "ofertas", ofertaDoc.id));
+        });
+      }
+
+      // quitar jugador del mercado
+      jugadoresMercado = jugadoresMercado.filter(j => j.idJugador !== idJugador);
+      try { await updateDoc(refMercado, { jugadores: jugadoresMercado }); } catch {}
+      adjudicadas++;
+    }
+
+    console.log(`🎯 Ofertas adjudicadas con éxito: ${adjudicadas}`);
+    return { adjudicadas };
+  } catch (error) {
+    console.error("❌ Error adjudicando ofertas pendientes:", error);
+    throw error;
+  }
+};
+
 
 export const devolverJugadoresPrevioAlMercado = async () => {
   try {
@@ -135,6 +269,9 @@ export const refrescarMercado = async () => {
   try {
     console.log("🔁 Iniciando proceso completo de refresco de mercado...");
 
+    // Paso 0: Adjudicar ofertas más altas
+    await adjudicarOfertasPendientes();
+
     // Paso 1: limpiar mercado anterior
     await devolverJugadoresPrevioAlMercado();
 
@@ -148,7 +285,6 @@ export const refrescarMercado = async () => {
     throw error;
   }
 };
-
 
 export const resetearMercado = async () => {
   try {
@@ -234,3 +370,58 @@ export const ofertasAutomaticas = async () => {
     });
   }
 }
+
+export const corregirJugadoresFueraDelMercado = async () => {
+  try {
+    console.log("🧰 Iniciando corrección de jugadores con 'mercado' inconsistente...");
+
+    const refMercado = doc(db, "mercado", "actual");
+    const snapMercado = await getDoc(refMercado);
+
+    if (!snapMercado.exists()) {
+      console.warn("⚠️ No existe el documento 'mercado/actual'. Se cancela la corrección.");
+      return { revisados: 0, corregidos: 0 };
+    }
+
+    const dataMercado = snapMercado.data();
+    const jugadoresEnMercado = (dataMercado.jugadores || []).map(j => j.idJugador);
+    const setIdsMercado = new Set(jugadoresEnMercado);
+
+    const snapJugadores = await getDocs(collection(db, "jugadores"));
+    let revisados = 0;
+    let corregidos = 0;
+
+    const batch = writeBatch(db);
+
+    for (const docSnap of snapJugadores.docs) {
+      const jugador = docSnap.data();
+      revisados++;
+
+      const tieneMercado = (jugador.dueños || []).includes("mercado");
+      const stock = jugador.stockLibre ?? 0;
+
+      if (tieneMercado && !setIdsMercado.has(docSnap.id)) {
+        console.log(`⚙️ Corrigiendo ${jugador.nombre || docSnap.id}: tenía 'mercado' pero no está en el mercado actual.`);
+
+        batch.update(docSnap.ref, {
+          dueños: arrayRemove("mercado"),
+          stockLibre: increment(1),
+        });
+
+        corregidos++;
+      }
+    }
+
+    if (corregidos > 0) {
+      await batch.commit();
+    }
+
+    console.log(`✅ Corrección completada. Revisados: ${revisados}, Corregidos: ${corregidos}`);
+    return { revisados, corregidos };
+
+  } catch (error) {
+    console.error("❌ Error en corregirJugadoresFueraDelMercado:", error);
+    throw error;
+  }
+};
+

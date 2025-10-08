@@ -8,6 +8,7 @@ import { collection, query, where, deleteDoc, getFirestore, doc, updateDoc, getD
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { refrescarMercado } from "../utils/mercadoUtils";
 import { resetearMercado } from '../utils/mercadoUtils';
+import { corregirJugadoresFueraDelMercado } from '../utils/mercadoUtils';
 import './ModalAdmin.css'
 
 export default function ModalAdmin({user, openModal, setOpenModal}) {
@@ -144,6 +145,7 @@ export default function ModalAdmin({user, openModal, setOpenModal}) {
                   const ref = doc(db, "admin", "controles");
                   await updateDoc(ref, { edicionActiva: true });
                   await updateDoc(ref, { clausulaPermitida: true });
+                  //await corregirJugadoresFueraDelMercado()
 
                   await Swal.fire({
                     title: "Jornada finalizada",

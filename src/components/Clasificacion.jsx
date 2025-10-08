@@ -149,14 +149,8 @@ export default function Clasificacion({ usuario }) {
 
   // Función para abreviar el dinero
   const formatearDinero = (valor) => {
-    if (valor >= 1_000_000) {
-      return (valor / 1_000_000).toFixed(2) + 'M'
-    } else if (valor >= 1_000) {
-      return (valor / 1_000).toFixed(2) + 'K'
-    } else {
-      return valor.toFixed(2)
-    }
-  }
+    return valor.toLocaleString('es-ES') + '€';
+  };
 
   const abreviarNick = (nick) => {
     if (!nick) return "";

@@ -16,7 +16,8 @@ import {
   addDoc,
   where,
   query,
-  serverTimestamp
+  serverTimestamp,
+  runTransaction
 } from 'firebase/firestore';
 import ImagenProfile from '/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
@@ -34,6 +35,7 @@ export default function Mercado({ usuario }) {
   const [dinero, setDinero] = useState(null)
   const [menu, setMenu] = useState(false)
   const fotoURL = usuario?.fotoPerfil || ImagenProfile
+  const [equipocreado, setEquipocreado] = useState(usuario?.equipocreado);
   const titulares = usuario?.equipo?.titulares || [];
   const [loadingMercado, setLoadingMercado] = useState(false);
   const banquillo = usuario?.equipo?.banquillo || [];
@@ -189,11 +191,10 @@ export default function Mercado({ usuario }) {
     return () => unsub();
   }, [usuario]);
 
-
   useEffect(() => {
-  if (!usuario?.uid) {
-    setMisOfertas([]);
-    return;
+    if (!usuario?.uid) {
+      setMisOfertas([]);
+      return;
   }
 
   // Referencia a las ofertas hechas por este usuario
@@ -298,20 +299,41 @@ export default function Mercado({ usuario }) {
     }
 
     try {
-      // crear oferta
-      await addDoc(collection(db, "ofertas"), {
-        jugadorId: jugador.idJugador,
-        source: jugador.source || "system",
-        vendedorUid: jugador.vendedorUid || null, // null si es del sistema
-        compradorUid: user.uid,
-        precioOferta: precioOferta,
-        fecha: serverTimestamp(),
+      await runTransaction(db, async (transaction) => {
+        const userRef = doc(db, "usuarios", user.uid);
+        const userSnap = await transaction.get(userRef);
+
+        if (!userSnap.exists()) throw new Error("Usuario no encontrado.");
+
+        const userData = userSnap.data();
+        const dineroActual = userData.dinero ?? 0;
+
+        if (dineroActual < precioOferta) {
+          throw new Error("Saldo insuficiente para hacer esta oferta.");
+        }
+
+        // restar dinero temporalmente
+        const nuevoSaldo = dineroActual - precioOferta;
+        transaction.update(userRef, { dinero: nuevoSaldo });
+
+        // crear la oferta
+        const ofertasRef = collection(db, "ofertas");
+        transaction.set(doc(ofertasRef), {
+          jugadorId: jugador.idJugador,
+          source: jugador.source || "system",
+          vendedorUid: jugador.vendedorUid || null,
+          compradorUid: user.uid,
+          precioOferta,
+          fecha: serverTimestamp(),
+          estado: "pendiente", // puedes usar esto para saber si ya fue adjudicada o no
+        });
       });
 
-      Swal.fire("✅ Oferta realizada", `Has hecho una oferta por ${jugador.nombre}`, "success");
+      await Swal.fire("✅ Oferta realizada", `Has hecho una oferta por ${jugador.nombre}`, "success");
+      window.location.reload()
     } catch (err) {
       console.error("Error creando oferta:", err);
-      Swal.fire("❌ Error", "Ocurrió un problema al hacer la oferta", "error");
+      Swal.fire("❌ Error", err.message || "Ocurrió un problema al hacer la oferta", "error");
     }
   };
 
@@ -582,7 +604,7 @@ export default function Mercado({ usuario }) {
                           <div className="modal-footer">
                             <button
                               className="btn-comprar"
-                              disabled={!edicionActiva || j.vendedorUid === auth.currentUser?.uid}
+                              disabled={!edicionActiva || j.vendedorUid === auth.currentUser?.uid || !equipocreado}
                               onClick={async (e) => { // << aquí añadimos async
                                 e.stopPropagation();
 
@@ -727,6 +749,7 @@ export default function Mercado({ usuario }) {
                                       e.stopPropagation();
                                       verOfertar(j);
                                     }}
+                                    disabled={!equipocreado}
                                   >
                                     Ver ofertas - ({conteoOfertas[`${j.idJugador}-${j.vendedorUid}`] || 0})
                                   </button>
@@ -736,6 +759,8 @@ export default function Mercado({ usuario }) {
                                       e.stopPropagation();
                                       retirarVenta(j);
                                     }}
+                                    disabled={!equipocreado}
+
                                   >
                                     Retirar venta
                                   </button>
@@ -748,6 +773,8 @@ export default function Mercado({ usuario }) {
                                       e.stopPropagation();
                                       aumentarOferta(miOferta);
                                     }}
+                                    disabled={!equipocreado}
+
                                   >
                                     Aumentar oferta
                                   </button>
@@ -757,6 +784,8 @@ export default function Mercado({ usuario }) {
                                       e.stopPropagation();
                                       retirarOferta(miOferta);
                                     }}
+                                    disabled={!equipocreado}
+
                                   >
                                     Retirar oferta
                                   </button>
@@ -765,15 +794,18 @@ export default function Mercado({ usuario }) {
                                 <>
                                   <button
                                     className="btn-comprar"
+                                    disabled={!equipocreado}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       hacerOferta(j);
                                     }}
+
                                   >
                                     Hacer oferta
                                   </button>
                                   <button
                                     className="btn-comprar"
+                                    disabled={!equipocreado}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       verOfertar(j);
@@ -871,6 +903,7 @@ export default function Mercado({ usuario }) {
                           <div className="modal-footer">
                             <button
                               className="btn-cancelar"
+                              disabled={!equipocreado}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 retirarOferta(o);
