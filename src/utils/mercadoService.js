@@ -16,7 +16,7 @@ export async function verificarRefrescoMercado(refrescarMercado) {
       ultimaActualizacionHora: ahora 
     });
     await refrescarMercado();
-    return;
+    return true; // ✅ AÑADIDO: Retorna true porque se ha refrescado
   }
 
   const data = snap.data();
@@ -29,5 +29,8 @@ export async function verificarRefrescoMercado(refrescarMercado) {
       ultimaActualizacion: medianocheHoy, 
       ultimaActualizacionHora: ahora 
     });
+    return true; // ✅ AÑADIDO: Retorna true porque se ha refrescado
   }
+
+  return false; // ✅ AÑADIDO: Retorna false si no hubo necesidad de refrescar
 }

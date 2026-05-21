@@ -22,6 +22,7 @@ import appFirebase from "../credenciales";
 const db = getFirestore(appFirebase);
 
 // 🧩 FASE 0: adjudicar ofertas más altas antes de devolver el mercado
+// 🧩 FASE 0: adjudicar ofertas más altas antes de devolver el mercado
 export const adjudicarOfertasPendientes = async () => {
   try {
     const refMercado = doc(db, "mercado", "actual");
@@ -39,106 +40,145 @@ export const adjudicarOfertasPendientes = async () => {
       );
       if (ofertasSnap.empty) continue;
 
+      // Ordenar de mayor a menor puja
       const ofertasList = ofertasSnap.docs.map(d => {
         const data = d.data();
         const monto = Number(data.oferta ?? data.precioOferta ?? data.precio ?? 0) || 0;
         return { id: d.id, ref: d.ref, data, monto };
       }).sort((a, b) => b.monto - a.monto);
 
-      if (ofertasList.length === 0) continue;
+      await runTransaction(db, async (tx) => {
+        // 1. LECTURAS
+        const jugadorRef = doc(db, "jugadores", idJugador);
+        const jugadorSnap = await tx.get(jugadorRef);
+        const jugadorData = jugadorSnap.exists() ? jugadorSnap.data() : {};
 
-      const ofertaGanadora = ofertasList[0]; // mayor oferta
+        // Extraer UIDs omitiendo al "system" para no buscarlo en Firebase
+        const uniqueCompradorUids = [...new Set(ofertasList.map(o => o.data.compradorUid))].filter(uid => uid !== "system");
+        const compradoresSnaps = await Promise.all(
+          uniqueCompradorUids.map(uid => tx.get(doc(db, "usuarios", uid)))
+        );
+        
+        const compradoresData = {};
+        compradoresSnaps.forEach(snap => {
+          if (snap.exists()) compradoresData[snap.id] = snap.data();
+        });
 
-      // recorremos todas las ofertas
-      for (const ofertaDoc of ofertasList) {
-        await runTransaction(db, async (tx) => {
-          const jugadorRef = doc(db, "jugadores", idJugador);
-          const jugadorSnap = await tx.get(jugadorRef);
-          if (!jugadorSnap.exists()) throw new Error("JUGADOR_NO_EXISTE");
-          const jugadorData = jugadorSnap.data() || {};
+        // 2. BUSCAR GANADOR VÁLIDO
+        let ganadorId = null;
+        let slotGanador = null;
 
-          const compradorUid = ofertaDoc.data.compradorUid;
-          if (!compradorUid) throw new Error("OFERTA_SIN_COMPRADOR");
+        for (const oferta of ofertasList) {
+          const uid = oferta.data.compradorUid;
 
-          const compradorRef = doc(db, "usuarios", compradorUid);
-          const compradorSnap = await tx.get(compradorRef);
-          if (!compradorSnap.exists()) throw new Error("COMPRADOR_NO_EXISTE");
-          const compradorData = compradorSnap.data() || {};
-          const dineroActual = Number(compradorData.dinero ?? 0);
+          // 🤖 Si el bot es el mejor postor, gana automáticamente
+          if (uid === "system") {
+            ganadorId = "system";
+            break;
+          }
 
-          // si NO es el ganador, devolvemos el dinero ofertado
-          if (compradorUid !== ofertaGanadora.compradorUid) {
-            tx.update(compradorRef, { dinero: dineroActual + ofertaDoc.monto });
+          const dataComprador = compradoresData[uid];
+          if (!dataComprador) continue;
+
+          const titulares = Array.isArray(dataComprador.equipo?.titulares) ? [...dataComprador.equipo.titulares] : [];
+          const banquillo = Array.isArray(dataComprador.equipo?.banquillo) ? [...dataComprador.equipo.banquillo] : [];
+
+          const tieneJugador = [...titulares, ...banquillo].some(slot => slot && slot.jugadorId === idJugador);
+          if (tieneJugador) continue;
+
+          const isEmptySlot = (slot) => !slot || !slot.jugadorId || slot.jugadorId === "null" || slot.jugadorId === "undefined";
+          
+          let tipo = null;
+          let idx = titulares.findIndex(isEmptySlot);
+          
+          if (idx !== -1) {
+            tipo = "titulares";
           } else {
-            // ganador: se queda el dinero restado, además añadimos jugador al equipo
-            const equipo = compradorData.equipo || {};
-            const titulares = Array.isArray(equipo.titulares) ? [...equipo.titulares] : [];
-            const banquillo = Array.isArray(equipo.banquillo) ? [...equipo.banquillo] : [];
+            idx = banquillo.findIndex(isEmptySlot);
+            if (idx !== -1) tipo = "banquillo";
+          }
 
-            const isEmptySlot = (slot) => {
-              if (slot == null) return true;
-              if (typeof slot !== "object") return false;
-              const id = slot.jugadorId;
-              return (
-                id == null ||
-                id === "" ||
-                id === undefined ||
-                id === "null" ||
-                id === "undefined"
-              );
-            };
+          if (tipo !== null) {
+            ganadorId = uid;
+            slotGanador = { tipo, idx, titulares, banquillo };
+            break; 
+          }
+        }
 
-            let colocado = false;
-            let tipo = null;
-            let idx = -1;
+        // 3. ESCRITURAS AL FINAL
+        let ganadorProcesado = false;
 
-            for (let i = 0; i < titulares.length; i++) {
-              if (isEmptySlot(titulares[i])) { tipo = "titulares"; idx = i; colocado = true; break; }
+        for (const oferta of ofertasList) {
+          const uid = oferta.data.compradorUid;
+          const dataComprador = compradoresData[uid];
+
+          if (uid === ganadorId && !ganadorProcesado) {
+            ganadorProcesado = true;
+
+            // 🤖 Lógica si gana el Bot
+            if (uid === "system") {
+              tx.update(jugadorRef, {
+                stockLibre: increment(1),
+                dueños: arrayRemove(oferta.data.vendedorUid) 
+              });
+            } 
+            // 👤 Lógica si gana un Usuario
+            else {
+              const { tipo, idx, titulares, banquillo } = slotGanador;
+              const nuevoSlot = { jugadorId: idJugador, clausulaPersonal: jugadorData.precioClausula };
+              
+              if (tipo === "titulares") titulares[idx] = nuevoSlot;
+              else banquillo[idx] = nuevoSlot;
+
+              tx.update(doc(db, "usuarios", uid), {
+                "equipo.titulares": titulares,
+                "equipo.banquillo": banquillo,
+              });
+
+              const owners = Array.isArray(jugadorData.dueños) ? [...jugadorData.dueños] : [];
+              const nuevosOwners = owners.filter(o => o !== "mercado");
+              if (!nuevosOwners.includes(uid)) nuevosOwners.push(uid);
+              tx.update(jugadorRef, { dueños: nuevosOwners });
             }
-            if (!colocado) {
-              for (let i = 0; i < banquillo.length; i++) {
-                if (isEmptySlot(banquillo[i])) { tipo = "banquillo"; idx = i; colocado = true; break; }
-              }
+
+            // 💰 PAGAR AL VENDEDOR (Fundamental para la economía)
+            const vendedorUid = oferta.data.vendedorUid;
+            if (vendedorUid && vendedorUid !== "system") {
+              tx.update(doc(db, "usuarios", vendedorUid), {
+                dinero: increment(oferta.monto)
+              });
             }
-            if (!colocado) throw new Error("NO_SLOT");
 
-            const nuevoSlot = { jugadorId: idJugador, clausulaPersonal: jugadorData.precioClausula };
-            if (tipo === "titulares") titulares[idx] = nuevoSlot;
-            else banquillo[idx] = nuevoSlot;
-
-            tx.update(compradorRef, {
-              "equipo.titulares": titulares,
-              "equipo.banquillo": banquillo,
-            });
-
-            // actualizar jugador: dueños
-            const owners = Array.isArray(jugadorData.dueños) ? [...jugadorData.dueños] : [];
-            const nuevosOwners = owners.filter(o => o !== "mercado");
-            if (!nuevosOwners.includes(compradorUid)) nuevosOwners.push(compradorUid);
-            tx.update(jugadorRef, { dueños: nuevosOwners });
-
-            // historial
+            // Registrar en el historial
             const historialRef = doc(collection(db, "historial"));
-            const compradorNombre = ofertaDoc.data.comprador ?? compradorData.nick ?? compradorData.displayName ?? compradorUid;
             tx.set(historialRef, {
               jugadorId: idJugador,
               jugadorNombre: nombre ?? jugadorData.nombre ?? "",
-              comprador: compradorNombre,
-              compradorUid,
-              vendedorUid: ofertaDoc.data.vendedorUid ?? 'system',
-              vendedorNick: ofertaDoc.data.vendedorNick ?? 'Fantasy Casadillos',
-              precio: ofertaDoc.monto,
+              comprador: oferta.data.comprador ?? dataComprador?.nick ?? dataComprador?.displayName ?? uid,
+              compradorUid: uid,
+              vendedorUid: oferta.data.vendedorUid ?? 'system',
+              vendedorNick: oferta.data.vendedorNick ?? 'Fantasy Casadillos',
+              precio: oferta.monto,
               fecha: serverTimestamp(),
               tipo: "venta_mercado"
             });
+            
+          } else {
+            // 🛡️ PARCHE: Devolver dinero solo si es un usuario real
+            if (dataComprador) {
+              dataComprador.dinero = (Number(dataComprador.dinero) || 0) + oferta.monto;
+              tx.update(doc(db, "usuarios", uid), { 
+                dinero: dataComprador.dinero 
+              });
+            }
           }
 
-          // borrar oferta
-          tx.delete(doc(db, "ofertas", ofertaDoc.id));
-        });
-      }
+          // Borrar la oferta procesada
+          tx.delete(doc(db, "ofertas", oferta.id));
+        }
+      });
 
-      // quitar jugador del mercado
+      // Quitar al jugador del mercado
       jugadoresMercado = jugadoresMercado.filter(j => j.idJugador !== idJugador);
       try { await updateDoc(refMercado, { jugadores: jugadoresMercado }); } catch {}
       adjudicadas++;
@@ -151,7 +191,6 @@ export const adjudicarOfertasPendientes = async () => {
     throw error;
   }
 };
-
 
 export const devolverJugadoresPrevioAlMercado = async () => {
   try {
@@ -315,7 +354,10 @@ export const resetearMercado = async () => {
     }
 
     // --- Eliminar las ventas de usuarios ---
-    const refUsuarios = collection(db, "mercado/actual/usuarios");
+    // --- Eliminar las ventas de usuarios ---
+    await updateDoc(doc(db, "mercadoUsuarios", "actual"), {
+      jugadores: [] // o el nombre que tenga tu array ("ventas", etc.)
+    });
     const snapUsuarios = await getDocs(refUsuarios);
     for (const d of snapUsuarios.docs) {
       await deleteDoc(d.ref);
@@ -336,40 +378,72 @@ export const resetearMercado = async () => {
 };
 
 export const ofertasAutomaticas = async () => {
-  const mercadoRef = doc(db, "mercadoUsuarios", "actual");
-  const snap = await getDoc(mercadoRef);
+  try {
+    console.log("🤖 Iniciando bot de ofertas automáticas...");
+    
+    // 🎯 AHORA SÍ: Apuntamos al documento correcto
+    const refUsuarios = doc(db, "mercadoUsuarios", "actual");
+    const snapUsuarios = await getDoc(refUsuarios);
 
-  if (!snap.exists()) return;
+    if (!snapUsuarios.exists()) {
+      console.warn("⚠️ No se encontró el documento 'mercadoUsuarios/actual'.");
+      return;
+    }
 
-  const { jugadores = [] } = snap.data();
+    const dataUsuarios = snapUsuarios.data();
+    // Buscamos el array donde guardas los jugadores (suele ser "jugadores" o "ventas")
+    const jugadoresEnVenta = dataUsuarios.jugadores || dataUsuarios.ventas || []; 
 
-  for (const j of jugadores) {
+    if (jugadoresEnVenta.length === 0) {
+      console.log("ℹ️ No hay jugadores de usuarios en venta hoy.");
+      return;
+    }
 
-    const jugadorRef = doc(db, "jugadores", j.jugadorId);
-    const jugadorSnap = await getDoc(jugadorRef);
+    let ofertasCreadas = 0;
 
-    if (!jugadorSnap.exists()) continue; // saltar si no existe
+    // Iteramos sobre el array del documento
+    for (const j of jugadoresEnVenta) {
+      const idDelJugador = j.jugadorId || j.idJugador || j.id; 
+      const uidVendedor = j.vendedorUid || j.uid || j.usuarioId;
 
-    const jugadorData = jugadorSnap.data();
-    const precioBase = jugadorData.precio; // usamos "precio" de la colección jugadores
+      if (!idDelJugador) {
+        console.warn("⚠️ Error: Faltan datos en uno de los jugadores en venta.", j);
+        continue;
+      }
 
-    // Calculamos oferta aleatoria +/- 10% del precio
-    const variacion = Math.random() < 0.5 ? -1 : 1;
-    const porcentaje = 0.1 * precioBase;
-    const cantidad = Math.floor(precioBase + variacion * (Math.random() * porcentaje));
+      const jugadorRef = doc(db, "jugadores", String(idDelJugador));
+      const jugadorSnap = await getDoc(jugadorRef);
+      const jugadorData = jugadorSnap.exists() ? jugadorSnap.data() : {};
 
-    await addDoc(collection(db, "ofertas"), {
-      jugadorId: j.jugadorId,
-      vendedorUid: j.vendedorUid,
-      vendedorNick: j.vendedorNick,
-      precioVenta: j.precioVenta,
-      oferta: cantidad,
-      comprador: "Fantasy Casadillos", // 👈 nombre de la liga
-      compradorUid: "system",       // 👈 uid especial del sistema
-      fecha: new Date(),
-    });
+      const precioBase = Number(jugadorData.precio || j.precioVenta || j.precio || 0);
+
+      // Calcular oferta aleatoria (+/- 10%)
+      const variacion = Math.random() < 0.5 ? -1 : 1;
+      const porcentaje = 0.1 * (precioBase || 1000000); 
+      const cantidad = Math.floor(precioBase + variacion * (Math.random() * porcentaje));
+
+      await addDoc(collection(db, "ofertas"), {
+        jugadorId: idDelJugador,
+        vendedorUid: uidVendedor || "vendedor_desconocido", 
+        vendedorNick: j.vendedorNick || j.nick || "Usuario",
+        precioVenta: j.precioVenta || precioBase,
+        oferta: cantidad,
+        precio: cantidad,
+        precioOferta: cantidad,
+        monto: cantidad,
+        comprador: "Fantasy Casadillos",
+        compradorUid: "system",
+        fecha: new Date(),
+      });
+      
+      ofertasCreadas++;
+    }
+    
+    console.log(`✅ Bot terminó: Se han creado ${ofertasCreadas} ofertas automáticas.`);
+  } catch (error) {
+    console.error("❌ Error generando ofertas automáticas:", error);
   }
-}
+};
 
 export const corregirJugadoresFueraDelMercado = async () => {
   try {

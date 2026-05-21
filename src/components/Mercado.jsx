@@ -17,10 +17,12 @@ import {
   where,
   query,
   serverTimestamp,
-  runTransaction
+  runTransaction,
+  deleteDoc
 } from 'firebase/firestore';
 import ImagenProfile from '/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
+import LogoLiga from '../assets/logo.png';
 import "./Mercado.css";
 import ModalPerfil from "./ModalPerfil"
 import ModalAdmin from './ModalAdmin'
@@ -52,6 +54,10 @@ export default function Mercado({ usuario }) {
   const [edicionActiva, setEdicionActiva] = useState(false);
   const [conteoOfertas, setConteoOfertas] = useState({});
   const [misOfertas, setMisOfertas] = useState([]);
+  // Nuevos estados para el Modal de Ofertas
+  const [mostrarModalOfertas, setMostrarModalOfertas] = useState(false);
+  const [ofertasRecibidas, setOfertasRecibidas] = useState([]);
+  const [jugadorOfertasSeleccionado, setJugadorOfertasSeleccionado] = useState(null);
 
   const refMenu = useRef(null);
   const [tabActiva, setTabActiva] = useState("mercado");
@@ -158,7 +164,7 @@ export default function Mercado({ usuario }) {
             foto: jData.foto || ImagenProfile,
             posicion: jData.posicion || "—",
             precio: jData.precio || 0,
-            precioVenta: typeof listing.precioVenta === 'number' ? listing.precioVenta : Number(listing.precioVenta),
+            precioVenta: typeof listing.precioOferta === 'number' ? listing.precioOferta : Number(listing.precioOferta),
             historialPrecios: jData.historialPrecios || [],
             puntosPorJornada: jData.puntosPorJornada || [],
             vendedor: listing.vendedorNick || "Usuario",
@@ -274,14 +280,15 @@ export default function Mercado({ usuario }) {
     return () => unsub();
   }, [usuario]);
 
-  // Mirar número de ofertas
+// Mirar número de ofertas
   useEffect(() => {
     const q = query(collection(db, "ofertas"));
     const unsub = onSnapshot(q, (snapshot) => {
       const counts = {};
       snapshot.forEach(doc => {
         const data = doc.data();
-        const key = `${data.jugadorId}-${data.source}-${data.vendedorUid || 'system'}`;
+        // Clave unificada y simplificada
+        const key = `${data.jugadorId}-${data.vendedorUid || 'system'}`;
         counts[key] = (counts[key] || 0) + 1;
       });
       setConteoOfertas(counts);
@@ -357,29 +364,183 @@ export default function Mercado({ usuario }) {
       }
     };
 
-  // Ver ofertas (abre un modal o alerta con las ofertas activas)
+// Ver ofertas (Abre el Modal interactivo)
+// Ver ofertas (Abre el Modal interactivo y carga fotos)
   const verOfertar = async (jugador) => {
-    const q = query(collection(db, "ofertas"), where("jugadorId", "==", jugador.idJugador));
+    const q = query(
+      collection(db, "ofertas"), 
+      where("jugadorId", "==", jugador.idJugador),
+      where("vendedorUid", "==", usuario.uid)
+    );
     const snapshot = await getDocs(q);
-    const ofertas = snapshot.docs.map((d) => d.data());
-
-    if (ofertas.length === 0) {
+    
+    if (snapshot.empty) {
       Swal.fire("ℹ️ Sin ofertas", "Todavía no hay ofertas para este jugador.", "info");
       return;
     }
 
-    let html = ofertas
-      .map(
-        (o) =>
-          `<p><b>${o.precioOferta.toLocaleString("es-ES")}€</b> - Comprador: ${o.compradorUid}</p>`
-      )
-      .join("");
+    // Mapear y enriquecer las ofertas con la foto y nick real
+    const ofertas = await Promise.all(snapshot.docs.map(async (d) => {
+      const data = d.data();
+      const monto = Number(data.oferta ?? data.precioOferta ?? data.precio ?? 0) || 0;
+      
+      let compradorNick = data.comprador || "Usuario";
+      let compradorFoto = ImagenProfile; // Tu imagen por defecto
 
-    Swal.fire({
-      title: `Ofertas para ${jugador.nombre}`,
-      html,
-      confirmButtonText: "Cerrar",
-    });
+      if (data.compradorUid === "system") {
+        compradorNick = "Fantasy Casadillos";
+        compradorFoto = LogoLiga; // El logo de la liga
+      } else {
+        try {
+          // Buscar los datos frescos del usuario en Firestore
+          const userSnap = await getDoc(doc(db, "usuarios", data.compradorUid));
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            compradorNick = userData.nick || userData.displayName || compradorNick;
+            compradorFoto = userData.fotoPerfil || ImagenProfile;
+          }
+        } catch (error) {
+          console.error("Error al obtener perfil del comprador:", error);
+        }
+      }
+
+      return { id: d.id, ...data, monto, compradorNick, compradorFoto };
+    }));
+
+    setJugadorOfertasSeleccionado(jugador);
+    setOfertasRecibidas(ofertas.sort((a, b) => b.monto - a.monto));
+    setMostrarModalOfertas(true);
+  };
+
+// Aceptar Oferta
+  const aceptarOferta = async (oferta) => {
+    try {
+      const { isConfirmed } = await Swal.fire({
+        title: "¿Aceptar oferta?",
+        text: `Vas a vender a ${jugadorOfertasSeleccionado?.nombre} por ${formatearDinero(oferta.monto)}`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Sí, vender",
+        cancelButtonText: "Cancelar"
+      });
+
+      if (!isConfirmed) return;
+
+      // 1. Obtener TODAS las ofertas por este jugador ANTES de la transacción
+      const qTodas = query(collection(db, "ofertas"), where("jugadorId", "==", oferta.jugadorId));
+      const snapTodas = await getDocs(qTodas);
+      const todasLasOfertas = snapTodas.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      await runTransaction(db, async (tx) => {
+        // A. Pagar al Vendedor (Tú) y quitar jugador de tu equipo
+        const vendedorRef = doc(db, "usuarios", usuario.uid);
+        const vendedorSnap = await tx.get(vendedorRef);
+        let equipo = vendedorSnap.data().equipo || { titulares: [], banquillo: [] };
+        let nuevoDinero = (vendedorSnap.data().dinero || 0) + oferta.monto;
+        
+        const removeJugador = (arr) => arr.map(slot => slot?.jugadorId === oferta.jugadorId ? null : slot);
+        equipo.titulares = removeJugador(equipo.titulares);
+        equipo.banquillo = removeJugador(equipo.banquillo);
+
+        tx.update(vendedorRef, { dinero: nuevoDinero, equipo: equipo });
+
+        // B. Modificar el jugador y procesar al Comprador (Ganador)
+        const jugadorRef = doc(db, "jugadores", oferta.jugadorId);
+        if (oferta.compradorUid === "system") {
+          tx.update(jugadorRef, {
+            stockLibre: increment(1),
+            dueños: arrayRemove(usuario.uid)
+          });
+        } else {
+          // Lógica si compra otro usuario real
+          const compradorRef = doc(db, "usuarios", oferta.compradorUid);
+          const compradorSnap = await tx.get(compradorRef);
+          let eqComprador = compradorSnap.data()?.equipo || { titulares: [], banquillo: [] };
+          let huecoEncontrado = false;
+          
+          for (let i = 0; i < eqComprador.titulares.length; i++) {
+            if (!eqComprador.titulares[i]) { eqComprador.titulares[i] = { jugadorId: oferta.jugadorId }; huecoEncontrado = true; break; }
+          }
+          if (!huecoEncontrado) {
+            for (let i = 0; i < eqComprador.banquillo.length; i++) {
+              if (!eqComprador.banquillo[i]) { eqComprador.banquillo[i] = { jugadorId: oferta.jugadorId }; huecoEncontrado = true; break; }
+            }
+          }
+          if (!huecoEncontrado) throw new Error("El comprador ya no tiene hueco.");
+          
+          tx.update(compradorRef, { equipo: eqComprador });
+          tx.update(jugadorRef, { dueños: arrayRemove(usuario.uid) });
+        }
+
+        // C. Reembolsar a los PERDEDORES y borrar todas las pujas
+        for (const ofe of todasLasOfertas) {
+          const ofeRef = doc(db, "ofertas", ofe.id);
+          
+          // Si es un perdedor real, le devolvemos su dinero
+          if (ofe.id !== oferta.id && ofe.compradorUid !== "system") {
+            const perdedorRef = doc(db, "usuarios", ofe.compradorUid);
+            const perdedorSnap = await tx.get(perdedorRef);
+            if (perdedorSnap.exists()) {
+              const dineroActualPerdedor = perdedorSnap.data().dinero || 0;
+              const montoDevolver = Number(ofe.oferta ?? ofe.precioOferta ?? ofe.precio ?? 0);
+              tx.update(perdedorRef, { dinero: dineroActualPerdedor + montoDevolver });
+            }
+          }
+          
+          // Borrar la oferta evaluada (ganadora o perdedora)
+          tx.delete(ofeRef);
+        }
+
+        // D. Sacar al jugador de la vitrina de ventas activas
+        const mercadoUsuariosRef = doc(db, "mercadoUsuarios", "actual");
+        const muSnap = await tx.get(mercadoUsuariosRef);
+        if (muSnap.exists()) {
+           const ventas = muSnap.data().jugadores || [];
+           tx.update(mercadoUsuariosRef, { jugadores: ventas.filter(v => v.jugadorId !== oferta.jugadorId) });
+        }
+      });
+
+      Swal.fire("✅ Vendido", "Has aceptado la oferta correctamente", "success");
+      setMostrarModalOfertas(false);
+      window.location.reload(); 
+    } catch (error) {
+      console.error(error);
+      Swal.fire("❌ Error", error.message, "error");
+    }
+  };
+
+  // Rechazar Oferta
+  const rechazarOferta = async (oferta) => {
+    try {
+      const { isConfirmed } = await Swal.fire({
+        title: "¿Rechazar oferta?",
+        text: "Esta acción no se puede deshacer.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, rechazar"
+      });
+
+      if (!isConfirmed) return;
+
+      if (oferta.compradorUid !== "system") {
+         await updateDoc(doc(db, "usuarios", oferta.compradorUid), {
+             dinero: increment(oferta.monto)
+         });
+      }
+      
+      await deleteDoc(doc(db, "ofertas", oferta.id));
+      
+      // Actualizar la lista visual sin recargar
+      const nuevasOfertas = ofertasRecibidas.filter(o => o.id !== oferta.id);
+      setOfertasRecibidas(nuevasOfertas);
+      
+      if (nuevasOfertas.length === 0) setMostrarModalOfertas(false);
+      
+      Swal.fire("✅ Rechazada", "La oferta ha sido eliminada", "success");
+    } catch (error) {
+      console.error(error);
+      Swal.fire("❌ Error", "No se pudo rechazar la oferta", "error");
+    }
   };
 
   // Hacer oferta nueva
@@ -431,7 +592,6 @@ export default function Mercado({ usuario }) {
       Swal.fire("❌ Error", "No se pudo actualizar la oferta", "error");
     }
   };
-
 
   // -------------------------------
   // UI / Render
@@ -637,7 +797,7 @@ export default function Mercado({ usuario }) {
                             >
                               {j.vendedorUid === auth.currentUser?.uid
                                 ? "Es tu venta"
-                                : `Hacer oferta - (${conteoOfertas[`${j.idJugador}-${j.source}-${j.vendedorUid || 'system'}`] || 0})`}
+                                : `Hacer oferta - (${conteoOfertas[`${j.idJugador}-${j.vendedorUid || 'system'}`] || 0})`}
                             </button>
                           </div>
                         </div>
@@ -651,11 +811,13 @@ export default function Mercado({ usuario }) {
 
           {tabActiva === "operaciones" && (
             <div className="mercado-jugadores">
+            <h3 className="titulo-seccion">Mis ventas activas</h3>
             {jugadoresUsuario.length === 0 && misOfertas.length === 0 ? (
               <div className="sin-mercado">
                 <p>No tienes operaciones activas.</p>
               </div>
               ) : (
+                
                   <ul className="lista-jugadores">
                   {jugadoresUsuario.map((j, i) => {
                     const key = `${j.idJugador}-${i}-${j.vendedorUid || 'yo'}`;
@@ -751,7 +913,7 @@ export default function Mercado({ usuario }) {
                                     }}
                                     disabled={!equipocreado}
                                   >
-                                    Ver ofertas - ({conteoOfertas[`${j.idJugador}-${j.vendedorUid}`] || 0})
+                                    Ver ofertas - ({conteoOfertas[`${j.idJugador}-${j.vendedorUid || 'system'}`] || 0})
                                   </button>
                                   <button
                                     className="btn-cancelar"
@@ -929,6 +1091,45 @@ export default function Mercado({ usuario }) {
           <div className="loader">Cargando...</div>
         </div>
       )}
+
+      {/* --- MODAL DE OFERTAS INTERACTIVO --- */}
+      {mostrarModalOfertas && (
+        <div className="modal-ofertas-overlay" onClick={() => setMostrarModalOfertas(false)}>
+          <div className="modal-ofertas-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-ofertas-header">
+              <h3>Ofertas por {jugadorOfertasSeleccionado?.nombre}</h3>
+              <button className="btn-close-modal" onClick={() => setMostrarModalOfertas(false)}>X</button>
+            </div>
+            
+            {ofertasRecibidas.length === 0 ? (
+              <p style={{textAlign: "center", padding: "20px"}}>No quedan ofertas pendientes.</p>
+            ) : (
+              <ul className="lista-ofertas-recibidas">
+                              {ofertasRecibidas.map((oferta) => (
+                                <li key={oferta.id} className="fila-oferta-item">
+                                  <div className="info-oferta-monto">
+                                    
+                                    {/* --- NUEVO CONTENEDOR DE FOTO Y NOMBRE --- */}
+                                    <div className="oferta-comprador-container">
+                                      <img src={oferta.compradorFoto} alt="Avatar" className="oferta-avatar" />
+                                      <span className="oferta-comprador">De: <strong>{oferta.compradorNick}</strong></span>
+                                    </div>
+                                    
+                                    <span className="oferta-dinero">{formatearDinero(oferta.monto)}</span>
+                                  </div>
+                                  <div className="acciones-oferta-btn">
+                                    <button onClick={() => aceptarOferta(oferta)} className="btn-aceptar-oferta">✅ Aceptar</button>
+                                    <button onClick={() => rechazarOferta(oferta)} className="btn-rechazar-oferta">❌ Rechazar</button>
+                                  </div>
+                                </li>
+                              ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+

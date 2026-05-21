@@ -691,6 +691,184 @@ hr {
   z-index: 5;
 }
 
+/* --- OVERLAY DEL MODAL DE OFERTAS --- */
+/* Igualamos a .modal-overlay de ModalJugador.css */
+.modal-ofertas-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.5); /* Fondo menos opaco para no asfixiar */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: overlayFadeIn 0.3s ease-out; /* Misma animación de entrada */
+}
+
+/* --- CONTENIDO DEL MODAL --- */
+/* Igualamos a .modal-perfil de ModalJugador.css */
+.modal-ofertas-content {
+  position: relative;
+  background: rgb(1, 1, 33); /* Tu azul/negro característico */
+  border-radius: 12px;
+  width: 90%;
+  max-width: 30rem; /* Mismo tamaño máximo que ModalJugador */
+  padding: 1.5rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  margin: 0 auto;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  animation: modalFadeIn 0.35s ease-out; /* Misma animación de pop-up */
+  color: white; /* Letra blanca por defecto */
+}
+
+/* Scroll elegante */
+.modal-ofertas-content::-webkit-scrollbar { width: 6px; }
+.modal-ofertas-content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+/* --- CABECERA DEL MODAL --- */
+.modal-ofertas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid white; /* Simulamos el <hr> que usas de separador */
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.modal-ofertas-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* Botón de cerrar igual al tuyo */
+.btn-close-modal {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: white;
+}
+
+/* --- LISTA Y FILAS --- */
+.lista-ofertas-recibidas {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.fila-oferta-item {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255,255,255,0.05); /* Mismo fondo de tus stat-cards */
+  padding: 1rem;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  gap: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.info-oferta-monto {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.1rem;
+}
+
+.oferta-comprador {
+  font-weight: lighter; /* Igualamos a la clase .vendedor */
+}
+
+/* El dinero en verde claro como en .precio */
+.oferta-dinero {
+  font-weight: bold;
+  color: lightgreen; 
+}
+
+/* --- BOTONES DE ACEPTAR / RECHAZAR --- */
+.acciones-oferta-btn {
+  display: flex;
+  gap: 15px;
+}
+
+/* Base de los botones (similar a .btn-accion pero adaptados) */
+.btn-aceptar-oferta, .btn-rechazar-oferta {
+  flex: 1;
+  padding: 0.6rem;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Estilo Aceptar (Tu botón verde metalizado) */
+.btn-aceptar-oferta {
+  background: linear-gradient(145deg, #1c7c35, #28a745, #3ddc84, #1c7c35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.3), 0 4px 15px rgba(40, 167, 69, 0.4);
+}
+
+.btn-aceptar-oferta:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.4), 0 6px 20px rgba(40, 167, 69, 0.7);
+}
+
+/* Estilo Rechazar (Rojo basado en tu rojo de jornadas) */
+.btn-rechazar-oferta {
+  background: linear-gradient(145deg, #b71c1c, #d32f2f, #f44336, #b71c1c);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.3), 0 4px 15px rgba(211, 47, 47, 0.4);
+}
+
+.btn-rechazar-oferta:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.4), 0 6px 20px rgba(211, 47, 47, 0.7);
+}
+
+.info-oferta-monto {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.1rem;
+  width: 100%;
+}
+
+/* Nuevo contenedor para alinear la foto y el texto */
+.oferta-comprador-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Estilo para la foto de perfil en miniatura */
+.oferta-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background-color: white; /* Por si el logo tiene transparencias */
+}
+
+.oferta-comprador {
+  color: white;
+  font-weight: normal; /* El 'De:' se queda fino */
+}
+
+/* Forzamos que el nombre dentro de la etiqueta strong esté en negrita */
+.oferta-comprador strong {
+  font-weight: bold;
+}
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
