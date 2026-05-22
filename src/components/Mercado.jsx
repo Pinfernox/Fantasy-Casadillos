@@ -226,7 +226,7 @@ export default function Mercado({ usuario }) {
         foto: jData.foto || ImagenProfile,
         posicion: jData.posicion || "—",
         precio: jData.precio || 0,
-        precioOferta: data.precio || 0,
+        precioOferta: data.precioOferta ?? data.oferta ?? data.precio ?? data.monto ?? 0,
         vendedorUid: data.vendedorUid,
         vendedorNick: data.vendedorNick,
         fecha: data.fecha || null,
@@ -262,23 +262,6 @@ export default function Mercado({ usuario }) {
     cargarEstadoEdicion();
   }, []);
   
-  // Mirar mis ofertas
-  useEffect(() => {
-    if (!usuario?.uid) return;
-
-    const qMisOfertas = query(
-      collection(db, "ofertas"),
-      where("compradorUid", "==", usuario.uid)
-    );
-
-    const unsub = onSnapshot(qMisOfertas, (snapshot) => {
-      const ofertas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      console.log("📦 Ofertas detectadas para el usuario:", ofertas);
-      setMisOfertas(ofertas);
-    });
-
-    return () => unsub();
-  }, [usuario]);
 
 // Mirar número de ofertas
   useEffect(() => {
@@ -337,7 +320,6 @@ export default function Mercado({ usuario }) {
       });
 
       await Swal.fire("✅ Oferta realizada", `Has hecho una oferta por ${jugador.nombre}`, "success");
-      window.location.reload()
     } catch (err) {
       console.error("Error creando oferta:", err);
       Swal.fire("❌ Error", err.message || "Ocurrió un problema al hacer la oferta", "error");
@@ -364,7 +346,6 @@ export default function Mercado({ usuario }) {
       }
     };
 
-// Ver ofertas (Abre el Modal interactivo)
 // Ver ofertas (Abre el Modal interactivo y carga fotos)
   const verOfertar = async (jugador) => {
     const q = query(
@@ -502,7 +483,6 @@ export default function Mercado({ usuario }) {
 
       Swal.fire("✅ Vendido", "Has aceptado la oferta correctamente", "success");
       setMostrarModalOfertas(false);
-      window.location.reload(); 
     } catch (error) {
       console.error(error);
       Swal.fire("❌ Error", error.message, "error");
@@ -543,53 +523,163 @@ export default function Mercado({ usuario }) {
     }
   };
 
-  // Hacer oferta nueva
+// Hacer oferta nueva
   const hacerOferta = async (jugador) => {
-    const { value: precio } = await Swal.fire({
+    const { value: precioParsed } = await Swal.fire({
       title: `Oferta por ${jugador.nombre}`,
-      input: "number",
+      input: "text",
       inputLabel: "Introduce tu oferta (€)",
       inputPlaceholder: "Ej: 5.000.000",
       showCancelButton: true,
       confirmButtonText: "Enviar oferta",
+      cancelButtonText: "Cancelar",
+      background: "#1e1e1e",
+      color: "#fff",
+      didOpen: () => {
+        const input = Swal.getInput();
+        input.addEventListener('input', (e) => {
+          let val = e.target.value.replace(/\D/g, '');
+          e.target.value = val ? Number(val).toLocaleString('es-ES') : '';
+        });
+      },
+      preConfirm: (value) => {
+        const parsed = parseInt(value.replace(/\./g, ''), 10);
+        if (!parsed || parsed <= 0) {
+          Swal.showValidationMessage("Debes introducir un precio válido");
+          return false;
+        }
+        if (parsed < jugador.precio) {
+          Swal.showValidationMessage("Debes introducir un precio superior o igual al valor de mercado");
+          return false;
+        }
+        return parsed;
+      }
     });
 
-    if (!precio) return;
+    if (!precioParsed) return;
 
-    await pujarJugador(jugador, Number(precio));
+    await pujarJugador(jugador, precioParsed);
   };
 
-  // Retirar oferta
+// Retirar / Cancelar oferta
   const retirarOferta = async (oferta) => {
     try {
-      await deleteDoc(doc(db, "ofertas", oferta.id));
-      Swal.fire("✅ Oferta retirada", "Tu oferta ha sido retirada", "success");
+      const { isConfirmed } = await Swal.fire({
+        title: "¿Cancelar oferta?",
+        text: "Se te devolverá el dinero retenido a tu saldo.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, cancelar",
+        cancelButtonText: "Mantener",
+        background: "#1e1e1e",
+        color: "#fff"
+      });
+
+      if (!isConfirmed) return;
+
+      // Identificar cuánto dinero hay que devolver (ignorando el valor de mercado)
+      const montoADevolver = Number(oferta.precioOferta ?? oferta.oferta ?? oferta.monto ?? 0) || 0;
+
+      await runTransaction(db, async (tx) => {
+        // 1. Devolver el dinero al usuario
+        const userRef = doc(db, "usuarios", usuario.uid);
+        const userSnap = await tx.get(userRef);
+        
+        if (userSnap.exists()) {
+          const dineroActual = userSnap.data().dinero ?? 0;
+          tx.update(userRef, { dinero: dineroActual + montoADevolver });
+        }
+
+        // 2. Borrar la oferta
+        const ofertaRef = doc(db, "ofertas", oferta.id);
+        tx.delete(ofertaRef);
+      });
+
+      Swal.fire("✅ Oferta cancelada", "Se te ha devuelto el dinero a tu saldo.", "success");
     } catch (err) {
       console.error(err);
-      Swal.fire("❌ Error", "No se pudo retirar la oferta", "error");
+      Swal.fire("❌ Error", "No se pudo cancelar la oferta", "error");
     }
   };
 
-  // Aumentar oferta
+// Aumentar / Modificar oferta
   const aumentarOferta = async (oferta) => {
-    const { value: nuevoPrecio } = await Swal.fire({
-      title: "Aumentar oferta",
-      input: "number",
+    // 1. Separamos claramente el valor de mercado de lo que el usuario ha pujado
+    const precioMercado = Number(oferta.precio) || 0; 
+    
+    // Quitamos 'oferta.precio' de esta lectura para que no coja el valor de mercado por error
+    const montoAnterior = Number(oferta.precioOferta ?? oferta.oferta ?? oferta.monto ?? 0) || 0;
+
+    const { value: nuevoMonto } = await Swal.fire({
+      title: "Modificar oferta",
+      input: "text", 
       inputLabel: "Nuevo precio (€)",
       inputPlaceholder: "Ej: 6.000.000",
+      inputValue: montoAnterior.toLocaleString("es-ES"), 
       showCancelButton: true,
       confirmButtonText: "Actualizar",
+      background: "#1e1e1e",
+      color: "#fff",
+      didOpen: () => {
+        const input = Swal.getInput();
+        input.addEventListener('input', (e) => {
+          let val = e.target.value.replace(/\D/g, ''); 
+          e.target.value = val ? Number(val).toLocaleString('es-ES') : '';
+        });
+      },
+      preConfirm: (value) => {
+        const parsed = parseInt(value.replace(/\./g, ''), 10);
+        if (!parsed || parsed <= 0) {
+          Swal.showValidationMessage("Introduce un precio válido");
+          return false;
+        }
+        
+        // 🛡️ NUEVA VALIDACIÓN: No permitir ofertas por debajo del valor de mercado
+        if (parsed < precioMercado) {
+          Swal.showValidationMessage("Debes introducir un precio superior o igual al valor de mercado");
+          return false;
+        }
+        
+        return parsed;
+      }
     });
 
-    if (!nuevoPrecio) return;
+    if (!nuevoMonto) return;
+    if (nuevoMonto === montoAnterior) return;
 
     try {
-      const ref = doc(db, "ofertas", oferta.id);
-      await updateDoc(ref, { precioOferta: Number(nuevoPrecio) });
-      Swal.fire("✅ Oferta actualizada", "Tu oferta fue aumentada", "success");
+      await runTransaction(db, async (tx) => {
+        const userRef = doc(db, "usuarios", usuario.uid);
+        const userSnap = await tx.get(userRef);
+        
+        if (!userSnap.exists()) throw new Error("Usuario no encontrado.");
+
+        const userData = userSnap.data();
+        const dineroActual = userData.dinero ?? 0;
+        const diferencia = nuevoMonto - montoAnterior;
+
+        // Comprobar si tiene dinero suficiente para cubrir el aumento
+        if (diferencia > 0 && dineroActual < diferencia) {
+          throw new Error("Saldo insuficiente para aumentar la oferta.");
+        }
+
+        // Actualizar el dinero del usuario
+        tx.update(userRef, { dinero: dineroActual - diferencia });
+
+        // Actualizar el documento de la oferta
+        const ofertaRef = doc(db, "ofertas", oferta.id);
+        tx.update(ofertaRef, { 
+          precioOferta: nuevoMonto,
+          oferta: nuevoMonto,
+          precio: nuevoMonto,
+          monto: nuevoMonto
+        });
+      });
+
+      await Swal.fire("✅ Oferta actualizada", "Tu oferta fue modificada correctamente", "success");
     } catch (err) {
       console.error(err);
-      Swal.fire("❌ Error", "No se pudo actualizar la oferta", "error");
+      Swal.fire("❌ Error", err.message || "No se pudo actualizar la oferta", "error");
     }
   };
 
@@ -621,19 +711,21 @@ export default function Mercado({ usuario }) {
         try {
           const userRef = doc(db, "usuarios", usuario.uid);
           await updateDoc(userRef, { onboarding: true });
-          window.location.reload();
+          setShowOnboarding(false);
         } catch (err) { console.error(err); }
       }, 500);
       return () => clearTimeout(timer);
     }
 
-    (async () => {
-      try {
-        const ref = doc(db, "usuarios", usuario.uid);
-        const snap = await getDoc(ref);
-        if (snap.exists()) setDinero(snap.data().dinero);
-      } catch (err) { }
-    })();
+    const refUsuario = doc(db, "usuarios", usuario.uid);
+    const unsubDinero = onSnapshot(refUsuario, (snap) => {
+      if (snap.exists()) {
+        setDinero(snap.data().dinero);
+      }
+    });
+
+    // Añadimos el unsub para que no se quede colgado en memoria
+    return () => unsubDinero();
 
   }, [usuario]);
 
@@ -762,43 +854,64 @@ export default function Mercado({ usuario }) {
                           </div>
                           <hr />
                           <div className="modal-footer">
-                            <button
-                              className="btn-comprar"
-                              disabled={!edicionActiva || j.vendedorUid === auth.currentUser?.uid || !equipocreado}
-                              onClick={async (e) => { // << aquí añadimos async
-                                e.stopPropagation();
+                            {(() => {
+                              // 1. Buscar si ya existe una oferta tuya por este jugador y vendedor
+                              const ofertaExistente = misOfertas.find(o => 
+                                (o.idJugador === j.idJugador || o.jugadorId === j.idJugador) && 
+                                (o.vendedorUid === j.vendedorUid || (!o.vendedorUid && !j.vendedorUid))
+                              );
 
-                                const { value: precio } = await Swal.fire({
-                                  title: "Introduce el precio de venta",
-                                  input: "number",
-                                  inputLabel: "Precio en €",
-                                  inputPlaceholder: "Ej: 5.000.000",
-                                  confirmButtonText: "Hacer oferta",
-                                  cancelButtonText: "Cancelar",
-                                  showCancelButton: true,
-                                  scrollbarPadding: false, // <--- evita la franja blanca por scrollbar
-                                  background: "#1e1e1e",
-                                  color: "#fff",
-                                  inputValidator: (value) => {
-                                    if (!value || value <= 0) {
-                                      return "Debes introducir un precio válido";
-                                    }
-                                    if (value < j.precio) {
-                                      return "Debes introducir un precio que sea mínimo superior al valor de mercado";
-                                    }
-                                  },
-                                });
+                              // 2. Si es tu propio jugador en venta
+                              if (j.vendedorUid === auth.currentUser?.uid) {
+                                return (
+                                  <button className="btn-comprar" disabled={true}>
+                                    Es tu venta
+                                  </button>
+                                );
+                              }
 
-                                if (precio) {
-                                  console.log("Venta en mercado por", precio);
-                                  pujarJugador(j, parseInt(precio, 10));
-                                }
-                              }}
-                            >
-                              {j.vendedorUid === auth.currentUser?.uid
-                                ? "Es tu venta"
-                                : `Hacer oferta - (${conteoOfertas[`${j.idJugador}-${j.vendedorUid || 'system'}`] || 0})`}
-                            </button>
+                              // 3. Si ya tienes una oferta, mostrar botones de modificar y cancelar
+                              if (ofertaExistente) {
+                                return (
+                                  <>
+                                    <button
+                                      className="btn-comprar"
+                                      disabled={!edicionActiva || !equipocreado}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        aumentarOferta(ofertaExistente);
+                                      }}
+                                    >
+                                      Modificar
+                                    </button>
+                                    <button
+                                      className="btn-cancelar"
+                                      disabled={!edicionActiva || !equipocreado}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        retirarOferta(ofertaExistente);
+                                      }}
+                                    >
+                                      Cancelar Oferta
+                                    </button>
+                                  </>
+                                );
+                              }
+
+// 4. Si no tienes oferta, mostrar botón para hacer una nueva
+  return (
+    <button
+      className="btn-comprar"
+      disabled={!edicionActiva || !equipocreado}
+      onClick={(e) => {
+        e.stopPropagation();
+        hacerOferta(j); // Llamamos a la función limpia que ya tiene el formateo
+      }}
+    >
+      {`Hacer oferta - (${conteoOfertas[`${j.idJugador}-${j.vendedorUid || 'system'}`] || 0})`}
+    </button>
+  );
+                            })()}
                           </div>
                         </div>
                       </li>

@@ -354,7 +354,6 @@ export const resetearMercado = async () => {
     }
 
     // --- Eliminar las ventas de usuarios ---
-    // --- Eliminar las ventas de usuarios ---
     await updateDoc(doc(db, "mercadoUsuarios", "actual"), {
       jugadores: [] // o el nombre que tenga tu array ("ventas", etc.)
     });
@@ -381,7 +380,6 @@ export const ofertasAutomaticas = async () => {
   try {
     console.log("🤖 Iniciando bot de ofertas automáticas...");
     
-    // 🎯 AHORA SÍ: Apuntamos al documento correcto
     const refUsuarios = doc(db, "mercadoUsuarios", "actual");
     const snapUsuarios = await getDoc(refUsuarios);
 
@@ -391,7 +389,6 @@ export const ofertasAutomaticas = async () => {
     }
 
     const dataUsuarios = snapUsuarios.data();
-    // Buscamos el array donde guardas los jugadores (suele ser "jugadores" o "ventas")
     const jugadoresEnVenta = dataUsuarios.jugadores || dataUsuarios.ventas || []; 
 
     if (jugadoresEnVenta.length === 0) {
@@ -401,7 +398,6 @@ export const ofertasAutomaticas = async () => {
 
     let ofertasCreadas = 0;
 
-    // Iteramos sobre el array del documento
     for (const j of jugadoresEnVenta) {
       const idDelJugador = j.jugadorId || j.idJugador || j.id; 
       const uidVendedor = j.vendedorUid || j.uid || j.usuarioId;
@@ -409,6 +405,20 @@ export const ofertasAutomaticas = async () => {
       if (!idDelJugador) {
         console.warn("⚠️ Error: Faltan datos en uno de los jugadores en venta.", j);
         continue;
+      }
+
+      // 🛡️ NUEVA VALIDACIÓN ANTI-SPAM: Comprobar si el bot ya ha pujado
+      const qOfertaExistente = query(
+        collection(db, "ofertas"),
+        where("jugadorId", "==", idDelJugador),
+        where("compradorUid", "==", "system")
+      );
+      
+      const snapOfertaExistente = await getDocs(qOfertaExistente);
+      
+      if (!snapOfertaExistente.empty) {
+        console.log(`⏸️ El bot ya tiene una oferta activa por el jugador ${idDelJugador}. Saltando...`);
+        continue; // Pasamos al siguiente jugador sin hacer nada
       }
 
       const jugadorRef = doc(db, "jugadores", String(idDelJugador));
@@ -439,7 +449,7 @@ export const ofertasAutomaticas = async () => {
       ofertasCreadas++;
     }
     
-    console.log(`✅ Bot terminó: Se han creado ${ofertasCreadas} ofertas automáticas.`);
+    console.log(`✅ Bot terminó: Se han creado ${ofertasCreadas} ofertas automáticas nuevas.`);
   } catch (error) {
     console.error("❌ Error generando ofertas automáticas:", error);
   }
