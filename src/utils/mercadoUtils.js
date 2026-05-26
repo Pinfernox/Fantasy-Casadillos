@@ -303,6 +303,76 @@ const generarNuevoMercado = async () => {
   console.log("✅ Mercado actualizado correctamente.");
 };
 
+// 🧩 FASE EXTRA: Limpiar ventas de usuarios que lleven más de 3 días
+export const limpiarVentasCaducadas = async () => {
+  try {
+    console.log("🧹 Revisando ventas caducadas de usuarios...");
+    const refUsuarios = doc(db, "mercadoUsuarios", "actual");
+    const snap = await getDoc(refUsuarios);
+    
+    if (!snap.exists()) return;
+
+    const ventas = snap.data().jugadores || snap.data().ventas || [];
+    if (ventas.length === 0) return;
+
+    const ahora = new Date().getTime();
+    const TRES_DIAS_MS = 3 * 24 * 60 * 60 * 1000;
+    const ventasVigentes = [];
+    let caducadas = 0;
+
+    for (const venta of ventas) {
+      let expirada = false;
+      
+      // Validar la fecha de la venta
+      if (venta.fecha) {
+         // Soporta tanto Timestamp de Firestore como strings/objetos Date
+         const fechaVenta = venta.fecha.toDate ? venta.fecha.toDate().getTime() : new Date(venta.fecha).getTime();
+         if ((ahora - fechaVenta) > TRES_DIAS_MS) {
+            expirada = true;
+         }
+      }
+
+      if (expirada) {
+         console.log(`⏳ La venta de ${venta.jugadorId} por ${venta.vendedorNick} ha caducado.`);
+         
+         // Buscar y borrar ofertas asociadas, devolviendo el dinero a los pujadores reales
+         const qOfertas = query(collection(db, "ofertas"), 
+            where("jugadorId", "==", venta.jugadorId),
+            where("vendedorUid", "==", venta.vendedorUid)
+         );
+         const snapOfertas = await getDocs(qOfertas);
+         
+         await runTransaction(db, async (tx) => {
+            for (const ofeSnap of snapOfertas.docs) {
+               const ofeData = ofeSnap.data();
+               if (ofeData.compradorUid !== "system") {
+                  const perdedorRef = doc(db, "usuarios", ofeData.compradorUid);
+                  const perdedorSnap = await tx.get(perdedorRef);
+                  if (perdedorSnap.exists()) {
+                     const dineroActual = perdedorSnap.data().dinero || 0;
+                     const monto = Number(ofeData.precioOferta ?? ofeData.oferta ?? ofeData.precio ?? 0) || 0;
+                     tx.update(perdedorRef, { dinero: dineroActual + monto });
+                  }
+               }
+               tx.delete(ofeSnap.ref);
+            }
+         });
+         caducadas++;
+      } else {
+         ventasVigentes.push(venta);
+      }
+    }
+
+    // Actualizar el documento solo si hemos borrado alguna venta
+    if (caducadas > 0) {
+      await updateDoc(refUsuarios, { jugadores: ventasVigentes });
+      console.log(`✅ Se retiraron ${caducadas} ventas caducadas y se devolvió el dinero de sus pujas.`);
+    }
+  } catch (error) {
+    console.error("❌ Error limpiando ventas caducadas:", error);
+  }
+};
+
 // 🚀 FUNCIÓN PRINCIPAL: refrescarMercado
 export const refrescarMercado = async () => {
   try {
@@ -310,6 +380,9 @@ export const refrescarMercado = async () => {
 
     // Paso 0: Adjudicar ofertas más altas
     await adjudicarOfertasPendientes();
+
+    // Paso 1.5: Limpiar ventas de usuarios que llevan más de 3 días
+    await limpiarVentasCaducadas();
 
     // Paso 1: limpiar mercado anterior
     await devolverJugadoresPrevioAlMercado();
