@@ -18,9 +18,8 @@ import ImagenProfile from '/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
 import "./Home.css";
 import "./EquipoJugador.css"
-import ModalPerfil from "./ModalPerfil"
 import ModalPerfilJugadorUsuario from "./ModalJugadorUsuario";
-import ModalAdmin from "./ModalAdmin";
+import Cabecera from "./Cabecera";
 
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
@@ -79,9 +78,7 @@ export default function EquipoJugador({ usuario }) {
   const { jugadorId } = useParams()
   const [loadingJugador, setLoadingJugador] = useState(true)
   const [jugadorData, setJugadorData] = useState(null)
-  const [menu, setMenu] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [dinero, setDinero] = useState(null)
   const fotoURL = usuario?.fotoPerfil || ImagenProfile
   const titulares = jugadorData?.equipo?.titulares || [];
   const banquillo = jugadorData?.equipo?.banquillo || [];
@@ -98,26 +95,9 @@ export default function EquipoJugador({ usuario }) {
     }
   }, [jugadorData]);
 
-  const [openModal, setOpenModal] = useState(false)
   const [openModalJugadorUsuario, setOpenModalJugadorUsuario] = useState(false)
-  const [openModalAdmin, setOpenModalAdmin] = useState(false)
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)
-  const [menuActivo, setMenuActivo] = useState(false);
-  const refMenu = useRef(null);
-  const logout = () => signOut(auth);
   
-    // Cerramos el menú si clicas fuera
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (refMenu.current && !refMenu.current.contains(event.target)) {
-        setMenuActivo(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
 
   useEffect(() => {
     if (window.particlesJS && document.getElementById("particles-js")) {
@@ -126,14 +106,6 @@ export default function EquipoJugador({ usuario }) {
       });
     }
 
-    if (usuario) {
-          const ref = doc(db, 'usuarios', usuario.uid)
-          getDoc(ref).then((snap) => {
-            if (snap.exists()) {
-              setDinero(snap.data().dinero)
-            }
-          })
-    }
   }, [usuario]);
 
   // 1. Cargar jugador clicado en la clasificación
@@ -189,11 +161,6 @@ export default function EquipoJugador({ usuario }) {
     fetchJugadores();
   }, [jugadorData]);
 
-
-  const toggleMenu = () => {
-    setMenu(!menu)
-  }
-
   const formatearDinero = (valor) => {
     return valor.toLocaleString('es-ES') + '€';
   };
@@ -222,78 +189,10 @@ export default function EquipoJugador({ usuario }) {
 
   return (
     <div>
-      <header className="Cabecera">
-        <div className="container-profile">
-
-          <div className='img-profile-small' style={{ position: 'relative' }}>
-            <img
-              src={fotoURL}
-              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ImagenProfile }}
-              alt="Foto de perfil"
-              onClick={() => setMenuActivo(!menuActivo)} // toggle con clic
-              onMouseEnter={() => setMenuActivo(true)} // hover
-            />
-
-            {menuActivo && (
-              <div
-                className="perfil-bocadillo"
-                ref={refMenu}
-                onMouseLeave={() => setMenuActivo(false)} // solo se cierra al salir del menú
-              >
-              <div className="triangulo" />
-                  <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
-                  
-                  <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
-
-                  {usuario?.rol === 'admin' && <button className="btn-admin" onClick={() => { setOpenModalAdmin(true); setMenuActivo(false); }}>⚙️ Admin</button>}
-              </div>
-            )}
-          </div>
-
-          <div className="info-profile">
-            <h2 className="nombre-usuario">
-              {(usuario?.nick || usuario?.displayName)}
-            </h2>
-            {dinero !== null && (
-              <p className="dinero-usuario">
-                💰<strong>{formatearDinero(dinero)}</strong>
-              </p>
-            )}
-          </div>
-        </div>
-
-        <button onClick={toggleMenu} className="Cabecera-button">
-          <svg className='Cabecera-svg' xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5"/>
-          </svg>
-        </button>
-
-        <nav className={`Cabecera-nav ${menu ? 'isActive' : ''}`}>
-          <ul className="Cabecera-ul">
-            <li className="Cabecera-li">
-              <Link to="/home" className="Cabecera-a">EQUIPO</Link>
-            </li>
-            <li className="Cabecera-li">
-              <Link to="/mercado" className="Cabecera-a">MERCADO</Link>
-            </li>
-            <li className="Cabecera-li">
-              <Link to="/clasificacion" className="Cabecera-a">CLASIFICACIÓN</Link>
-            </li>
-            <li className="Cabecera-li">
-              <Link to="/historial" className="Cabecera-a">HISTORIAL</Link>
-            </li>
-          </ul>
-        </nav>
-      </header>
+      <Cabecera usuario={usuario} />
 
       <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
-        {openModal && 
-          (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
-        }
-        {openModalAdmin &&       
-          (<ModalAdmin usuario={usuario} openModal= {openModalAdmin} setOpenModal={setOpenModalAdmin}/>)
-        }
         {openModalJugadorUsuario && jugadorSeleccionado &&           
         (<ModalPerfilJugadorUsuario jugador={jugadorSeleccionado} 
           clausulaPersonal={

@@ -24,18 +24,15 @@ import ImagenProfile from '/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
 import LogoLiga from '../assets/logo.png';
 import "./Mercado.css";
-import ModalPerfil from "./ModalPerfil"
-import ModalAdmin from './ModalAdmin'
 import ModalJugadorMercado from "./ModalJugadorMercado";
 import TemporizadorRefresco from "./TemporizadorRefresco";
+import Cabecera from "./Cabecera";
 
 const db = getFirestore(appFirebase);
 const auth = getAuth(appFirebase);
 
 export default function Mercado({ usuario }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [dinero, setDinero] = useState(null)
-  const [menu, setMenu] = useState(false)
   const fotoURL = usuario?.fotoPerfil || ImagenProfile
   const [equipocreado, setEquipocreado] = useState(usuario?.equipocreado);
   const titulares = usuario?.equipo?.titulares || [];
@@ -46,11 +43,8 @@ export default function Mercado({ usuario }) {
   const [usuariosEnr, setUsuariosEnr] = useState([]); // mercado Usuarios enriquecido
   const [jugadoresMercado, setJugadoresMercado] = useState([]); // lista combinada (render)
   const [jugadoresUsuario, setJugadoresUsuario] = useState([]); // solo mis operaciones (listados que yo puse)
-  const [openModal, setOpenModal] = useState(false);
   const [openModalJugadorMercado, setOpenModalJugadorMercado] = useState(false)
-  const [openModalAdmin, setOpenModalAdmin] = useState(false)
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)
-  const [menuActivo, setMenuActivo] = useState(false);
   const [edicionActiva, setEdicionActiva] = useState(false);
   const [conteoOfertas, setConteoOfertas] = useState({});
   const [misOfertas, setMisOfertas] = useState([]);
@@ -59,9 +53,7 @@ export default function Mercado({ usuario }) {
   const [ofertasRecibidas, setOfertasRecibidas] = useState([]);
   const [jugadorOfertasSeleccionado, setJugadorOfertasSeleccionado] = useState(null);
 
-  const refMenu = useRef(null);
   const [tabActiva, setTabActiva] = useState("mercado");
-  const logout = () => signOut(auth);
 
   // --- helper ---
   const formatearDinero = (valor) => {
@@ -686,16 +678,6 @@ export default function Mercado({ usuario }) {
   // -------------------------------
   // UI / Render
   // -------------------------------
-  // cerrar menú al click fuera
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (refMenu.current && !refMenu.current.contains(event.target)) {
-        setMenuActivo(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   // Onboarding y leer dinero
   useEffect(() => {
@@ -717,60 +699,14 @@ export default function Mercado({ usuario }) {
       return () => clearTimeout(timer);
     }
 
-    const refUsuario = doc(db, "usuarios", usuario.uid);
-    const unsubDinero = onSnapshot(refUsuario, (snap) => {
-      if (snap.exists()) {
-        setDinero(snap.data().dinero);
-      }
-    });
-
-    // Añadimos el unsub para que no se quede colgado en memoria
-    return () => unsubDinero();
-
   }, [usuario]);
 
   return (
     <div style={{backgroundColor: 'black'}}>
-      <header className="Cabecera">
-        <div className="container-profile">
-          <div className='img-profile-small' style={{ position: 'relative' }}>
-            <img
-              src={fotoURL}
-              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ImagenProfile }}
-              alt="Foto de perfil"
-              onClick={() => setMenuActivo(!menuActivo)}
-              onMouseEnter={() => setMenuActivo(true)}
-            />
-            {menuActivo && (
-              <div className="perfil-bocadillo" ref={refMenu} onMouseLeave={() => setMenuActivo(false)}>
-                <div className="triangulo" />
-                <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
-                <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
-                {usuario?.rol === 'admin' && <button className="btn-admin" onClick={() => { setOpenModalAdmin(true); setMenuActivo(false); }}>⚙️ Admin</button>}
-              </div>
-            )}
-          </div>
-
-          <div className="info-profile">
-            <h2 className="nombre-usuario">{(usuario?.nick || usuario?.displayName)}</h2>
-            {dinero !== null && (<p className="dinero-usuario">💰<strong>{formatearDinero(dinero)}</strong></p>)}
-          </div>
-        </div>
-
-        <nav className={`Cabecera-nav ${menu ? 'isActive' : ''}`}>
-          <ul className="Cabecera-ul">
-            <li className="Cabecera-li"><Link to="/home" className="Cabecera-a">EQUIPO</Link></li>
-            <li className="Cabecera-li"><Link to="/mercado" className="Cabecera-a">MERCADO</Link></li>
-            <li className="Cabecera-li"><Link to="/clasificacion" className="Cabecera-a">CLASIFICACIÓN</Link></li>
-            <li className="Cabecera-li"><Link to="/historial" className="Cabecera-a">HISTORIAL</Link></li>
-          </ul>
-        </nav>
-      </header>
+      <Cabecera usuario={usuario} />
 
       <div className="login-hero-Cabecera-mercado" style={{ backgroundImage: `url(${Fondo})` }}>
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }} />
-        {openModal && (<ModalPerfil usuario={usuario} openModal={openModal} setOpenModal={setOpenModal} />)}
-        {openModalAdmin && (<ModalAdmin usuario={usuario} openModal={openModalAdmin} setOpenModal={setOpenModalAdmin} />)}
         {openModalJugadorMercado && jugadorSeleccionado && (<ModalJugadorMercado jugador={jugadorSeleccionado} openModal={openModalJugadorMercado} setOpenModal={setOpenModalJugadorMercado}/>)}
         <div className="temporizador">
           <TemporizadorRefresco />

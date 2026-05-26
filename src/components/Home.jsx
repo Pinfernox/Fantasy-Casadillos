@@ -18,9 +18,8 @@ import { arrayUnion } from "firebase/firestore";
 import ImagenProfile from '/SinPerfil.jpg'
 import Fondo from '../assets/fondo.png'
 import "./Home.css";
-import ModalPerfil from "./ModalPerfil"
+import Cabecera from "./Cabecera";
 import ModalPerfilJugador from "./ModalJugador";
-import ModalAdmin from './ModalAdmin'
 import Swal from "sweetalert2";
 
 const db = getFirestore(appFirebase);
@@ -78,8 +77,6 @@ function getBordeEstilo(jugador, index, formacion) {
 
 export default function Home({ usuario }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [dinero, setDinero] = useState(null)
-  const [menu, setMenu] = useState(false)
   const fotoURL = usuario?.fotoPerfil || ImagenProfile
   const titulares = usuario?.equipo?.titulares || [];
   const banquillo = usuario?.equipo?.banquillo || [];
@@ -95,12 +92,7 @@ export default function Home({ usuario }) {
   const [guardando, setGuardando] = useState(false);
   const [cambiosPendientes, setCambiosPendientes] = useState(false);
   const [equipocreado, setEquipocreado] = useState(usuario?.equipocreado);
-  const [openModal, setOpenModal] = useState(false)
   const [openModalJugador, setOpenModalJugador] = useState(false)
-  const [openModalAdmin, setOpenModalAdmin] = useState(false)
-  const [menuActivo, setMenuActivo] = useState(false);
-  const refMenu = useRef(null);
-  const logout = () => signOut(auth);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [jugadorSeleccionadoEdicion, setJugadorSeleccionadoEdicion] = useState(null);
   const [edicionActiva, setEdicionActiva] = useState(false);
@@ -175,19 +167,6 @@ export default function Home({ usuario }) {
     }
   };
 
-  // Cerramos el menú si clicas fuera
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (refMenu.current && !refMenu.current.contains(event.target)) {
-        setMenuActivo(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
   const handleSelect = (e) => {
     setFormacionSeleccionada(e.target.value);
   };
@@ -211,37 +190,6 @@ export default function Home({ usuario }) {
       setGuardando(false);
       setModoEdicion(false);
     }
-  };
-
-  const toggleMenu = () => {
-    setMenu(!menu)
-  }
-
-  // Función para abreviar el dinero
-  const formatearDinero = (valor) => {
-    return valor.toLocaleString('es-ES') + '€';
-  };
-
-  const abreviarNick = (nick) => {
-    if (!nick) return "";
-
-    const maxLength = 10
-    const firstSpace = nick.indexOf(" ");
-
-    let corte;
-
-    if (firstSpace !== -1 && firstSpace <= maxLength) {
-      corte = firstSpace; // cortar en el espacio si está antes de 9
-      return nick.slice(0, corte) + "...";
-      
-    } else if (nick.length > maxLength) {
-      corte = maxLength-3; // cortar en 9 si es más largo
-
-      return nick.slice(0, corte) + "...";
-    } else {
-      return nick; // no hace falta cortar
-    }
-
   };
 
 // --- Función para crear equipo ---
@@ -385,15 +333,6 @@ export default function Home({ usuario }) {
         console.log('Particles.js config cargado')
       })
     }
-    // Leer dinero de Firestore
-    if (usuario) {
-      const ref = doc(db, 'usuarios', usuario.uid)
-      getDoc(ref).then((snap) => {
-        if (snap.exists()) {
-          setDinero(snap.data().dinero)
-        }
-      })
-    }
 
     const fetchJugadores = async () => {
       const allIds = [
@@ -426,78 +365,11 @@ export default function Home({ usuario }) {
   if (!equipocreado) {
     return (
     <div>
-      <header className="Cabecera">
-        <div className="container-profile">
-
-          <div className='img-profile-small' style={{ position: 'relative' }}>
-            <img
-              src={fotoURL}
-              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ImagenProfile }}
-              alt="Foto de perfil"
-              onClick={() => setMenuActivo(!menuActivo)} // toggle con clic
-              onMouseEnter={() => setMenuActivo(true)} // hover
-            />
-
-            {menuActivo && (
-              <div
-                className="perfil-bocadillo"
-                ref={refMenu}
-                onMouseLeave={() => setMenuActivo(false)} // solo se cierra al salir del menú
-              >
-              <div className="triangulo" />
-                  <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
-                  
-                  <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
-
-                  {usuario?.rol === 'admin' && <button className="btn-admin" onClick={() => { setOpenModalAdmin(true); setMenuActivo(false); }}>⚙️ Admin</button>}
-              </div>
-            )}
-          </div>
-
-          <div className="info-profile">
-            <h2 className="nombre-usuario">
-              {(usuario?.nick || usuario?.displayName)}
-            </h2>
-            {dinero !== null && (
-              <p className="dinero-usuario">
-                💰<strong>{formatearDinero(dinero)}</strong>
-              </p>
-            )}
-          </div>
-        </div>
-
-        <button onClick={toggleMenu} className="Cabecera-button">
-          <svg className='Cabecera-svg' xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5"/>
-          </svg>
-        </button>
-
-        <nav className={`Cabecera-nav ${menu ? 'isActive' : ''}`}>
-          <ul className="Cabecera-ul">
-            <li className="Cabecera-li">
-              <Link to="/home" className="Cabecera-a">EQUIPO</Link>
-            </li>
-            <li className="Cabecera-li">
-              <Link to="/mercado" className="Cabecera-a">MERCADO</Link>
-            </li>
-            <li className="Cabecera-li">
-              <Link to="/clasificacion" className="Cabecera-a">CLASIFICACIÓN</Link>
-            </li>
-            <li className="Cabecera-li">
-              <Link to="/historial" className="Cabecera-a">HISTORIAL</Link>
-            </li>
-          </ul>
-        </nav>
-      </header>
+      <Cabecera usuario={usuario} />
 
       <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
-        {openModal && 
-          (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
-        }
-        {openModalAdmin &&       
-          (<ModalAdmin usuario={usuario} openModal= {openModalAdmin} setOpenModal={setOpenModalAdmin}/>)
-        }
+
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <div className="campo">
             <button
@@ -522,78 +394,11 @@ export default function Home({ usuario }) {
 
   return (
     <div>
-      <header className="Cabecera">
-        <div className="container-profile">
-
-          <div className='img-profile-small' style={{ position: 'relative' }}>
-            <img
-              src={fotoURL}
-              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ImagenProfile }}
-              alt="Foto de perfil"
-              onClick={() => setMenuActivo(!menuActivo)} // toggle con clic
-              onMouseEnter={() => setMenuActivo(true)} // hover
-            />
-
-            {menuActivo && (
-              <div
-                className="perfil-bocadillo"
-                ref={refMenu}
-                onMouseLeave={() => setMenuActivo(false)} // solo se cierra al salir del menú
-              >
-              <div className="triangulo" />
-                  <button className="btn-perfil" onClick={() => { setOpenModal(true); setMenuActivo(false); }}>👤 Perfil</button>
-                  
-                  <button className="btn-logout" onClick={logout}>➜] Cerrar sesión</button>
-
-                  {usuario?.rol === 'admin' && <button className="btn-admin" onClick={() => { setOpenModalAdmin(true); setMenuActivo(false); }}>⚙️ Admin</button>}
-              </div>
-            )}
-          </div>
-
-          <div className="info-profile">
-            <h2 className="nombre-usuario">
-              {(usuario?.nick || usuario?.displayName)}
-            </h2>
-            {dinero !== null && (
-              <p className="dinero-usuario">
-                💰<strong>{formatearDinero(dinero)}</strong>
-              </p>
-            )}
-          </div>
-        </div>
-
-        <button onClick={toggleMenu} className="Cabecera-button">
-          <svg className='Cabecera-svg' xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5"/>
-          </svg>
-        </button>
-
-        <nav className={`Cabecera-nav ${menu ? 'isActive' : ''}`}>
-          <ul className="Cabecera-ul">
-            <li className="Cabecera-li">
-              <Link to="/home" className="Cabecera-a">EQUIPO</Link>
-            </li>
-            <li className="Cabecera-li">
-              <Link to="/mercado" className="Cabecera-a">MERCADO</Link>
-            </li>
-            <li className="Cabecera-li">
-              <Link to="/clasificacion" className="Cabecera-a">CLASIFICACIÓN</Link>
-            </li>
-            <li className="Cabecera-li">
-              <Link to="/historial" className="Cabecera-a">HISTORIAL</Link>
-            </li>
-          </ul>
-        </nav>
-      </header>
+      <Cabecera usuario={usuario} />
 
       <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
-        {openModal && 
-          (<ModalPerfil usuario={usuario} openModal= {openModal} setOpenModal={setOpenModal} />)
-        }
-        {openModalAdmin &&       
-          (<ModalAdmin usuario={usuario} openModal= {openModalAdmin} setOpenModal={setOpenModalAdmin}/>)
-        }
+
         {openModalJugador && jugadorSeleccionado &&           
         (<ModalPerfilJugador jugador={jugadorSeleccionado}     
           clausulaPersonal={
