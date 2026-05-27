@@ -3,7 +3,6 @@ import Swal from 'sweetalert2';
 import { getAuth } from 'firebase/auth'
 import { refrescarMercado, resetearMercado } from '../utils/mercadoUtils';
 import './ModalAdmin.css'
-// ⚠️ IMPORTANTE: Hemos añadido setDoc a las importaciones
 import { collection, getFirestore, doc, updateDoc, getDoc, getDocs, deleteDoc, writeBatch, setDoc } from 'firebase/firestore'
 
 // 🧠 DICCIONARIO DE FORMACIONES Y PENALIZACIONES
