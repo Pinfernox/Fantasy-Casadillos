@@ -78,6 +78,70 @@
   transform: translateY(0);
 }
 
+.input-fecha {
+  background: #1e1e1e;
+  color: white;
+  border: 1px solid #444;
+  padding: 8px;
+  border-radius: 6px;
+  font-family: inherit;
+}
+.input-fecha::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+.modal-admin-btn-small {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.modal-admin-btn-small:hover {
+  background: #218838;
+}
+
+.lista-fechas-admin {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto 1rem auto;
+  width: 90%;
+  max-width: 300px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.lista-fechas-admin::-webkit-scrollbar { width: 4px; }
+.lista-fechas-admin::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+
+.fila-fecha-admin {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255,255,255,0.1);
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.fila-fecha-admin button {
+  background: transparent;
+  border: none;
+  color: #ff6b6b;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+  transition: transform 0.2s;
+}
+
+.fila-fecha-admin button:hover {
+  transform: scale(1.2);
+}
+
 @media screen and (max-width: 350px) {
     .modal-admin-btn {
         padding: 4px 8px;

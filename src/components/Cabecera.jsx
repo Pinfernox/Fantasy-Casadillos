@@ -51,6 +51,60 @@ export default function Cabecera({ usuario }) {
     return () => unsubDinero();
   }, [usuario]);
 
+// Bloqueo automático 24h antes del próximo evento
+  useEffect(() => {
+    let intervalId;
+    const controlesRef = doc(db, "admin", "controles");
+    
+    const unsubControles = onSnapshot(controlesRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        
+        if (intervalId) clearInterval(intervalId);
+
+        const fechas = data.fechasPartidos || [];
+        
+        // Si hay fechas programadas y la edición sigue activa
+        if (fechas.length > 0 && data.edicionActiva) {
+          
+          const comprobarCierre = async () => {
+            const ahoraMs = new Date().getTime();
+            
+            // 1️⃣ Encontrar cuál es el PRÓXIMO partido en el futuro
+            const proximoPartido = fechas.find(f => new Date(f).getTime() > ahoraMs);
+
+            if (proximoPartido) {
+              const fechaPartidoMs = new Date(proximoPartido).getTime();
+              const UN_DIA_MS = 24 * 60 * 60 * 1000;
+
+              // 2️⃣ Si queda menos de 24 horas para ESE partido en concreto
+              if (fechaPartidoMs - ahoraMs <= UN_DIA_MS) {
+                try {
+                  await updateDoc(controlesRef, {
+                    edicionActiva: false,
+                    clausulaPermitida: false
+                  });
+                  console.log(`🔒 Sistema bloqueado automáticamente. Quedan menos de 24h para el partido: ${proximoPartido}`);
+                } catch (e) {
+                  console.error("Error en bloqueo automático:", e);
+                }
+              }
+            }
+          };
+
+          // Comprobamos al cargar y dejamos el temporizador
+          comprobarCierre();
+          intervalId = setInterval(comprobarCierre, 60000);
+        }
+      }
+    });
+
+    return () => {
+      unsubControles();
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
+
   return (
     <>
       <header className="Cabecera">

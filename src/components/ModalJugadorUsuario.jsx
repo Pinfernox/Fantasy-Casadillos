@@ -7,6 +7,7 @@ import {
 } from "firebase/firestore";
 import { getStorage} from 'firebase/storage'
 import ImagenProfile from '/SinPerfil.jpg'
+import { runTransaction } from "firebase/firestore"; // Asegúrate de importar runTransaction arriba
 
 export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, openModal, setOpenModal, idUsuario }) {
   const auth = getAuth()
@@ -18,241 +19,230 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
 
 
   const pagarClausula = async () => {
-    if (!jugador || !auth.currentUser) return;
+      if (!jugador || !auth.currentUser) return;
 
-    if (!clausulaPermitida || !edicionActiva) {
-      await Swal.fire({
-        icon: "error",
-        title: "Jornada Empezada",
-        text: "No se puede pagar clausulas un día antes de la jornada.",
-        confirmButtonText: "Ok",
-      });
-      return;
-    }
-
-    const user = auth.currentUser; // usuario comprador (quien ficha)
-    const userRef = doc(db, "usuarios", user.uid);
-    const vendedorRef = doc(db, "usuarios", idUsuario);
-    const jugadorRef = doc(db, "jugadores", jugador.id);
-
-    try {
-      // 1️⃣ Obtener datos del comprador y del vendedor
-      const [snapComprador, snapVendedor] = await Promise.all([
-        getDoc(userRef),
-        getDoc(vendedorRef)
-      ]);
-
-      if (!snapComprador.exists() || !snapVendedor.exists()) {
-        throw new Error("Usuario no encontrado en la base de datos");
-      }
-
-      const dataComprador = snapComprador.data();
-      const dataVendedor = snapVendedor.data();
-
-      // 2️⃣ Verificar hueco
-      const huecoTitulares = dataComprador.equipo.titulares.findIndex(j => j.jugadorId === null);
-      const huecoBanquillo = dataComprador.equipo.banquillo.findIndex(j => j.jugadorId === null);
-
-      if (huecoTitulares === -1 && huecoBanquillo === -1) {
-        await Swal.fire({
-          icon: "error",
-          title: "Equipo completo",
-          text: "No tienes hueco en tu plantilla para fichar a este jugador.",
-          confirmButtonText: "Ok"
-        });
-        return;
-      }
-
-      // 3️⃣ Verificar fondos
-      if (dataComprador.dinero < clausulaPersonal) {
-        await Swal.fire({
-          icon: "error",
-          title: "Fondos insuficientes",
-          text: "No tienes suficiente dinero para pagar esta cláusula.",
-          confirmButtonText: "Ok"
-        });
-        return;
-      }
-
-      // 4️⃣ Transferencia de dinero
-      await updateDoc(userRef, {
-        dinero: dataComprador.dinero - clausulaPersonal,
-      });
-      await updateDoc(vendedorRef, {
-        dinero: dataVendedor.dinero + clausulaPersonal,
-      });
-
-      // 5️⃣ Actualizar equipo comprador
-      let nuevosTitulares = [...dataComprador.equipo.titulares];
-      let nuevoBanquillo = [...dataComprador.equipo.banquillo];
-
-      if (huecoTitulares !== -1) {
-        nuevosTitulares[huecoTitulares] = {
-          jugadorId: jugador.id,
-          clausulaPersonal: Math.round(clausulaPersonal * 1.5),
-        };
-      } else {
-        nuevoBanquillo[huecoBanquillo] = {
-          jugadorId: jugador.id,
-          clausulaPersonal: Math.round(clausulaPersonal * 1.5),
-        };
-      }
-
-      await updateDoc(userRef, {
-        "equipo.titulares": nuevosTitulares,
-        "equipo.banquillo": nuevoBanquillo,
-      });
-
-      // 6️⃣ Actualizar equipo vendedor
-      let titularesVend = [...dataVendedor.equipo.titulares];
-      let banquilloVend = [...dataVendedor.equipo.banquillo];
-
-      titularesVend = titularesVend.map(j =>
-        j.jugadorId === jugador.id ? { jugadorId: null, clausulaPersonal: null } : j
-      );
-      banquilloVend = banquilloVend.map(j =>
-        j.jugadorId === jugador.id ? { jugadorId: null, clausulaPersonal: null } : j
-      );
-
-      await updateDoc(vendedorRef, {
-        "equipo.titulares": titularesVend,
-        "equipo.banquillo": banquilloVend,
-      });
-
-      // 7️⃣ Actualizar dueños
-      await updateDoc(jugadorRef, {
-        dueños: arrayRemove(idUsuario),
-      });
-      await updateDoc(jugadorRef, {
-        dueños: arrayUnion(user.uid),
-      });
-
-      // 8️⃣ Registrar en historial
-      await addDoc(collection(db, "historial"), {
-        tipo: "clausulazo",
-        compradorUid: user.uid,
-        compradorNombre: dataComprador.nick,
-        vendedorUid: idUsuario,
-        vendedorNombre: dataVendedor.nick,
-        jugadorId: jugador.id,
-        jugadorNombre: jugador.nombre,
-        precio: clausulaPersonal,
-        fecha: new Date(),
-      });
-
-      // 9️⃣ Feedback al usuario
-      await Swal.fire({
-        icon: "success",
-        title: "¡Cláusula pagada!",
-        html: `Has fichado a <strong>${jugador.nombre}</strong> por <strong>${clausulaPersonal.toLocaleString("es-ES")}€</strong><br/>Nueva cláusula: <strong>${Math.round(clausulaPersonal * 1.5).toLocaleString("es-ES")}€</strong>`,
-        confirmButtonText: "Aceptar",
-        background: "#1e1e1e",
-        color: "#fff",
-      });
-
-      // 🔟 Eliminar si estaba en el mercado de usuarios
-      const mercadoRef = collection(db, "mercado/usuarios");
-      const q = query(mercadoRef, where("jugadorId", "==", jugador.id));
-      const snapMercado = await getDocs(q);
-
-      for (const docSnap of snapMercado.docs) {
-        await deleteDoc(doc(db, "mercado/usuarios", docSnap.id));
-      }
-
-      // 🔄 Refrescar vista
-      window.location.reload();
-
-    } catch (error) {
-      console.error("Error al pagar cláusula:", error);
-      await Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No se pudo completar el pago de la cláusula.",
-        confirmButtonText: "Ok",
-      });
-    }
-  };
-
-  const hacerOferta = async () => {
-      if (!jugador || !user) return;
-  
-      if (!edicionActiva) {
+      if (!clausulaPermitida || !edicionActiva) {
         await Swal.fire({
           icon: "error",
           title: "Jornada Empezada",
-          text: "No se puede vender con la jornada empezada.",
+          text: "No se pueden pagar cláusulas con la jornada empezada o bloqueada.",
           confirmButtonText: "Ok",
         });
         return;
       }
-  
-      const ventaInmediata = Math.round(jugador.precio * 0.6);
-  
+
+      const user = auth.currentUser; 
       const userRef = doc(db, "usuarios", user.uid);
+      const vendedorRef = doc(db, "usuarios", idUsuario);
       const jugadorRef = doc(db, "jugadores", jugador.id);
-  
+      const mercadoUsuariosRef = doc(db, "mercadoUsuarios", "actual");
+
       try {
-        // 1️⃣ Actualizar dinero del usuario
-        await updateDoc(userRef, {
-          dinero: increment(ventaInmediata),
-        });
-  
-        // 2️⃣ Actualizar stock del jugador y dueños
-        await updateDoc(jugadorRef, {
-          stockLibre: increment(1),
-          dueños: arrayRemove(user.uid),
-        });
-  
-        // 3️⃣ Poner a null el jugador en titulares o banquillo
-        const snapUser = await getDoc(userRef);
-        if (snapUser.exists()) {
-          const data = snapUser.data();
-          const titulares = data.equipo.titulares.map(j =>
-            j.jugadorId === jugador.id ? { jugadorId: null, clausulaPersonal: null } : j
+        await runTransaction(db, async (tx) => {
+          // 1️⃣ LECTURAS (Siempre primero en una transacción)
+          const snapComprador = await tx.get(userRef);
+          const snapVendedor = await tx.get(vendedorRef);
+          const snapMercado = await tx.get(mercadoUsuariosRef);
+
+          if (!snapComprador.exists() || !snapVendedor.exists()) {
+            throw new Error("Usuario no encontrado en la base de datos");
+          }
+
+          const dataComprador = snapComprador.data();
+          const dataVendedor = snapVendedor.data();
+
+          // 2️⃣ VERIFICACIONES
+          const huecoTitulares = dataComprador.equipo.titulares.findIndex(j => !j || j.jugadorId === null);
+          const huecoBanquillo = dataComprador.equipo.banquillo.findIndex(j => !j || j.jugadorId === null);
+
+          if (huecoTitulares === -1 && huecoBanquillo === -1) {
+            throw new Error("EQUIPO_LLENO");
+          }
+
+          if ((dataComprador.dinero || 0) < clausulaPersonal) {
+            throw new Error("SIN_DINERO");
+          }
+
+          // 3️⃣ ESCRITURAS - ECONOMÍA
+          tx.update(userRef, { dinero: (dataComprador.dinero || 0) - clausulaPersonal });
+          tx.update(vendedorRef, { dinero: (dataVendedor.dinero || 0) + clausulaPersonal });
+
+          // 4️⃣ MOVER JUGADOR AL COMPRADOR
+          let nuevosTitulares = [...dataComprador.equipo.titulares];
+          let nuevoBanquillo = [...dataComprador.equipo.banquillo];
+          const nuevaClausula = Math.round(clausulaPersonal * 1.5);
+
+          if (huecoTitulares !== -1) {
+            nuevosTitulares[huecoTitulares] = { jugadorId: jugador.id, clausulaPersonal: nuevaClausula };
+          } else {
+            nuevoBanquillo[huecoBanquillo] = { jugadorId: jugador.id, clausulaPersonal: nuevaClausula };
+          }
+          tx.update(userRef, { "equipo.titulares": nuevosTitulares, "equipo.banquillo": nuevoBanquillo });
+
+          // 5️⃣ QUITAR JUGADOR AL VENDEDOR
+          let titularesVend = [...dataVendedor.equipo.titulares].map(j =>
+            j?.jugadorId === jugador.id ? { jugadorId: null, clausulaPersonal: null } : j
           );
-          const banquillo = data.equipo.banquillo.map(j =>
-            j.jugadorId === jugador.id ? { jugadorId: null, clausulaPersonal: null } : j
+          let banquilloVend = [...dataVendedor.equipo.banquillo].map(j =>
+            j?.jugadorId === jugador.id ? { jugadorId: null, clausulaPersonal: null } : j
           );
-  
-          await updateDoc(userRef, {
-            "equipo.titulares": titulares,
-            "equipo.banquillo": banquillo,
+          tx.update(vendedorRef, { "equipo.titulares": titularesVend, "equipo.banquillo": banquilloVend });
+
+          // 6️⃣ ACTUALIZAR DUEÑOS DEL JUGADOR
+          tx.update(jugadorRef, {
+            dueños: arrayRemove(idUsuario)
           });
-        }
-  
-        // 4️⃣ Guardar historial de venta
-        await addDoc(collection(db, "historial"), {
-          tipo: 'venta directa', 
-          vendedorNombre: user.nick,
-          compradorNombre: '',
-          jugadorNombre: jugador.nombre,
-          fotoJugador: jugador?.foto,
-          precio: ventaInmediata,
-          fecha: new Date(),
+          tx.update(jugadorRef, {
+            dueños: arrayUnion(user.uid)
+          });
+
+          // 7️⃣ HISTORIAL
+          const historialRef = doc(collection(db, "historial"));
+          tx.set(historialRef, {
+            tipo: "clausulazo",
+            compradorUid: user.uid,
+            compradorNombre: dataComprador.nick || "Usuario",
+            vendedorUid: idUsuario,
+            vendedorNombre: dataVendedor.nick || "Usuario",
+            jugadorId: jugador.id,
+            jugadorNombre: jugador.nombre,
+            precio: clausulaPersonal,
+            fecha: new Date(),
+          });
+
+          // 8️⃣ SACAR DEL MERCADO DE USUARIOS (Corrección de la ruta)
+          if (snapMercado.exists()) {
+            const ventasActivas = snapMercado.data().jugadores || [];
+            const ventasLimpias = ventasActivas.filter(v => v.jugadorId !== jugador.id);
+            tx.update(mercadoUsuariosRef, { jugadores: ventasLimpias });
+          }
+          
+          // BORRAR OFERTAS PENDIENTES SI LAS HABÍA
+          // (Nota: No se pueden hacer queries complejas dentro de tx, pero como es secundario, 
+          // lo ideal sería limpiarlas después, o dejar que tu sistema las ignore al no tener ya el vendedor el jugador).
         });
-  
-        // 5️⃣ Feedback al usuario
+
+        // 9️⃣ Feedback al usuario post-transacción
         await Swal.fire({
           icon: "success",
-          title: "¡Jugador vendido!",
-          html: `Has recibido <strong>${ventaInmediata.toLocaleString("es-ES")}€</strong>`,
+          title: "¡Cláusula pagada!",
+          html: `Has fichado a <strong>${jugador.nombre}</strong> por <strong>${clausulaPersonal.toLocaleString("es-ES")}€</strong><br/>Nueva cláusula: <strong>${Math.round(clausulaPersonal * 1.5).toLocaleString("es-ES")}€</strong>`,
           confirmButtonText: "Aceptar",
           background: "#1e1e1e",
           color: "#fff",
         });
-  
+
         window.location.reload();
-  
+
       } catch (error) {
-        console.error("Error en la venta:", error);
+        console.error("Error al pagar cláusula:", error);
+        
+        let mensajeError = "No se pudo completar el pago de la cláusula.";
+        if (error.message === "EQUIPO_LLENO") mensajeError = "No tienes hueco en tu plantilla para fichar a este jugador.";
+        if (error.message === "SIN_DINERO") mensajeError = "No tienes suficiente dinero para pagar esta cláusula.";
+
         await Swal.fire({
           icon: "error",
           title: "Error",
-          text: "No se pudo completar la venta.",
+          text: mensajeError,
           confirmButtonText: "Ok",
         });
       }
-  };
+    };
+
+  const hacerOferta = async () => {
+        if (!jugador || !user) return;
+    
+        if (!edicionActiva) {
+          await Swal.fire({
+            icon: "error",
+            title: "Jornada Empezada",
+            text: "No se puede vender con la jornada empezada.",
+            confirmButtonText: "Ok",
+          });
+          return;
+        }
+    
+        const ventaInmediata = Math.round(jugador.precio * 0.6);
+    
+        const userRef = doc(db, "usuarios", user.uid);
+        const jugadorRef = doc(db, "jugadores", jugador.id);
+        const mercadoUsuariosRef = doc(db, "mercadoUsuarios", "actual");
+    
+        try {
+          await runTransaction(db, async (tx) => {
+            // 1️⃣ LECTURAS (Siempre primero)
+            const snapUser = await tx.get(userRef);
+            const snapMercado = await tx.get(mercadoUsuariosRef);
+
+            if (!snapUser.exists()) {
+              throw new Error("Usuario no encontrado.");
+            }
+
+            const dataUser = snapUser.data();
+
+            // 2️⃣ ACTUALIZAR DINERO Y PLANTILLA
+            const titulares = (dataUser.equipo?.titulares || []).map(j =>
+              j?.jugadorId === jugador.id ? { jugadorId: null, clausulaPersonal: null } : j
+            );
+            const banquillo = (dataUser.equipo?.banquillo || []).map(j =>
+              j?.jugadorId === jugador.id ? { jugadorId: null, clausulaPersonal: null } : j
+            );
+
+            tx.update(userRef, {
+              dinero: (dataUser.dinero || 0) + ventaInmediata,
+              "equipo.titulares": titulares,
+              "equipo.banquillo": banquillo,
+            });
+
+            // 3️⃣ ACTUALIZAR STOCK Y DUEÑOS DEL JUGADOR
+            tx.update(jugadorRef, {
+              stockLibre: increment(1),
+              dueños: arrayRemove(user.uid),
+            });
+
+            // 4️⃣ SACAR DEL MERCADO DE USUARIOS (Por si el usuario lo tenía en venta)
+            if (snapMercado.exists()) {
+              const ventasActivas = snapMercado.data().jugadores || [];
+              const ventasLimpias = ventasActivas.filter(v => v.jugadorId !== jugador.id);
+              tx.update(mercadoUsuariosRef, { jugadores: ventasLimpias });
+            }
+
+            // 5️⃣ GUARDAR HISTORIAL DE VENTA
+            const historialRef = doc(collection(db, "historial"));
+            tx.set(historialRef, {
+              tipo: 'venta directa', 
+              vendedorNombre: dataUser.nick || "Usuario",
+              compradorNombre: 'Fantasy Casadillos', // Para que quede claro a quién se lo vendió
+              jugadorNombre: jugador.nombre,
+              fotoJugador: jugador?.foto || "",
+              precio: ventaInmediata,
+              fecha: new Date(),
+            });
+          });
+    
+          // 6️⃣ Feedback al usuario
+          await Swal.fire({
+            icon: "success",
+            title: "¡Jugador vendido!",
+            html: `Has recibido <strong>${ventaInmediata.toLocaleString("es-ES")}€</strong>`,
+            confirmButtonText: "Aceptar",
+            background: "#1e1e1e",
+            color: "#fff",
+          });
+    
+          window.location.reload();
+    
+        } catch (error) {
+          console.error("Error en la venta directa:", error);
+          await Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "No se pudo completar la venta.",
+            confirmButtonText: "Ok",
+          });
+        }
+    };
 
   useEffect(() => {
     const cargarEstadoEdicionClausula = async () => {
