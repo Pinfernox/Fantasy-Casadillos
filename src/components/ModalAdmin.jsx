@@ -244,10 +244,14 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
                 for (const userId in snapshot) {
                   const userFoto = snapshot[userId];
                   const userData = datosUsuariosActivos[userId];
-                  if (!userData) continue;
+                  if (!userFoto || !userFoto.titulares) {
+                    console.warn(`El usuario ${userId} no tenía equipo en la foto.`);
+                    continue;
+                  }
 
                   const formacion = userFoto.formacion;
                   const posicionesEsperadas = MAPA_FORMACIONES[formacion] || MAPA_FORMACIONES["2-1-1"];
+                  const capitanId = userData.equipo?.capitan; // 👈 Recuperamos el capitán del usuario
                   let puntosJornada = 0;
 
                   // Evaluar solo a los 4 titulares
@@ -261,9 +265,16 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
                           const posReal = jugador.posicion;
                           const posEsperada = posicionesEsperadas[index];
                           
-                          // Aplicamos el multiplicador por mal colocado
-                          const multiplicador = calcularMultiplicador(posReal, posEsperada);
-                          puntosJornada += (ultimosPuntos * multiplicador);
+                          // 1. Calculamos puntos base con penalización por posición
+                          const multiplicadorPos = calcularMultiplicador(posReal, posEsperada);
+                          let puntosJugador = ultimosPuntos * multiplicadorPos;
+
+                          // 2. Aplicamos multiplicador de CAPITÁN (x2) si coincide el ID
+                          if (slot.jugadorId === capitanId) {
+                            puntosJugador *= 2;
+                          }
+
+                          puntosJornada += puntosJugador;
                         }
                       }
                     }
