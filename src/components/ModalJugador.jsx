@@ -1,22 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Swal from 'sweetalert2';
 import './ModalJugador.css'
-import { getAuth, updateProfile, updateEmail, updatePassword, deleteUser, EmailAuthProvider, 
-  GoogleAuthProvider, 
-  reauthenticateWithCredential, 
-  reauthenticateWithPopup, sendPasswordResetEmail} from 'firebase/auth'
-import { collection, query, where, deleteDoc, getFirestore, doc, updateDoc, setDoc ,getDoc, getDocs, arrayRemove, arrayUnion, increment, addDoc,serverTimestamp  } from 'firebase/firestore'
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { getAuth } from 'firebase/auth'
+import { 
+  collection, getFirestore, doc, updateDoc, setDoc, getDoc, arrayRemove, arrayUnion, increment, addDoc, serverTimestamp, runTransaction 
+} from 'firebase/firestore'
 import ImagenProfile from '/SinPerfil.jpg'
 import appFirebase from "../credenciales";
 
 export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModal, setOpenModal, user, edicionActiva }) {
   const auth = getAuth()
   const db = getFirestore(appFirebase)
-  const storage = getStorage()
   const fotoURL = jugador?.foto || ImagenProfile
   const [capitanId, setCapitanId] = useState(null)
-  const usuario = auth.currentUser; // usuario comprador (quien ficha)
+  const usuario = auth.currentUser; 
 
   const [yaEnVenta, setYaEnVenta] = useState(false);
 
@@ -33,7 +30,6 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
 
         const datos = snap.data();
         const jugadores = datos.jugadores || [];
-
         const encontrado = jugadores.some(j => j.jugadorId === jugador.id);
         setYaEnVenta(encontrado);
       } catch (error) {
@@ -45,93 +41,83 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
     if (jugador?.id) comprobarVenta();
   }, [jugador]);
 
-
+  // 🛡️ VENTA SEGURA CON TRANSACCIÓN (Evita el bug de dinero infinito)
   const venta = async () => {
     if (!jugador || !user) return;
 
     if (!edicionActiva) {
-      await Swal.fire({
-        icon: "error",
-        title: "Jornada Empezada",
-        text: "No se puede vender con la jornada empezada.",
-        confirmButtonText: "Ok",
-      });
+      await Swal.fire("Error", "No se puede vender con la jornada empezada.", "error");
       return;
     }
 
     const ventaInmediata = Math.round(jugador.precio * 0.6);
-
     const userRef = doc(db, "usuarios", user.uid);
     const jugadorRef = doc(db, "jugadores", jugador.id);
+    const mercadoUsuariosRef = doc(db, "mercadoUsuarios", "actual");
 
     try {
-      // 1️⃣ Actualizar dinero del usuario
-      await updateDoc(userRef, {
-        dinero: increment(ventaInmediata),
-      });
+      await runTransaction(db, async (tx) => {
+        const snapUser = await tx.get(userRef);
+        const snapMercado = await tx.get(mercadoUsuariosRef);
 
-      // 2️⃣ Actualizar stock del jugador y dueños
-      await updateDoc(jugadorRef, {
-        stockLibre: increment(1),
-        dueños: arrayRemove(user.uid),
-      });
+        if (!snapUser.exists()) throw new Error("Usuario no encontrado.");
+        const dataUser = snapUser.data();
 
-      // 3️⃣ Poner a null el jugador en titulares o banquillo
-      const snapUser = await getDoc(userRef);
-      if (snapUser.exists()) {
-        const data = snapUser.data();
-        const titulares = data.equipo.titulares.map(j =>
-          j.jugadorId === jugador.id ? { jugadorId: null, clausulaPersonal: null } : j
+        const titulares = (dataUser.equipo?.titulares || []).map(j =>
+          j?.jugadorId === jugador.id ? { jugadorId: null, clausulaPersonal: null } : j
         );
-        const banquillo = data.equipo.banquillo.map(j =>
-          j.jugadorId === jugador.id ? { jugadorId: null, clausulaPersonal: null } : j
+        const banquillo = (dataUser.equipo?.banquillo || []).map(j =>
+          j?.jugadorId === jugador.id ? { jugadorId: null, clausulaPersonal: null } : j
         );
 
-        await updateDoc(userRef, {
+        tx.update(userRef, {
+          dinero: (dataUser.dinero || 0) + ventaInmediata,
           "equipo.titulares": titulares,
           "equipo.banquillo": banquillo,
         });
-      }
 
-      // 4️⃣ Guardar historial de venta
-      await addDoc(collection(db, "historial"), {
-        tipo: 'venta directa', 
-        vendedorUid: usuario.uid,
-        vendedorNick: user.nick,
-        jugadorId: jugador.id,
-        jugadorNombre: jugador.nombre,
-        precio: ventaInmediata,
-        fecha: new Date(),
+        tx.update(jugadorRef, {
+          stockLibre: increment(1),
+          dueños: arrayRemove(user.uid),
+        });
+
+        // Limpiar del mercado si estaba en venta
+        if (snapMercado.exists()) {
+          const ventasActivas = snapMercado.data().jugadores || [];
+          const ventasLimpias = ventasActivas.filter(v => v.jugadorId !== jugador.id);
+          tx.update(mercadoUsuariosRef, { jugadores: ventasLimpias });
+        }
+
+        const historialRef = doc(collection(db, "historial"));
+        tx.set(historialRef, {
+          tipo: 'venta directa', 
+          vendedorUid: usuario.uid,
+          vendedorNick: user.nick || "Usuario",
+          jugadorId: jugador.id,
+          jugadorNombre: jugador.nombre,
+          precio: ventaInmediata,
+          fecha: new Date(),
+        });
       });
 
-      // 5️⃣ Feedback al usuario
       await Swal.fire({
         icon: "success",
         title: "¡Jugador vendido!",
         html: `Has recibido <strong>${ventaInmediata.toLocaleString("es-ES")}€</strong>`,
         confirmButtonText: "Aceptar",
-        background: "#1e1e1e",
-        color: "#fff",
+        background: "#1e1e1e", color: "#fff",
       });
 
-      window.location.reload();
+      setOpenModal(false);
 
     } catch (error) {
       console.error("Error en la venta:", error);
-      await Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No se pudo completar la venta.",
-        confirmButtonText: "Ok",
-      });
+      await Swal.fire("Error", "No se pudo completar la venta.", "error");
     }
   };
 
-
-// función que añade el jugador al mercado de usuarios
   const ponerEnMercado = async (jugador, precioVenta) => {
     try {
-      const user = auth.currentUser;
       if (!user) throw new Error("Usuario no autenticado");
 
       const usuarioRef = doc(db, "usuarios", user.uid);
@@ -156,23 +142,23 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
           jugadores: arrayUnion(jugadorEnVenta),
           ultimaActualizacion: serverTimestamp(),
         },
-        { merge: true } // 🔥 crea el documento si no existe
+        { merge: true } 
       );
 
       await Swal.fire({
-        icon: "success",
-        title: "¡Jugador puesto en venta!",
-        confirmButtonText: "Aceptar",
-        background: "#1e1e1e",
-        color: "#fff",
+        icon: "success", title: "¡Jugador puesto en venta!",
+        confirmButtonText: "Aceptar", background: "#1e1e1e", color: "#fff",
       });
+      
+      setYaEnVenta(true);
+      
     } catch (error) {
       console.error("Error al poner en mercado:", error);
     }
   };
 
   const handleVenta = () => {
-    const ventaInmediata = Math.round(jugador.precio * 0.6); // redondea al entero más cercano
+    const ventaInmediata = Math.round(jugador.precio * 0.6); 
 
     Swal.fire({
       title: "¿Cómo quieres vender?",
@@ -182,21 +168,20 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
       confirmButtonColor: "#28a745",
       denyButtonColor: "#4878a4ff",
       background: "#1e1e1e",
-      scrollbarPadding: false, // <--- evita la franja blanca por scrollbar
+      scrollbarPadding: false, 
       color: "#fff",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        // segundo alerta para pedir precio
         const { value: precio } = await Swal.fire({
           title: "Introduce el precio de venta",
           input: "number",
           inputLabel: "Precio en €",
-          inputPlaceholder: "Ej: 5.000.000",
+          inputPlaceholder: "Ej: 5000000",
           confirmButtonText: "Poner en venta",
           cancelButtonText: "Cancelar",
           showCancelButton: true,
           background: "#1e1e1e",
-          scrollbarPadding: false, // <--- evita la franja blanca por scrollbar
+          scrollbarPadding: false, 
           color: "#fff",
           inputValidator: (value) => {
             if (!value || value <= 0) {
@@ -209,12 +194,10 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
         });
 
         if (precio) {
-          console.log("Venta en mercado por", precio);
           ponerEnMercado(jugador, parseInt(precio, 10));
         }
 
       } else if (result.isDenied) {
-        console.log("Venta directa por", ventaInmediata);
         venta();
       }
     });
@@ -222,20 +205,14 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
 
   const traducirPosicion = (pos) => {
     switch (pos) {
-      case "DEF":
-        return "Defensa";
-      case "MED":
-        return "Mediocentro";
-      case "DEL":
-        return "Delantero";
-      case "POR":
-        return "Portero";
-      default:
-        return pos || "Sin posición";
+      case "DEF": return "Defensa";
+      case "MED": return "Mediocentro";
+      case "DEL": return "Delantero";
+      case "POR": return "Portero";
+      default: return pos || "Sin posición";
     }
   };
 
-  // para cerrar al pulsar fuera
   const overlayRef = useRef()
 
   useEffect(() => {
@@ -257,70 +234,28 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
       await updateDoc(userRef, { "equipo.capitan": jugadorId })
       setCapitanId(jugadorId)
       await Swal.fire({
-        icon: "success",
-        title: "¡Capitán asignado!",
-        text: `${jugador.nombre} ahora es tu capitán.`,
-        confirmButtonColor: "#28a745"
+        icon: "success", title: "¡Capitán asignado!", text: `${jugador.nombre} ahora es tu capitán.`, confirmButtonColor: "#28a745"
       })
     } catch (err) {
       console.error("Error al asignar capitán:", err)
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No se pudo asignar el capitán, inténtalo de nuevo."
-      })
-    }finally{
-      window.location.reload();
+      Swal.fire("Error", "No se pudo asignar el capitán, inténtalo de nuevo.", "error")
+    } finally {
+      setOpenModal(false);
     }
   }
 
   const handleOverlayClick = e => {
-    if (e.target === overlayRef.current) {
-      setOpenModal(false)
-    }
+    if (e.target === overlayRef.current) setOpenModal(false)
   }
-  const formatearDinero = (valor) => {
-    return valor.toLocaleString('es-ES') + '€';
-  };
 
-  const abreviarnombre = (nombre) => {
-    if (!nombre) return "";
-
-    const maxLength = 15
-    const firstSpace = nombre.indexOf(" ");
-
-    let corte;
-
-    if (firstSpace !== -1 && firstSpace <= maxLength) {
-      corte = firstSpace; // cortar en el espacio si está antes de 9
-      return nombre.slice(0, corte) + "...";
-      
-    } else if (nombre.length > maxLength) {
-      corte = maxLength-3; // cortar en 9 si es más largo
-
-      return nombre.slice(0, corte) + "...";
-    } else {
-      return nombre; // no hace falta cortar
-    }
-
-  };
+  const formatearDinero = (valor) => valor.toLocaleString('es-ES') + '€';
 
   if (!openModal) return null
 
   return (
-    <div
-      className="modal-overlay"
-      ref={overlayRef}
-      onClick={handleOverlayClick}
-    >
+    <div className="modal-overlay" ref={overlayRef} onClick={handleOverlayClick}>
       <div className="modal-perfil">
-        {/* botón cerrar */}
-        <button
-          className="modal-close-btn"
-          onClick={() => setOpenModal(false)}
-        >
-          ×
-        </button>
+        <button className="modal-close-btn" onClick={() => setOpenModal(false)}>×</button>
 
         <div className="modal-header">
           <label className="modal-avatar">
@@ -333,7 +268,6 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
                 <small>{traducirPosicion(jugador.posicion)}</small>
               </div>
 
-              {/* Contenedor de precio + diferencia */}
               <div className='precio-container'>
                 <div className='precio'>
                   <small><span className='texto-blanco'>Valor:</span> {formatearDinero(jugador.precio)}</small>
@@ -353,7 +287,6 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
                     );
                   })()}
                 </div>
-
               </div>      
               <div className='precio-clausula'>
                 <small><span className='texto-blanco'>Claúsula:</span> {formatearDinero(clausulaPersonal)}</small>
@@ -361,41 +294,28 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
               <div className='precio-clausula'>
                 <small><span className='texto-blanco'>Media de puntos:</span> {
                   jugador.puntosPorJornada && jugador.puntosPorJornada.length > 0
-                    ? (
-                        jugador.puntosPorJornada
-                          .filter(p => typeof p === "number")
-                          .reduce((acc, val, _, arr) => acc + val / arr.length, 0)
-                          .toFixed(2)
-                      )
+                    ? (jugador.puntosPorJornada.filter(p => typeof p === "number").reduce((acc, val, _, arr) => acc + val / arr.length, 0).toFixed(2))
                     : "-"
                 }</small>
               </div>
             </div>
 
-            {/* Nuevo bloque debajo */}
             <div className="estadisticas-extra">
-              {/* Últimas 5 jornadas */}
               <div className="ultimas-jornadas">
                 {jugador.puntosPorJornada && jugador.puntosPorJornada.length > 0
                   ? jugador.puntosPorJornada.slice(-5).map((p, i, arr) => {
                       const puntos = p != null ? p : "-";
-                      // Índice de jornada: siempre empezamos desde 1
                       const jornadaIndex = arr.length < 5 ? i + 1 : jugador.puntosPorJornada.length - 5 + i + 1;
-
-                      // Determinar clase de color
                       let claseColor = "";
                       if (typeof p === "number") {
                         if (p >= 9) claseColor = "verde";
                         else if (p < 7) claseColor = "rojo";
                         else claseColor = "naranja";
                       }
-
                       return (
                         <div key={i} className="jornada-item">
                           <small className="jornada-nombre">J{jornadaIndex}</small>
-                          <div className={`jornada-cuadro ${claseColor}`}>
-                            {puntos}
-                          </div>
+                          <div className={`jornada-cuadro ${claseColor}`}>{puntos}</div>
                         </div>
                       );
                     })
@@ -407,37 +327,18 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
                     ))
                 }
               </div>
-
             </div>
 
           </div>
         </div>
         <hr/>
         <div className="modal-jugadorbody">
-          <div className="stat-card">
-            <h4>{jugador.valoracion}</h4>
-            <small>Valoración</small>
-          </div>
-          <div className="stat-card">
-            <h4>{jugador.nota}</h4>
-            <small>Nota Media</small>
-          </div>
-          <div className="stat-card">
-            <h4>{jugador.puntosTotales}</h4>
-            <small>Puntos</small>
-          </div>
-          <div className="stat-card">
-            <h4>{jugador.partidos}</h4>
-            <small>Partidos</small>
-          </div>
-          <div className="stat-card">
-            <h4>{jugador.goles}</h4>
-            <small>Goles</small>
-          </div>
-          <div className="stat-card">
-            <h4>{jugador.asistencias}</h4>
-            <small>Asistencias</small>
-          </div>
+          <div className="stat-card"><h4>{jugador.valoracion}</h4><small>Valoración</small></div>
+          <div className="stat-card"><h4>{jugador.nota}</h4><small>Nota Media</small></div>
+          <div className="stat-card"><h4>{jugador.puntosTotales}</h4><small>Puntos</small></div>
+          <div className="stat-card"><h4>{jugador.partidos}</h4><small>Partidos</small></div>
+          <div className="stat-card"><h4>{jugador.goles}</h4><small>Goles</small></div>
+          <div className="stat-card"><h4>{jugador.asistencias}</h4><small>Asistencias</small></div>
         </div>
         <hr/>
         <div className="modal-footer">
@@ -470,7 +371,6 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
             </>
           )}
         </div>
-
 
       </div>
     </div>

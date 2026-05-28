@@ -12,7 +12,7 @@ async function resetearTodo() {
     // 1. Resetear puntos y dinero de todos los usuarios
     const users = await db.collection("usuarios").get();
     users.docs.forEach(doc => {
-      batch.update(doc.ref, { puntos: 0, dinero: 10000000 }); // Ajusta el dinero inicial si quieres
+      batch.update(doc.ref, { puntos: 0, dinero: 50000000 }); // Ajusta el dinero inicial si quieres
     });
 
     // 2. Resetear puntos de todos los jugadores

@@ -141,7 +141,7 @@ export default function Historial({ usuario }) {
                       <>
                         El usuario <strong style={{ color: "white" }}>{h.compradorNombre}</strong> ha pagado la cláusula de{" "}
                         <strong style={{ color: "#2ecc71" }}>{h.jugadorNombre}</strong> a{" "}
-                        <strong style={{ color: "#e74c3c" }}>{h.vendedorNombre}</strong> por{" "}
+                        <strong style={{ color: "white" }}>{h.vendedorNombre}</strong> por{" "}
                         <strong style={{ color: "#2ecc71" }}>{formatearDinero(h.precio)}</strong>
                       </>
                     );
@@ -152,7 +152,7 @@ export default function Historial({ usuario }) {
                         El usuario <strong style={{ color: "white" }}>{h.compradorNombre}</strong> ha pagado{" "}
                         <strong style={{ color: "#2ecc71" }}>{formatearDinero(h.precio)}</strong> por{" "}
                         <strong style={{ color: "#2ecc71" }}>{h.jugadorNombre}</strong> a{" "}
-                        <strong style={{ color: "#e74c3c" }}>{h.vendedorNombre}</strong>
+                        <strong style={{ color: "white" }}>{h.vendedorNombre}</strong>
                       </>
                     );
                   }

@@ -98,21 +98,34 @@ export default function Home({ usuario }) {
   const [edicionActiva, setEdicionActiva] = useState(false);
 
   useEffect(() => {
-    const cargarEstadoEdicion = async () => {
-      try {
-        const ref = doc(db, "admin", "controles");
-        const snap = await getDoc(ref);
+      // 🎙️ Escuchamos en tiempo real si el admin bloquea/desbloquea la jornada
+      const ref = doc(db, "admin", "controles");
+      const unsubscribe = onSnapshot(ref, (snap) => {
         if (snap.exists()) {
           const data = snap.data();
           setEdicionActiva(data.edicionActiva === true);
         }
-      } catch (error) {
-        console.error("Error al obtener estado de edición:", error);
-      }
-    };
+      }, (error) => {
+        console.error("Error escuchando estado de edición:", error);
+      });
 
-    cargarEstadoEdicion();
-  }, []);
+      return () => unsubscribe();
+    }, []);
+
+  useEffect(() => {
+        // 1. Sincronizamos los jugadores
+        setTitulares(usuario?.equipo?.titulares || []);
+        setBanquillo(usuario?.equipo?.banquillo || []);
+        
+        // 2. Sincronizamos la formación en tiempo real asumiendo la 2-1-1 por defecto
+        const formacionDB = usuario?.equipo?.formacion || "2-1-1";
+        setFormacionActual(formacionDB);
+        
+        // Actualizamos el selector visual solo si el usuario no tiene cambios sin guardar
+        if (!cambiosPendientes) {
+          setFormacionSeleccionada(formacionDB);
+        }
+      }, [usuario, cambiosPendientes]);
 
   const toggleModoEdicion = () => {
     setModoEdicion(!modoEdicion);
@@ -168,8 +181,9 @@ export default function Home({ usuario }) {
   };
 
   const handleSelect = (e) => {
-    setFormacionSeleccionada(e.target.value);
-  };
+      setFormacionSeleccionada(e.target.value);
+      setCambiosPendientes(true); // ✅ Añadido para que te deje guardar la formación
+    };
 
   const guardarFormacion = async () => {
     try {
@@ -305,7 +319,7 @@ export default function Home({ usuario }) {
       });
     } finally {
       setGuardando(false);
-      window.location.reload();
+      //window.location.reload();
     }
   };
 
@@ -317,7 +331,8 @@ export default function Home({ usuario }) {
         try {
           const userRef = doc(db, "usuarios", auth.currentUser.uid);
           await updateDoc(userRef, { onboarding: true });
-          window.location.reload(); // refresca la página
+          setShowOnboarding(false);
+          //window.location.reload(); // refresca la página
         } catch (error) {
           console.error("Error actualizando onboarding:", error);
         }
@@ -359,7 +374,7 @@ export default function Home({ usuario }) {
     };
 
     fetchJugadores();
-  }, [usuario], [titulares, banquillo], );
+  }, [usuario] );
 
 
   if (!equipocreado) {

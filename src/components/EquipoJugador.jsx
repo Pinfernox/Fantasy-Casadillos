@@ -84,16 +84,37 @@ export default function EquipoJugador({ usuario }) {
   const banquillo = jugadorData?.equipo?.banquillo || [];
   const [jugadores, setJugadores] = useState([]);
   const capitan = jugadorData?.equipo?.capitan || "";
-    // Estado inicial: la formación actual del usuario
-  const [formacionActual, setFormacionActual] = useState(jugadorData?.equipo?.formacion || "2-1-1");
-  const [formacionSeleccionada, setFormacionSeleccionada] = useState(formacionActual);
+  
+  // MAGIA: Leer la formación directamente en tiempo real (sin useState)
+  const formacionSeleccionada = jugadorData?.equipo?.formacion || "2-1-1";
 
+// 1. Cargar jugador clicado en la clasificación (AHORA EN TIEMPO REAL)
+
+// 1. Cargar jugador clicado en la clasificación (AHORA EN TIEMPO REAL)
   useEffect(() => {
-    if (jugadorData?.equipo?.formacion) {
-      setFormacionActual(jugadorData.equipo.formacion);
-      setFormacionSeleccionada(jugadorData.equipo.formacion);
-    }
-  }, [jugadorData]);
+    if (!jugadorId) return;
+    setLoadingJugador(true);
+
+    // 🎙️ Abrimos el "micrófono" para escuchar los cambios del rival en directo
+    const unsubscribe = onSnapshot(
+      doc(db, 'usuarios', jugadorId),
+      (snap) => {
+        if (snap.exists()) {
+          setJugadorData({ id: snap.id, ...snap.data() });
+        } else {
+          setJugadorData(null);
+        }
+        setLoadingJugador(false);
+      },
+      (err) => {
+        console.error("Error escuchando al usuario rival:", err);
+        setLoadingJugador(false);
+      }
+    );
+
+    // 🧹 Importante: Apagar el micrófono cuando salimos de esta pantalla
+    return () => unsubscribe();
+  }, [jugadorId]);
 
   const [openModalJugadorUsuario, setOpenModalJugadorUsuario] = useState(false)
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)

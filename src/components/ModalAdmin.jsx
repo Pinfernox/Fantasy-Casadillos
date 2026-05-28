@@ -158,7 +158,8 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
                 const ref = doc(db, "admin", "controles");
                 await updateDoc(ref, { edicionActiva: false, clausulaPermitida: false });
                 await Swal.fire({ title: "Jornada iniciada", text: "Se han bloqueado los cambios", icon: "success", confirmButtonText: "Aceptar" });
-                window.location.reload();
+                setOpenModal(false);
+                //window.location.reload();
               } catch (err) {
                 Swal.fire({ title: "Error", text: "No se pudo empezar la jornada", icon: "error" });
               }
@@ -203,7 +204,8 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
                 });
 
                 await Swal.fire({ title: "¡Foto tomada y mercado abierto!", text: "Ya puedes poner las notas tranquilamente y la familia ya puede fichar.", icon: "success" });
-                window.location.reload();
+                setOpenModal(false);
+                //window.location.reload();
               } catch (err) {
                 Swal.fire({ title: "Error", text: "No se pudo guardar la foto", icon: "error" });
               }
@@ -299,7 +301,8 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
                   icon: "success", 
                   background: "#1e1e1e", color: "#fff",
                 });
-                window.location.reload();
+                setOpenModal(false);
+                //window.location.reload();
               } catch (err) {
                 console.error(err);
                 Swal.fire({ title: "Error", text: "No se pudo repartir los puntos.", icon: "error" });

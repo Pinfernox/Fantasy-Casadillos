@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore, doc, onSnapshot } from "firebase/firestore";
 import appFirebase from "./credenciales";
 import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./components/Login";
@@ -22,28 +22,41 @@ function App() {
   const [cargandoUsuario, setCargandoUsuario] = useState(true); // ✅ Nuevo estado
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userDoc = await getDoc(doc(firestore, "usuarios", user.uid));
-          if (userDoc.exists()) {
-            setUsuario({ uid: user.uid, ...userDoc.data() });
-          } else {
-            setUsuario({ uid: user.uid, correo: user.email, onboarding: false });
-          }
-        } catch (err) {
-          console.error("Error obteniendo datos de usuario:", err);
+      let unsubscribeSnapshot = null; // Para guardar el "micrófono abierto"
+
+      const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          // 2️⃣ LA MAGIA DEL TIEMPO REAL
+          unsubscribeSnapshot = onSnapshot(
+            doc(firestore, "usuarios", user.uid),
+            (userDoc) => {
+              if (userDoc.exists()) {
+                setUsuario({ uid: user.uid, ...userDoc.data() });
+              } else {
+                setUsuario({ uid: user.uid, correo: user.email, onboarding: false });
+              }
+              setCargandoUsuario(false); // Ya tenemos los datos
+            },
+            (err) => {
+              console.error("Error obteniendo datos de usuario:", err);
+              setUsuario(null);
+              setCargandoUsuario(false);
+            }
+          );
+        } else {
+          // Si no hay usuario logueado
           setUsuario(null);
+          setCargandoUsuario(false);
+          if (unsubscribeSnapshot) unsubscribeSnapshot(); 
         }
-      } else {
-        setUsuario(null);
-      }
+      });
 
-      setCargandoUsuario(false); // ✅ solo cuando ya terminó de cargar Firestore
-    });
-
-    return () => unsubscribe();
-  }, []);
+      // Limpiamos todo si el componente se desmonta
+      return () => {
+        unsubscribeAuth();
+        if (unsubscribeSnapshot) unsubscribeSnapshot();
+      };
+    }, []);
 
   
   useEffect(() => {
