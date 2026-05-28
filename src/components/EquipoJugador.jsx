@@ -40,29 +40,29 @@ function getBordeEstilo(jugador, index, formacion) {
   if (!jugador) return { style: { borderColor: color }, status };
 
   const esperado = MAPA_FORMACIONES[formacion]?.[index];
-
   if (!esperado) return { style: { borderColor: color }, status };
 
-  const pos = jugador.posicion; // debe ser "POR", "DEF", "MED" o "DEL"
+  const posReal = jugador.posicion; 
 
-  // Reglas de colores
-  if (pos === "POR") {
-    color = esperado === "POR" ? "green" : "red";
-  } else if (pos === "DEF") {
-    if (esperado === "DEF") color = "green";
-    else if (esperado === "MED") color = "orange";
-    else color = "red"; // si está en DEL o POR
-  } else if (pos === "MED") {
-    if (esperado === "MED") color = "green";
-    else if (esperado === "DEF" || esperado === "DEL") color = "orange";
-    else color = "red"; // si está en POR
-  } else if (pos === "DEL") {
-    if (esperado === "DEL") color = "green";
-    else if (esperado === "MED") color = "orange";
-    else color = "red"; // si está en DEF o POR
+  // Asignamos el mismo valor numérico que usamos en la puntuación
+  const orden = { "POR": 0, "DEF": 1, "MED": 2, "DEL": 3 };
+
+  // Calculamos la distancia matemática en el campo
+  if (orden[posReal] !== undefined && orden[esperado] !== undefined) {
+    const distancia = Math.abs(orden[posReal] - orden[esperado]);
+    
+    if (distancia === 0) {
+      color = "green"; // Posición perfecta (100% pts)
+    } else if (distancia === 1) {
+      color = "orange"; // Un paso de diferencia: POR en DEF, o MED en DEL (75% pts)
+    } else {
+      color = "red"; // Dos o tres pasos de diferencia: POR en MED, DEF en DEL... (25% pts)
+    }
+  } else {
+    color = "red"; // Por si falla algo
   }
 
-  status = color; // guardamos el estado
+  status = color; // guardamos el estado para el badge (✓, !, ✕)
 
   return {
     style: {
