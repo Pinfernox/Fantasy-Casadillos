@@ -361,6 +361,228 @@ a {
   box-shadow: 0 0 15px rgba(40,167,69,1);
 }
 
+/* --- DASHBOARD SUPERIOR MINIMALISTA --- */
+.dashboard-superior {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.dashboard-stats {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.stat-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 43, 54, 0.7);
+  border: 1px solid rgba(42, 161, 152, 0.3);
+  padding: 6px 16px;
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(5px);
+}
+
+.stat-icon {
+  font-size: 1.1rem;
+}
+
+.stat-valor {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.jornadas-minimalistas {
+  display: flex;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.jornada-mini-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.jornada-mini-titulo {
+  font-size: 0.65rem;
+  color: #aaa;
+  font-weight: bold;
+}
+
+.jornada-mini-cuadro {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: #444;
+  font-size: 0.75rem;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.jornada-mini-cuadro.verde { background: #2aa198; border-color: #2aa198; }
+.jornada-mini-cuadro.rojo { background: #dc322f; border-color: #dc322f; }
+.jornada-mini-cuadro.naranja { background: #b58900; border-color: #b58900; }
+
+/* --- BARRA DE HERRAMIENTAS FLOTANTE --- */
+.toolbar-edicion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 6px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Selector Customizado */
+.custom-select-wrapper {
+  position: relative;
+  user-select: none;
+}
+
+.custom-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.custom-select-trigger:hover {
+  background: rgba(42, 161, 152, 0.2);
+}
+
+.formacion-texto {
+  font-size: 0.9rem;
+  color: #ccc;
+}
+.formacion-texto strong {
+  color: white;
+}
+
+.arrow {
+  font-size: 0.7rem;
+  color: #2aa198;
+}
+
+.custom-select-options {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  width: 100%;
+  background: rgba(0, 43, 54, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(42, 161, 152, 0.4);
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 100;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  animation: fadeInDown 0.2s ease forwards;
+}
+
+.custom-option {
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.2s;
+}
+.custom-option:last-child { border-bottom: none; }
+.custom-option:hover { background: rgba(42, 161, 152, 0.3); }
+.custom-option.selected {
+  background: #2aa198;
+  color: white;
+  font-weight: bold;
+}
+
+.custom-select-wrapper.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Botones Toolbar */
+.btn-toolbar {
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-toolbar:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-toolbar.activo {
+  background: rgba(42, 161, 152, 0.2);
+  color: #2aa198;
+  border: 1px solid #2aa198;
+}
+
+.btn-toolbar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-guardar-flotante {
+  background: linear-gradient(135deg, #2aa198, #268bd2);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 30px;
+  font-weight: bold;
+  font-size: 0.95rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(42, 161, 152, 0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+  animation: pulseGuardar 1.5s infinite;
+}
+
+.btn-guardar-flotante:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(42, 161, 152, 0.6);
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGuardar {
+  0% { box-shadow: 0 0 0 0 rgba(42, 161, 152, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(42, 161, 152, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(42, 161, 152, 0); }
+}
 
 @media screen and (max-width: 500px) {
   .jugador-img {

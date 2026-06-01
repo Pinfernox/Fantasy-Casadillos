@@ -286,30 +286,36 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
             </div>
             <div className="estadisticas-extra">
               <div className="ultimas-jornadas">
-                {jugador.puntosPorJornada && jugador.puntosPorJornada.length > 0
-                  ? jugador.puntosPorJornada.slice(-5).map((p, i, arr) => {
-                      const puntos = p != null ? p : "-";
-                      const jornadaIndex = arr.length < 5 ? i + 1 : jugador.puntosPorJornada.length - 5 + i + 1;
-                      let claseColor = "";
-                      if (typeof p === "number") {
-                        if (p >= 9) claseColor = "verde";
-                        else if (p < 7) claseColor = "rojo";
-                        else claseColor = "naranja";
-                      }
-                      return (
-                        <div key={i} className="jornada-item">
-                          <small className="jornada-nombre">J{jornadaIndex}</small>
-                          <div className={`jornada-cuadro ${claseColor}`}>{puntos}</div>
-                        </div>
-                      );
-                    })
-                  : [...Array(5)].map((_, i) => (
-                      <div key={i} className="jornada-item">
-                        <small className="jornada-nombre">J{i + 1}</small>
-                        <div className="jornada-cuadro">-</div>
+                {(() => {
+                  const historial = jugador.puntosPorJornada || [];
+                  const ultimas = historial.slice(-5);
+                  const emptyCount = 5 - ultimas.length;
+                  
+                  // Forzamos que siempre haya 5 cajas, rellenando con "null" las que falten
+                  const arrayToRender = [...ultimas, ...Array(emptyCount).fill(null)];
+                  
+                  // Calculamos el desfase (si hay 6 jornadas, empezamos a contar desde la 2)
+                  const offset = Math.max(0, historial.length - 5);
+
+                  return arrayToRender.map((p, idx) => {
+                    const puntos = p != null ? p : "-";
+                    const jornadaIndex = offset + idx + 1;
+                    
+                    let claseColor = "";
+                    if (typeof p === "number") {
+                      if (p >= 9) claseColor = "verde";
+                      else if (p < 7) claseColor = "rojo";
+                      else claseColor = "naranja"; // Los 7 y 8 se pintarán de naranja
+                    }
+                    
+                    return (
+                      <div key={idx} className="jornada-item">
+                        <small className="jornada-nombre">J{jornadaIndex}</small>
+                        <div className={`jornada-cuadro ${claseColor}`}>{puntos}</div>
                       </div>
-                    ))
-                }
+                    );
+                  });
+                })()}
               </div>
             </div>
           </div>

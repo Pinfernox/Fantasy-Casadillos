@@ -13,6 +13,8 @@ import NotFoundFallback from "./fallback/NotFoundFallback";
 import { verificarRefrescoMercado } from "./utils/mercadoService";
 import { refrescarMercado } from "./utils/mercadoUtils";
 import { ofertasAutomaticas } from "./utils/mercadoUtils";
+import EquipoJornada from "./components/EquipoJornada";
+import OtrosUsuarios from "./components/OtrosUsuarios";
 
 const auth = getAuth(appFirebase);
 const firestore = getFirestore(appFirebase);
@@ -103,7 +105,7 @@ function App() {
 
   return (
     <Router>
-      <Routes>
+        <Routes>
           {/* Login */}
           <Route path="/" element={usuario ? <Navigate to="/home" replace /> : <Login />} />
 
@@ -118,12 +120,21 @@ function App() {
           <Route 
             path="/clasificacion" 
             element={usuario ? <Clasificacion usuario={usuario}/> : <Navigate to="/" replace />} />
+            
           <Route
             path="/equipo/:jugadorId"
             element={usuario ? <EquipoJugador usuario={usuario}/> : <Navigate to="/" replace/>} />
           <Route 
+            path="/jornada/:jugadorId" 
+            element={usuario ? <EquipoJornada usuario={usuario}/> : <Navigate to="/" replace/>} />
+          <Route 
+            path="/otros-usuarios" 
+            element={usuario ? <OtrosUsuarios usuario={usuario}/> : <Navigate to="/" replace/>} />
+
+          <Route 
             path="/historial" 
-            element={usuario ? <Historial usuario={usuario}/> : <Navigate to="/" replace />} />  
+            element={usuario ? <Historial usuario={usuario}/> : <Navigate to="/" replace />} />
+              
           {/* Ruta fallback */}
           <Route path="*" element={<NotFoundFallback usuario={usuario} />} />
       </Routes>

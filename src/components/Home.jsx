@@ -75,35 +75,6 @@ function getBordeEstilo(jugador, index, formacion) {
   };
 }
 
-function calcularPuntosReales(jugador, index, formacion, idCapitan) {
-  if (!jugador || !jugador.puntosPorJornada || jugador.puntosPorJornada.length === 0) return "-";
-  
-  const ultimosPuntosBase = jugador.puntosPorJornada[jugador.puntosPorJornada.length - 1];
-  if (typeof ultimosPuntosBase !== 'number') return "-";
-
-  const esperado = MAPA_FORMACIONES[formacion]?.[index];
-  if (!esperado) return ultimosPuntosBase;
-
-  const orden = { "POR": 0, "DEF": 1, "MED": 2, "DEL": 3 };
-  const posReal = jugador.posicion;
-  let puntosFinales = ultimosPuntosBase;
-
-  // 1. Penalización
-  if (orden[posReal] !== undefined && orden[esperado] !== undefined) {
-    const distancia = Math.abs(orden[posReal] - orden[esperado]);
-    if (distancia === 1) puntosFinales *= 0.75;
-    else if (distancia >= 2) puntosFinales *= 0.25;
-  }
-
-  // 2. Capitán (x2)
-  if (jugador.id === idCapitan) {
-    puntosFinales *= 2;
-  }
-
-  // Redondear para no mostrar decimales feos si hay sanciones
-  return Math.round(puntosFinales);
-}
-
 export default function Home({ usuario }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const fotoURL = usuario?.fotoPerfil || ImagenProfile
@@ -115,7 +86,6 @@ export default function Home({ usuario }) {
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)
   const capitan = usuario?.equipo?.capitan || "";
   const formacionesDisponibles = Object.keys(FORMACIONES);
-    // Estado inicial: la formación actual del usuario
   const [formacionActual, setFormacionActual] = useState(usuario?.equipo?.formacion || "2-1-1");
   const [formacionSeleccionada, setFormacionSeleccionada] = useState(formacionActual);
   const [guardando, setGuardando] = useState(false);
@@ -125,6 +95,7 @@ export default function Home({ usuario }) {
   const [modoEdicion, setModoEdicion] = useState(false);
   const [jugadorSeleccionadoEdicion, setJugadorSeleccionadoEdicion] = useState(null);
   const [edicionActiva, setEdicionActiva] = useState(false);
+  const [menuFormacionAbierto, setMenuFormacionAbierto] = useState(false);
 
   useEffect(() => {
       // 🎙️ Escuchamos en tiempo real si el admin bloquea/desbloquea la jornada
@@ -155,9 +126,21 @@ export default function Home({ usuario }) {
       }
     }, [usuario, cambiosPendientes]);
 
-  const toggleModoEdicion = () => {
-    setModoEdicion(!modoEdicion);
-    setJugadorSeleccionadoEdicion(null); // reset al cambiar el modo
+const toggleModoEdicion = () => {
+    if (modoEdicion) {
+      // Si le damos a "Hecho" y hay cambios pendientes, guardamos
+      if (formacionSeleccionada !== formacionActual || cambiosPendientes) {
+        guardarFormacion();
+      } else {
+        // Si le damos a "Hecho" pero no tocamos nada, simplemente cerramos la edición
+        setModoEdicion(false);
+        setJugadorSeleccionadoEdicion(null);
+      }
+    } else {
+      // Si le damos a "Editar", activamos el modo
+      setModoEdicion(true);
+      setJugadorSeleccionadoEdicion(null);
+    }
   };
 
   const handleClickEdicion = (jugadorId, index, tipo) => {
@@ -352,6 +335,28 @@ export default function Home({ usuario }) {
   };
 
   useEffect(() => {
+    if (window.particlesJS && document.getElementById("particles-js")) {
+      window.particlesJS.load("particles-js", "particles.json", () => {
+        console.log("Particles.js config cargado");
+      });
+    }
+
+    // Limpieza al salir de la pantalla
+    return () => {
+      if (window.pJSDom && window.pJSDom.length > 0) {
+        window.pJSDom.forEach((dom) => {
+          if (dom && dom.pJS) {
+            cancelAnimationFrame(dom.pJS.fn.drawAnimFrame);
+            dom.pJS.fn.vendors.destroypJS();
+          }
+        });
+        window.pJSDom = []; 
+      }
+    };
+  }, []); // <-- Corchetes vacíos para que solo se ejecute una vez
+
+
+  useEffect(() => {
     if (usuario && usuario?.onboarding === false) {
       setShowOnboarding(true);
 
@@ -360,7 +365,6 @@ export default function Home({ usuario }) {
           const userRef = doc(db, "usuarios", auth.currentUser.uid);
           await updateDoc(userRef, { onboarding: true });
           setShowOnboarding(false);
-          //window.location.reload(); // refresca la página
         } catch (error) {
           console.error("Error actualizando onboarding:", error);
         }
@@ -369,25 +373,15 @@ export default function Home({ usuario }) {
       return () => clearTimeout(timer);
     }
 
-    console.log('Foto de perfil desde Firestore o Auth:', usuario?.fotoPerfil)
-    // Partículas
-    if (window.particlesJS) {
-      window.particlesJS.load('particles-js', 'particles.json', () => {
-        console.log('Particles.js config cargado')
-      })
-    }
-
     const fetchJugadores = async () => {
       const allIds = [
         ...(titulares?.map(t => t?.jugadorId) || []),
         ...(banquillo?.map(b => b?.jugadorId) || []),
       ].filter(Boolean);
 
-
       if (allIds.length === 0) return;
 
       const jugadoresRef = collection(db, "jugadores");
-      // Firestore solo permite hasta 10 IDs en un "in"
       const trozos = [];
       for (let i = 0; i < allIds.length; i += 10) {
         const subset = allIds.slice(i, i + 10);
@@ -402,7 +396,7 @@ export default function Home({ usuario }) {
     };
 
     fetchJugadores();
-  }, [usuario] );
+  }, [usuario]);
 
 
   if (!equipocreado) {
@@ -451,32 +445,93 @@ export default function Home({ usuario }) {
           openModal= {openModalJugador} setOpenModal={setOpenModalJugador} user={usuario} edicionActiva={edicionActiva}/>)}
 
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-          {/* Selector de formaciones */}
-          <div className="formacion-selector">
-            <label htmlFor="formacion-select">Formación:</label>
-            <select id="formacion-select" value={formacionSeleccionada} onChange={handleSelect}  disabled={!edicionActiva}>
-              {formacionesDisponibles.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </select>
-            {(formacionSeleccionada !== formacionActual || cambiosPendientes) && (
-              <button onClick={guardarFormacion} disabled={guardando}>
-                {guardando ? "Guardando..." : "Guardar"}
-              </button>
-            )}
+{/* --- BARRA DE CONTROLES FLOTANTE --- */}
+          <div className="toolbar-edicion">
+            <div className="toolbar-group">
+              
+              {/* SELECTOR DE FORMACIÓN CUSTOM (Ahora requiere estar en Modo Edición) */}
+              <div className={`custom-select-wrapper ${!modoEdicion ? 'disabled' : ''}`}>
+                <div 
+                  className="custom-select-trigger" 
+                  onClick={() => modoEdicion && setMenuFormacionAbierto(!menuFormacionAbierto)}
+                >
+                  <span className="formacion-texto">Formación: <strong>{formacionSeleccionada}</strong></span>
+                  <span className="arrow">{menuFormacionAbierto ? '▲' : '▼'}</span>
+                </div>
+                
+                {menuFormacionAbierto && modoEdicion && (
+                  <div className="custom-select-options">
+                    {formacionesDisponibles.map(f => (
+                      <div 
+                        key={f} 
+                        className={`custom-option ${f === formacionSeleccionada ? 'selected' : ''}`}
+                        onClick={() => {
+                          setFormacionSeleccionada(f);
+                          setCambiosPendientes(true);
+                          setMenuFormacionAbierto(false);
+                        }}
+                      >
+                        {f}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
+              {/* BOTÓN EDITAR / HECHO UNIFICADO */}
+              <button 
+                onClick={toggleModoEdicion} 
+                disabled={!edicionActiva || guardando}
+                className={`btn-toolbar ${(modoEdicion || formacionSeleccionada !== formacionActual || cambiosPendientes) ? 'activo' : ''}`}
+                style={(cambiosPendientes || formacionSeleccionada !== formacionActual) && modoEdicion ? { animation: 'pulseGuardar 1.5s infinite', border: '1px solid #2aa198' } : {}}
+              >
+                {!edicionActiva ? '🔒 Bloqueado' : guardando ? '⏳ Guardando...' : modoEdicion ? '💾 Guardar' : '✏️ Editar'}
+              </button>
+            </div>
           </div>
-          <div className="modo-edicion-buttons">
-            <button onClick={toggleModoEdicion} disabled={!edicionActiva}>
-              {!edicionActiva
-                ? "🔒 Jornada Empezada"
-                : modoEdicion
-                ? "Desactivar modo edición"
-                : "Activar modo edición"}
-            </button>
+
+          <div className="dashboard-superior">
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              
+              {/* Jornadas (Versión Minimalista) */}
+              <div className="jornadas-minimalistas">
+                {(() => {
+                  const historial = usuario?.puntuaciones || [];
+                  const ultimas = historial.slice(-5);
+                  const emptyCount = 5 - ultimas.length;
+
+                  const arrayToRender = [...ultimas, ...Array(emptyCount).fill(null)];
+                  const offset = Math.max(0, historial.length - 5);
+
+                  return arrayToRender.map((p, idx) => {
+                    const puntos = p != null ? p : "-";
+                    const jornadaIndex = offset + idx + 1;
+                    let claseColor = "";
+                    if (typeof p === "number") {
+                      if (p >= 36) claseColor = "verde";
+                      else if (p < 28) claseColor = "rojo";
+                      else claseColor = "naranja";
+                    }
+                    return (
+                      <div key={idx} className="jornada-mini-item">
+                        <span className="jornada-mini-titulo">J{jornadaIndex}</span>
+                        <div className={`jornada-mini-cuadro ${claseColor}`}>{puntos}</div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+
+              {/* Puntos Totales (a la derecha) */}
+              <div className="stat-badge">
+                <span className="texto-blanco" style={{ fontSize: '0.9rem', marginRight: '4px' }}>Puntos Totales:</span>
+                <span className="stat-valor naranja">{usuario?.puntos || 0}</span>
+              </div>
+
+            </div>
           </div>
+
           <div className="campo">
             {FORMACIONES[formacionSeleccionada]?.map((pos, index) => {
             const titularSlot = titularesLocal[index];
@@ -520,13 +575,13 @@ export default function Home({ usuario }) {
 
                     {capitan === jugador?.id && <div className="capitan-badge">C</div>}
 
-                    {/* Badge de últimos puntos reales */}
+                    {/* Badge de últimos puntos base */}
                     {(() => {
-                      const puntosReales = calcularPuntosReales(jugador, index, formacionSeleccionada, capitan);
-                      if (puntosReales === null || puntosReales === undefined) return null;
-
-                      let claseColor = puntosReales === "-" ? "gray" : puntosReales < 7 ? "red" : puntosReales < 9 ? "orange" : "green";
-                      return <div className={`puntos-badge ${claseColor}`}>{puntosReales}</div>;
+                      if (!jugador?.puntosPorJornada?.length) return <div className="puntos-badge gray">-</div>;
+                      const ultimosPuntos = jugador.puntosPorJornada[jugador.puntosPorJornada.length - 1];
+                      if (ultimosPuntos == null) return null;
+                      let claseColor = ultimosPuntos === "-" ? "gray" : ultimosPuntos < 7 ? "red" : ultimosPuntos < 9 ? "orange" : "green";
+                      return <div className={`puntos-badge ${claseColor}`}>{ultimosPuntos}</div>;
                     })()}
                   </div>
                   <p className="jugador-nombre">{jugador?.nombre || "Vacío"}</p>

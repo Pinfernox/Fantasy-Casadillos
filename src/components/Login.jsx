@@ -39,13 +39,27 @@ export const Login = () => {
   const [preview, setPreview] = useState(ImagenLogo)
   const navigate = useNavigate();
 
+// 👇 PARTÍCULAS OPTIMIZADAS
   useEffect(() => {
-    if (window.particlesJS) {
+    if (window.particlesJS && document.getElementById("particles-js")) {
       window.particlesJS.load("particles-js", "particles.json", () => {
-        console.log("Particles.js config cargado")
-      })
+        console.log("Particles.js config cargado");
+      });
     }
-  }, [])
+
+    // 🧹 FUNCIÓN DE LIMPIEZA (Mata la animación al cambiar de pantalla)
+    return () => {
+      if (window.pJSDom && window.pJSDom.length > 0) {
+        window.pJSDom.forEach((dom) => {
+          if (dom && dom.pJS) {
+            cancelAnimationFrame(dom.pJS.fn.drawAnimFrame);
+            dom.pJS.fn.vendors.destroypJS();
+          }
+        });
+        window.pJSDom = []; // Vaciamos la memoria global
+      }
+    };
+  }, []); // 🚨 MUY IMPORTANTE: Dejar los corchetes vacíos []
 
   const funcAutenticacion = async (e) => {
     e.preventDefault();

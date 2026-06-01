@@ -1,0 +1,102 @@
+/* --- ESTILOS PARA LA LISTA DE RIVALES --- */
+.lista-rivales-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 2rem;
+}
+
+.rival-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 43, 54, 0.85); /* Fondo oscuro estilo Solarized */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px 20px;
+  text-decoration: none;
+  color: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.rival-card:hover {
+  transform: translateY(-3px);
+  background: rgba(0, 60, 75, 0.95);
+  border-color: rgba(42, 161, 152, 0.6); /* Brillo verde agua */
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4), 0 0 10px rgba(42, 161, 152, 0.2);
+}
+
+.rival-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.rival-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #2aa198; /* Borde verde agua */
+}
+
+.rival-nombre {
+  font-size: 1.1rem;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.rival-action {
+  color: #839496;
+  display: flex;
+  align-items: center;
+  transition: color 0.3s ease;
+}
+
+.rival-card:hover .rival-action {
+  color: #2aa198;
+}
+
+/* --- ANIMACIÓN DE ENTRADA SUAVE --- */
+.rival-card {
+  /* Añadimos esto a tu clase .rival-card existente */
+  opacity: 0;
+  animation: slideUpFade 0.4s ease-out forwards;
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Efecto cascada: cada tarjeta tarda un poquito más en aparecer */
+.rival-card:nth-child(1) { animation-delay: 0.05s; }
+.rival-card:nth-child(2) { animation-delay: 0.10s; }
+.rival-card:nth-child(3) { animation-delay: 0.15s; }
+.rival-card:nth-child(4) { animation-delay: 0.20s; }
+.rival-card:nth-child(5) { animation-delay: 0.25s; }
+.rival-card:nth-child(n+6) { animation-delay: 0.30s; } /* El resto salen a la vez */
+
+
+/* --- ADAPTACIÓN PARA MÓVILES --- */
+@media screen and (max-width: 500px) {
+  .rival-card {
+    padding: 10px 15px; /* Un poco menos de espacio interior */
+  }
+  
+  .rival-avatar {
+    width: 42px;
+    height: 42px; /* Fotos ligeramente más pequeñas */
+  }
+  
+  .rival-nombre {
+    font-size: 1rem; /* Texto adaptado */
+  }
+  
+  .header-rivales h2 {
+    font-size: 1.5rem !important; /* Título un poco más pequeño en móvil */
+  }
+}

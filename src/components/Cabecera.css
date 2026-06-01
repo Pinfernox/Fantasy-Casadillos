@@ -175,7 +175,7 @@ a.Cabecera-a {
 /* =========================================
    DISEÑO ESCRITORIO (PC) - Pantallas de más de 1200px
    ========================================= */
-@media screen and (min-width: 1201px) { /* 👈 AQUÍ ESTABA EL ERROR: Tiene que ser 1201px */
+@media screen and (min-width: 1301px) { /* 👈 AQUÍ ESTABA EL ERROR: Tiene que ser 1201px */
   .Cabecera {
     position: sticky;
     top: 0;
@@ -208,7 +208,7 @@ a.Cabecera-a {
 /* =========================================
    DISEÑO MÓVIL Y TABLET - Menos de 1200px
    ========================================= */
-@media screen and (max-width: 1200px) {
+@media screen and (max-width: 1300px) {
   .Cabecera {
     flex-wrap: nowrap; 
     position: relative; 

@@ -8,7 +8,7 @@
   height: 100%;    
 
   /* Empuja el contenido hacia abajo para no quedar bajo el header */
-  padding-top: 4rem;    /* O la altura real de tu header */
+  padding-top: 4rem;    
   padding-bottom: 4rem;
   background-color: black;
   background-size: contain;
@@ -24,7 +24,6 @@
 a {
   color: inherit;
   text-decoration: none;
-  
 }
 
 /* Pantalla de carga onboarding */
@@ -48,7 +47,7 @@ a {
   animation: blink 1s infinite;
 }
 
-/* Pagina de Equipo */
+/* Contenedor principal del historial */
 .historial-container {
   background-color: rgb(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
@@ -57,25 +56,29 @@ a {
   box-shadow: 0 8px 32px rgba(0,0,0,0.2);
   width: 100%;
   max-width: 420px;
-  border: 0; /* por si Bootstrap agrega borde */
+  border: 0; 
   text-align: center;
   color: white;
   position: relative;
   z-index: 1;
   height: auto;
-  max-height: 80vh; /* altura máxima visible */
+  max-height: 80vh; 
   min-height: 70vh;
-  overflow-y:hidden; /* permite scroll interno */
+  overflow-y: hidden; 
 }
 
+/* --- LISTA DE HISTORIAL (ARREGLADA) --- */
 .lista-historial {
   display: flex;
-  flex-direction: column; /* apila verticalmente */
+  flex-direction: column;
   gap: 0.8rem;
   padding: 1rem;
+  margin: 0; /* 🚀 Resetea el margen de la lista HTML */
   list-style: none;
-  overflow-y: auto; /* permite scroll vertical */
-  max-height: 60vh; /* ajusta según tu diseño */
+  overflow-y: auto;
+  overflow-x: hidden; /* 🚀 Corta en seco el desbordamiento horizontal */
+  max-height: 60vh;
+  box-sizing: border-box; /* 🚀 Todo el padding va hacia dentro */
   transition: all 0.3s ease;
 }
 
@@ -83,7 +86,7 @@ a {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 200px; /* o 100% según quieras */
+  height: 200px; 
   font-size: 1.3rem;
   font-weight: bold;
   color: #ccc;
@@ -93,12 +96,14 @@ a {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+
 hr {
   border: none;
   height: 3px;
   background-color: white;
   margin-bottom: 0;
 }
+
 /* ventana centrada */
 .jugador-perfil {
   position: relative;
@@ -109,8 +114,7 @@ hr {
   padding: 1rem 0 1.5rem;
   box-shadow: 0 8px 24px rgba(0,0,0,0.35);
   margin: 0 auto;
-  box-sizing: border-box; /* asegura que el padding no se sume al ancho */
-  /* animación */
+  box-sizing: border-box;
   animation: modalFadeIn 0.35s ease-out;
   transform-origin: center;
 }
@@ -123,7 +127,6 @@ hr {
   from { opacity: 0; transform: scale(0.85) translateY(20px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
-
 
 /* cabecera: avatar + info */
 .modal-header {
@@ -162,11 +165,12 @@ hr {
 
 .posicion-precio{
   display: flex;
-  flex-direction: column;       /* elementos en fila */
-  justify-content: space-between; /* separa a los extremos */
+  flex-direction: column;       
+  justify-content: space-between; 
   margin-bottom: 0.5rem;
-  text-align: left;          /* mejor para lectura horizontal */
+  text-align: left;          
 }
+
 .precio-container {
   display: flex;
   flex-direction: row;
@@ -178,44 +182,39 @@ hr {
   color: lightgreen;
   font-weight: bold;
 }
+
 .precio-clausula{
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 0.5rem;
 }
+
 .precio-clausula small{
   color: lightgreen;
   font-weight: bold;
 }
+
 .texto-blanco{
   color: white;
 }
+
 .posicion-texto{
   font-weight: bold;
   display: flex;
   margin-top: 0.3rem;
 }
-.posicion-texto.DEF {
-  color: orange; /* azul para defensa */
-}
 
-.posicion-texto.MED {
-  color: #1e90ff; /* verde para mediocampo */
-}
-
-.posicion-texto.DEL {
-  color: #dc3545; /* rojo para delantero */
-}
-
-.posicion-texto.POR {
-  color: darkgreen; /* amarillo para portero */
-}
+.posicion-texto.DEF { color: orange; }
+.posicion-texto.MED { color: #1e90ff; }
+.posicion-texto.DEL { color: #dc3545; }
+.posicion-texto.POR { color: darkgreen; }
 
 .texto-vendedor{
   font-weight: bold;
   display: flex;
 }
+
 .vendedor{
   font-weight: lighter;
 }
@@ -230,8 +229,8 @@ hr {
   flex-wrap: wrap;
   display: flex;
   gap: 8px;
-  justify-content: center;   /* centrado horizontal */
-  align-items: center;       /* opcional, centrado vertical */
+  justify-content: center;   
+  align-items: center;       
 }
 
 .jornada-item {
@@ -260,31 +259,12 @@ hr {
   color: black;
 }
 
-.jornada-cuadro.verde {
-  background: #4caf50;
-  color: #fff;
-  border-color: #388e3c;
-}
+.jornada-cuadro.verde { background: #4caf50; color: #fff; border-color: #388e3c; }
+.jornada-cuadro.rojo { background: #f44336; color: #fff; border-color: #d32f2f; }
 
-.jornada-cuadro.rojo {
-  background: #f44336;
-  color: #fff;
-  border-color: #d32f2f;
-}
-
-
-.diferencia-precio {
-  font-weight: bold;
-  color: white;
-}
-
-.diferencia-precio .subida {
-  color: green;
-}
-
-.diferencia-precio .bajada {
-  color: red;
-}
+.diferencia-precio { font-weight: bold; color: white; }
+.diferencia-precio .subida { color: green; }
+.diferencia-precio .bajada { color: red; }
 
 .modal-jugadorbody {
   padding: 1rem;
@@ -317,7 +297,6 @@ hr {
   color: white;
 }
 
-/* footer con botón guardar */
 .modal-footer {
   text-align: center;
   padding-top: 0.5rem;
@@ -334,10 +313,7 @@ hr {
   margin: 1rem;
 }
 
-.modal-save-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
+.modal-save-btn:disabled { opacity: 0.6; cursor: default; }
 
 .modal-delete-btn{
   background: red;
@@ -350,103 +326,118 @@ hr {
   margin: 1rem;
 }
 
+/* ========================================= */
+/* --- ESTILOS TARJETAS DE HISTORIAL NUEVAS --- */
+/* ========================================= */
+
 .historial-item {
-  transition: transform 0.3s ease;
-  cursor: pointer;
-  list-style: none;
-  padding-left: 0; /* opcional: elimina sangrado izquierdo */
-  margin-left: 0;  /* opcional: elimina margen izquierdo */
-  width: auto;
-  background-color: rgba(0, 0, 0, 0.65);
+  position: relative;
+  background: rgba(0, 43, 54, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);  
   border-radius: 12px;  
-  padding: 1rem 0 1.5rem;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  padding: 1rem 0; 
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  list-style: none;
+  cursor: default;
+  width: 100%;
+  box-sizing: border-box;
+  opacity: 0;
+  animation: slideUpFade 0.4s ease-out forwards;
 }
 
 .historial-item:hover {
-  transform: scale(1.03);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.5);
 }
 
 .historial-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.historial-foto {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  object-fit: cover;
-  margin-left: 1rem;
-  border: 2px solid white !important;
-
-}
-
-.historial-info p{
-  margin-bottom: 0;
+  gap: 12px;
+  width: 100%;
+  padding-right: 1.5rem; /* 🚀 Margen de seguridad derecho */
+  box-sizing: border-box;
 }
 
 .historial-info {
-  margin-right: 0.5rem;
-  margin-left: 0.5rem;
+  flex: 1 1 0%; /* 🚀 LA MAGIA: Obliga al texto a encogerse si no cabe */
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; 
 }
 
-.lista-historial::-webkit-scrollbar {
+.historial-info p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #ccc;
+  white-space: normal; 
+  word-break: break-word; /* 🚀 Rompe palabras larguísimas */
+}
+
+/* Franja luminosa lateral según transacción */
+.historial-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
   width: 6px;
 }
+.historial-venta::before { background: linear-gradient(180deg, #e74c3c, #c0392b); box-shadow: 2px 0 8px rgba(231, 76, 60, 0.5); }
+.historial-clausula::before { background: linear-gradient(180deg, #2ecc71, #27ae60); box-shadow: 2px 0 8px rgba(46, 204, 113, 0.5); }
+.historial-normal::before { background: linear-gradient(180deg, #3498db, #2980b9); box-shadow: 2px 0 8px rgba(52, 152, 219, 0.5); }
 
+.historial-icono {
+  font-size: 1.5rem;
+  margin-left: 15px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+.historial-foto {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.2) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.historial-fecha {
+  display: block;
+  font-size: 0.75rem;
+  color: #839496;
+  text-align: right;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Animación y scroll */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.historial-item:nth-child(1) { animation-delay: 0.05s; }
+.historial-item:nth-child(2) { animation-delay: 0.10s; }
+.historial-item:nth-child(3) { animation-delay: 0.15s; }
+.historial-item:nth-child(4) { animation-delay: 0.20s; }
+.historial-item:nth-child(5) { animation-delay: 0.25s; }
+.historial-item:nth-child(n+6) { animation-delay: 0.30s; }
+
+.lista-historial::-webkit-scrollbar { width: 6px; }
 .lista-historial::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.3);
   border-radius: 3px;
 }
 
-.tabs-wrapper {
-  width: 100%;         /* ocupa todo el ancho disponible */
-  max-width: 420px;
-  margin: 0 auto;      /* centrado */
-  z-index: 2 !important;
-
-}
-
-.tabs-container {
-  display: flex;
-  justify-content: flex-start;
-  background-color: rgb(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);  padding: 0.5rem;
-  border-radius: 8px 8px 0 0;
-  
-}
-
-.tab-btn {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: white;
-  font-weight: bold;
-  padding: 0.75rem;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.tab-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.tab-btn.active {
-  border-bottom: 3px solid gold;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
+/* Responsivo (Móviles) */
 @media screen and (max-width: 500px) {
-
   .modal-header {
     flex-direction: column;
     align-items: center;
@@ -512,31 +503,8 @@ hr {
     font-size: 11px;
   }
 
-  .operaciones-container{
-    min-height: 71vh;
-  }
-  .mercado-jugadores {
-    min-height: 71vh;
-  }
-  .historial-info {
-    font-size: 0.9rem;
-  }
-}
-
-@media screen and (max-width: 350px) {
-  .modal-footer {
-    gap: 2rem; /* espacio entre botones */
-  }
-
-  .operaciones-container{
-    min-height: 73vh;
-  }
-  .mercado-jugadores {
-    min-height: 73vh;
-
-  }
-
-  .historial-info {
-    font-size: 0.8rem;
-  }
+  /* Ajustes específicos de las tarjetas del historial en móvil */
+  .historial-info p { font-size: 0.85rem; }
+  .historial-icono { font-size: 1.2rem; margin-left: 10px; }
+  .historial-foto { width: 45px; height: 45px; }
 }

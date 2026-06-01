@@ -25,13 +25,30 @@ export default function Historial({ usuario }) {
   const [historial, setHistorial] = useState([]);
   const fotoURL = usuario?.fotoPerfil || ImagenProfile;
 
-// Cargar historial desde Firestore
+
+  // 👇 PARTÍCULAS OPTIMIZADAS
   useEffect(() => {
-    if (window.particlesJS) {
+    if (window.particlesJS && document.getElementById("particles-js")) {
       window.particlesJS.load("particles-js", "particles.json", () => {
         console.log("Particles.js config cargado");
       });
     }
+
+    // 🧹 FUNCIÓN DE LIMPIEZA (Mata la animación al cambiar de pantalla)
+    return () => {
+      if (window.pJSDom && window.pJSDom.length > 0) {
+        window.pJSDom.forEach((dom) => {
+          if (dom && dom.pJS) {
+            cancelAnimationFrame(dom.pJS.fn.drawAnimFrame);
+            dom.pJS.fn.vendors.destroypJS();
+          }
+        });
+        window.pJSDom = []; // Vaciamos la memoria global
+      }
+    };
+  }, []); // 🚨 MUY IMPORTANTE: Dejar los corchetes vacíos []
+// Cargar historial desde Firestore
+  useEffect(() => {
 
     const cargarHistorial = async () => {
       try {
@@ -124,49 +141,62 @@ export default function Historial({ usuario }) {
               <ul className="lista-historial">
                 {historial.map((h) => {
                   let mensaje;
-                  let backgroundColor = "#2c2c2c"; // color neutro por defecto
+                  let claseTipo = "";
+                  let icono = "";
 
+                  // Asignamos estilos e iconos según el tipo
                   if (h.tipo === "venta directa") {
-                    backgroundColor = "rgba(59, 1, 1, 0.64)";
+                    claseTipo = "historial-venta";
+                    icono = "⚡"; // Rayo para venta rápida
                     mensaje = (
                       <>
-                        El usuario <strong style={{ color: "white" }}>{h.vendedorNombre}</strong> ha vendido de forma rápida a{" "}
+                        <strong style={{ color: "white" }}>{h.vendedorNombre}</strong> ha vendido a Fantasy Casadillos a{" "}
                         <strong style={{ color: "#e74c3c" }}>{h.jugadorNombre}</strong> por{" "}
                         <strong style={{ color: "#e74c3c" }}>{formatearDinero(h.precio)}</strong>
                       </>
                     );
                   } else if (h.tipo === "clausulazo") {
-                    backgroundColor = "rgba(0, 67, 6, 0.64)";
+                    claseTipo = "historial-clausula";
+                    icono = "💥"; // Explosión para clausulazo
                     mensaje = (
                       <>
-                        El usuario <strong style={{ color: "white" }}>{h.compradorNombre}</strong> ha pagado la cláusula de{" "}
+                        <strong style={{ color: "white" }}>{h.compradorNombre}</strong> ha pagado la cláusula de{" "}
                         <strong style={{ color: "#2ecc71" }}>{h.jugadorNombre}</strong> a{" "}
-                        <strong style={{ color: "white" }}>{h.vendedorNombre}</strong> por{" "}
+                        <strong style={{ color: "#aaa" }}>{h.vendedorNombre}</strong> por{" "}
                         <strong style={{ color: "#2ecc71" }}>{formatearDinero(h.precio)}</strong>
                       </>
                     );
                   } else {
-                    backgroundColor = "rgba(0, 0, 0, 0.65)";
+                    claseTipo = "historial-normal";
+                    icono = "🤝"; // Trato cerrado para mercado normal
                     mensaje = (
                       <>
-                        El usuario <strong style={{ color: "white" }}>{h.compradorNombre}</strong> ha pagado{" "}
-                        <strong style={{ color: "#2ecc71" }}>{formatearDinero(h.precio)}</strong> por{" "}
-                        <strong style={{ color: "#2ecc71" }}>{h.jugadorNombre}</strong> a{" "}
-                        <strong style={{ color: "white" }}>{h.vendedorNombre}</strong>
+                        <strong style={{ color: "white" }}>{h.compradorNombre}</strong> ha fichado a{" "}
+                        <strong style={{ color: "#3498db" }}>{h.jugadorNombre}</strong> de{" "}
+                        <strong style={{ color: "#aaa" }}>{h.vendedorNombre}</strong> por{" "}
+                        <strong style={{ color: "#3498db" }}>{formatearDinero(h.precio)}</strong>
                       </>
                     );
                   }
 
                   return (
-                    <li key={h.id} className="historial-item" style={{ backgroundColor }}>
+                    <li key={h.id} className={`historial-item ${claseTipo}`}>
                       <div className="historial-card">
+                        
+                        {/* Nuevo icono identificativo */}
+                        <div className="historial-icono">{icono}</div>
+                        
                         <img src={h.fotoJugador} alt={h.jugadorNombre} className="historial-foto" />
+                        
                         <div className="historial-info">
                           <p>{mensaje}</p>
-                          <small>
+                          
+                          {/* Fecha separada y alineada a la derecha */}
+                          <div className="historial-fecha">
                             {h.fecha?.toDate ? h.fecha.toDate().toLocaleString("es-ES") : ""}
-                          </small>
+                          </div>
                         </div>
+
                       </div>
                     </li>
                   );

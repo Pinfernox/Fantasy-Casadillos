@@ -764,27 +764,41 @@ export default function Mercado({ usuario }) {
                                     : "-"
                                 }</span></small>
                               </div>
-                              {/* últimas jornadas */}
-                              <div className="estadisticas-extra">
-                                <div className="ultimas-jornadas">
-                                  {(j.puntosPorJornada || []).slice(-5).map((p, i) => {
-                                    const puntos = p != null ? p : "-";
-                                    const total = j.puntosPorJornada ? j.puntosPorJornada.length : 0;
-                                    const jornadaIndex = Math.max(1, total - 5 + i + 1);
-                                    let claseColor = "";
-                                    if (typeof p === "number") {
-                                      if (p >= 9) claseColor = "verde";
-                                      else if (p < 7) claseColor = "rojo";
-                                    }
-                                    return (
-                                      <div key={i} className="jornada-item">
-                                        <small className="jornada-nombre">J{jornadaIndex}</small>
-                                        <div className={`jornada-cuadro ${claseColor}`}>{puntos}</div>
-                                      </div>
-                                    );
-                                  })}
+{/* últimas jornadas */}
+                                <div className="estadisticas-extra">
+                                  <div className="ultimas-jornadas">
+                                    {(() => {
+                                      // Cogemos el historial (sea j.puntosPorJornada o o.puntosPorJornada)
+                                      const jugadorData = j || o; 
+                                      const historial = jugadorData.puntosPorJornada || [];
+                                      const ultimas = historial.slice(-5);
+                                      const emptyCount = 5 - ultimas.length;
+                                      
+                                      // Construimos un array fijo de 5 elementos (rellenando con null si faltan)
+                                      const arrayToRender = [...ultimas, ...Array(emptyCount).fill(null)];
+                                      const offset = Math.max(0, historial.length - 5);
+
+                                      return arrayToRender.map((p, idx) => {
+                                        const puntos = p != null ? p : "-";
+                                        const jornadaIndex = offset + idx + 1;
+                                        
+                                        let claseColor = "";
+                                        if (typeof p === "number") {
+                                          if (p >= 9) claseColor = "verde";
+                                          else if (p < 7) claseColor = "rojo";
+                                          else claseColor = "naranja"; // 👇 Ahora los 7 y 8 irán aquí
+                                        }
+                                        
+                                        return (
+                                          <div key={idx} className="jornada-item">
+                                            <small className="jornada-nombre">J{jornadaIndex}</small>
+                                            <div className={`jornada-cuadro ${claseColor}`}>{puntos}</div>
+                                          </div>
+                                        );
+                                      });
+                                    })()}
+                                  </div>
                                 </div>
-                              </div>
 
                             </div>
                           </div>
@@ -866,7 +880,6 @@ export default function Mercado({ usuario }) {
                 <p>No tienes operaciones activas.</p>
               </div>
               ) : (
-                
                   <ul className="lista-jugadores">
                   {jugadoresUsuario.map((j, i) => {
                     const key = `${j.idJugador}-${i}-${j.vendedorUid || 'yo'}`;
@@ -926,25 +939,39 @@ export default function Mercado({ usuario }) {
                                   </small>
                                 </div>
 
-                                {/* últimas jornadas */}
+{/* últimas jornadas */}
                                 <div className="estadisticas-extra">
                                   <div className="ultimas-jornadas">
-                                    {(j.puntosPorJornada || []).slice(-5).map((p, idx) => {
-                                      const puntos = p != null ? p : "-";
-                                      const total = j.puntosPorJornada ? j.puntosPorJornada.length : 0;
-                                      const jornadaIndex = Math.max(1, total - 5 + idx + 1);
-                                      let claseColor = "";
-                                      if (typeof p === "number") {
-                                        if (p >= 9) claseColor = "verde";
-                                        else if (p < 7) claseColor = "rojo";
-                                      }
-                                      return (
-                                        <div key={idx} className="jornada-item">
-                                          <small className="jornada-nombre">J{jornadaIndex}</small>
-                                          <div className={`jornada-cuadro ${claseColor}`}>{puntos}</div>
-                                        </div>
-                                      );
-                                    })}
+                                    {(() => {
+                                      // Cogemos el historial (sea j.puntosPorJornada o o.puntosPorJornada)
+                                      const jugadorData = j || o; 
+                                      const historial = jugadorData.puntosPorJornada || [];
+                                      const ultimas = historial.slice(-5);
+                                      const emptyCount = 5 - ultimas.length;
+                                      
+                                      // Construimos un array fijo de 5 elementos (rellenando con null si faltan)
+                                      const arrayToRender = [...ultimas, ...Array(emptyCount).fill(null)];
+                                      const offset = Math.max(0, historial.length - 5);
+
+                                      return arrayToRender.map((p, idx) => {
+                                        const puntos = p != null ? p : "-";
+                                        const jornadaIndex = offset + idx + 1;
+                                        
+                                        let claseColor = "";
+                                        if (typeof p === "number") {
+                                          if (p >= 9) claseColor = "verde";
+                                          else if (p < 7) claseColor = "rojo";
+                                          else claseColor = "naranja"; // 👇 Ahora los 7 y 8 irán aquí
+                                        }
+                                        
+                                        return (
+                                          <div key={idx} className="jornada-item">
+                                            <small className="jornada-nombre">J{jornadaIndex}</small>
+                                            <div className={`jornada-cuadro ${claseColor}`}>{puntos}</div>
+                                          </div>
+                                        );
+                                      });
+                                    })()}
                                   </div>
                                 </div>
 
@@ -1086,25 +1113,39 @@ export default function Mercado({ usuario }) {
                                   </small>
                                 </div>
 
-                                {/* últimas jornadas */}
+{/* últimas jornadas */}
                                 <div className="estadisticas-extra">
                                   <div className="ultimas-jornadas">
-                                    {(o.puntosPorJornada || []).slice(-5).map((p, idx) => {
-                                      const puntos = p != null ? p : "-";
-                                      const total = o.puntosPorJornada ? o.puntosPorJornada.length : 0;
-                                      const jornadaIndex = Math.max(1, total - 5 + idx + 1);
-                                      let claseColor = "";
-                                      if (typeof p === "number") {
-                                        if (p >= 9) claseColor = "verde";
-                                        else if (p < 7) claseColor = "rojo";
-                                      }
-                                      return (
-                                        <div key={idx} className="jornada-item">
-                                          <small className="jornada-nombre">J{jornadaIndex}</small>
-                                          <div className={`jornada-cuadro ${claseColor}`}>{puntos}</div>
-                                        </div>
-                                      );
-                                    })}
+                                    {(() => {
+                                      // Cogemos el historial (sea j.puntosPorJornada o o.puntosPorJornada)
+                                      const jugadorData = j || o; 
+                                      const historial = jugadorData.puntosPorJornada || [];
+                                      const ultimas = historial.slice(-5);
+                                      const emptyCount = 5 - ultimas.length;
+                                      
+                                      // Construimos un array fijo de 5 elementos (rellenando con null si faltan)
+                                      const arrayToRender = [...ultimas, ...Array(emptyCount).fill(null)];
+                                      const offset = Math.max(0, historial.length - 5);
+
+                                      return arrayToRender.map((p, idx) => {
+                                        const puntos = p != null ? p : "-";
+                                        const jornadaIndex = offset + idx + 1;
+                                        
+                                        let claseColor = "";
+                                        if (typeof p === "number") {
+                                          if (p >= 9) claseColor = "verde";
+                                          else if (p < 7) claseColor = "rojo";
+                                          else claseColor = "naranja"; // 👇 Ahora los 7 y 8 irán aquí
+                                        }
+                                        
+                                        return (
+                                          <div key={idx} className="jornada-item">
+                                            <small className="jornada-nombre">J{jornadaIndex}</small>
+                                            <div className={`jornada-cuadro ${claseColor}`}>{puntos}</div>
+                                          </div>
+                                        );
+                                      });
+                                    })()}
                                   </div>
                                 </div>
 

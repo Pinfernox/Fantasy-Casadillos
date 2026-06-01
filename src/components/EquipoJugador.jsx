@@ -74,35 +74,6 @@ function getBordeEstilo(jugador, index, formacion) {
   };
 }
 
-function calcularPuntosReales(jugador, index, formacion, idCapitan) {
-  if (!jugador || !jugador.puntosPorJornada || jugador.puntosPorJornada.length === 0) return "-";
-  
-  const ultimosPuntosBase = jugador.puntosPorJornada[jugador.puntosPorJornada.length - 1];
-  if (typeof ultimosPuntosBase !== 'number') return "-";
-
-  const esperado = MAPA_FORMACIONES[formacion]?.[index];
-  if (!esperado) return ultimosPuntosBase;
-
-  const orden = { "POR": 0, "DEF": 1, "MED": 2, "DEL": 3 };
-  const posReal = jugador.posicion;
-  let puntosFinales = ultimosPuntosBase;
-
-  // 1. Penalización
-  if (orden[posReal] !== undefined && orden[esperado] !== undefined) {
-    const distancia = Math.abs(orden[posReal] - orden[esperado]);
-    if (distancia === 1) puntosFinales *= 0.75;
-    else if (distancia >= 2) puntosFinales *= 0.25;
-  }
-
-  // 2. Capitán (x2)
-  if (jugador.id === idCapitan) {
-    puntosFinales *= 2;
-  }
-
-  // Redondear para no mostrar decimales feos si hay sanciones
-  return Math.round(puntosFinales);
-}
-
 export default function EquipoJugador({ usuario }) {
   const { jugadorId } = useParams()
   const [loadingJugador, setLoadingJugador] = useState(true)
@@ -117,34 +88,6 @@ export default function EquipoJugador({ usuario }) {
   // MAGIA: Leer la formación directamente en tiempo real (sin useState)
   const formacionSeleccionada = jugadorData?.equipo?.formacion || "2-1-1";
 
-// 1. Cargar jugador clicado en la clasificación (AHORA EN TIEMPO REAL)
-
-// 1. Cargar jugador clicado en la clasificación (AHORA EN TIEMPO REAL)
-  useEffect(() => {
-    if (!jugadorId) return;
-    setLoadingJugador(true);
-
-    // 🎙️ Abrimos el "micrófono" para escuchar los cambios del rival en directo
-    const unsubscribe = onSnapshot(
-      doc(db, 'usuarios', jugadorId),
-      (snap) => {
-        if (snap.exists()) {
-          setJugadorData({ id: snap.id, ...snap.data() });
-        } else {
-          setJugadorData(null);
-        }
-        setLoadingJugador(false);
-      },
-      (err) => {
-        console.error("Error escuchando al usuario rival:", err);
-        setLoadingJugador(false);
-      }
-    );
-
-    // 🧹 Importante: Apagar el micrófono cuando salimos de esta pantalla
-    return () => unsubscribe();
-  }, [jugadorId]);
-
   const [openModalJugadorUsuario, setOpenModalJugadorUsuario] = useState(false)
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)
   
@@ -156,7 +99,18 @@ export default function EquipoJugador({ usuario }) {
       });
     }
 
-  }, [usuario]);
+    return () => {
+      if (window.pJSDom && window.pJSDom.length > 0) {
+        window.pJSDom.forEach((dom) => {
+          if (dom && dom.pJS) {
+            cancelAnimationFrame(dom.pJS.fn.drawAnimFrame);
+            dom.pJS.fn.vendors.destroypJS();
+          }
+        });
+        window.pJSDom = []; // Vaciamos la memoria global
+      }
+    };
+  }, []); // 🚨 MUY IMPORTANTE: Dejar los corchetes vacíos []
 
   // 1. Cargar jugador clicado en la clasificación
   useEffect(() => {
@@ -256,37 +210,36 @@ export default function EquipoJugador({ usuario }) {
             <p><strong>Dinero:</strong> <small><span className="verde">{formatearDinero(jugadorData?.dinero || 0)}</span></small></p>
           </div>
           <div className="ultimas-jornadas-equipo-jugador">
-                          {jugadorData?.puntuaciones && jugadorData?.puntuaciones.length > 0
-                            ? jugadorData?.puntuaciones.slice(-5).map((p, i, arr) => {
-                                const puntos = p != null ? p : "-";
-                                // Índice de jornada: corregido para mostrar desde J1 correctamente
-                                const jornadaIndex = jugadorData.puntuaciones.length <= 5 
-                                    ? i + 1 
-                                    : jugadorData.puntuaciones.length - 5 + i + 1;
+            {(() => {
+              const historial = jugadorData?.puntuaciones || [];
+              const ultimas = historial.slice(-5);
+              const emptyCount = 5 - ultimas.length;
 
-                                let claseColor = "";
-                                if (typeof p === "number") {
-                                  if (p >= 36) claseColor = "verde";
-                                  else if (p < 28) claseColor = "rojo";
-                                  else claseColor = "naranja";
-                                }
+              // Array forzado de 5 elementos (rellena con null los vacíos)
+              const arrayToRender = [...ultimas, ...Array(emptyCount).fill(null)];
+              const offset = Math.max(0, historial.length - 5);
 
-                                return (
-                                  <div key={i} className="jornada-item">
-                                    <small className="jornada-nombre">J{jornadaIndex}</small>
-                                    <div className={`jornada-cuadro ${claseColor}`}>
-                                      {puntos}
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            : [...Array(5)].map((_, i) => (
-                                <div key={i} className="jornada-item">
-                                  <small className="jornada-nombre">J{i + 1}</small>
-                                  <div className="jornada-cuadro">-</div>
-                                </div>
-                              ))
-                          }
+              return arrayToRender.map((p, idx) => {
+                const puntos = p != null ? p : "-";
+                const jornadaIndex = offset + idx + 1;
+
+                let claseColor = "";
+                if (typeof p === "number") {
+                  if (p >= 36) claseColor = "verde";
+                  else if (p < 28) claseColor = "rojo";
+                  else claseColor = "naranja";
+                }
+
+                return (
+                  <div key={idx} className="jornada-item">
+                    <small className="jornada-nombre">J{jornadaIndex}</small>
+                    <div className={`jornada-cuadro ${claseColor}`}>
+                      {puntos}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
           <div className="campo">
             {/* Jugadores según formación */}
@@ -335,13 +288,13 @@ export default function EquipoJugador({ usuario }) {
                       <div className="capitan-badge">C</div>
                     )}
 
-                    {/* Badge de últimos puntos reales */}
+                    {/* Badge de últimos puntos base */}
                     {(() => {
-                      const puntosReales = calcularPuntosReales(jugador, index, formacionSeleccionada, capitan);
-                      if (puntosReales === null || puntosReales === undefined) return null;
-
-                      let claseColor = puntosReales === "-" ? "gray" : puntosReales < 7 ? "red" : puntosReales < 9 ? "orange" : "green";
-                      return <div className={`puntos-badge ${claseColor}`}>{puntosReales}</div>;
+                      if (!jugador?.puntosPorJornada?.length) return <div className="puntos-badge gray">-</div>;
+                      const ultimosPuntos = jugador.puntosPorJornada[jugador.puntosPorJornada.length - 1];
+                      if (ultimosPuntos == null) return null;
+                      let claseColor = ultimosPuntos === "-" ? "gray" : ultimosPuntos < 7 ? "red" : ultimosPuntos < 9 ? "orange" : "green";
+                      return <div className={`puntos-badge ${claseColor}`}>{ultimosPuntos}</div>;
                     })()}
                   </div>
                   <p className="jugador-nombre">{jugador?.nombre || "Vacío"}</p>
