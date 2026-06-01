@@ -181,7 +181,8 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
                   snapshotData[u.id] = {
                     nick: u.data().nick,
                     formacion: u.data().equipo?.formacion || "2-1-1",
-                    titulares: u.data().equipo?.titulares || []
+                    titulares: u.data().equipo?.titulares || [],
+                    capitan: u.data().equipo?.capitan || null 
                   };
                 });
 
@@ -252,7 +253,7 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
 
                   const formacion = userFoto.formacion;
                   const posicionesEsperadas = MAPA_FORMACIONES[formacion] || MAPA_FORMACIONES["2-1-1"];
-                  const capitanId = userData.equipo?.capitan; // 👈 Recuperamos el capitán del usuario
+                  const capitanId = userFoto.capitan; 
                   let puntosJornada = 0;
 
                   // Evaluar solo a los 4 titulares
