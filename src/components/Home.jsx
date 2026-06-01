@@ -75,6 +75,35 @@ function getBordeEstilo(jugador, index, formacion) {
   };
 }
 
+function calcularPuntosReales(jugador, index, formacion, idCapitan) {
+  if (!jugador || !jugador.puntosPorJornada || jugador.puntosPorJornada.length === 0) return "-";
+  
+  const ultimosPuntosBase = jugador.puntosPorJornada[jugador.puntosPorJornada.length - 1];
+  if (typeof ultimosPuntosBase !== 'number') return "-";
+
+  const esperado = MAPA_FORMACIONES[formacion]?.[index];
+  if (!esperado) return ultimosPuntosBase;
+
+  const orden = { "POR": 0, "DEF": 1, "MED": 2, "DEL": 3 };
+  const posReal = jugador.posicion;
+  let puntosFinales = ultimosPuntosBase;
+
+  // 1. Penalización
+  if (orden[posReal] !== undefined && orden[esperado] !== undefined) {
+    const distancia = Math.abs(orden[posReal] - orden[esperado]);
+    if (distancia === 1) puntosFinales *= 0.75;
+    else if (distancia >= 2) puntosFinales *= 0.25;
+  }
+
+  // 2. Capitán (x2)
+  if (jugador.id === idCapitan) {
+    puntosFinales *= 2;
+  }
+
+  // Redondear para no mostrar decimales feos si hay sanciones
+  return Math.round(puntosFinales);
+}
+
 export default function Home({ usuario }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const fotoURL = usuario?.fotoPerfil || ImagenProfile
@@ -491,14 +520,13 @@ export default function Home({ usuario }) {
 
                     {capitan === jugador?.id && <div className="capitan-badge">C</div>}
 
-                    {/* Badge de últimos puntos */}
+                    {/* Badge de últimos puntos reales */}
                     {(() => {
-                      if (!jugador?.puntosPorJornada?.length) return <div className="puntos-badge gray">-</div>;
-                      const ultimosPuntos = jugador.puntosPorJornada[jugador.puntosPorJornada.length - 1];
-                      if (ultimosPuntos == null) return null;
+                      const puntosReales = calcularPuntosReales(jugador, index, formacionSeleccionada, capitan);
+                      if (puntosReales === null || puntosReales === undefined) return null;
 
-                      let claseColor = ultimosPuntos === "-" ? "gray" : ultimosPuntos < 7 ? "red" : ultimosPuntos < 9 ? "orange" : "green";
-                      return <div className={`puntos-badge ${claseColor}`}>{ultimosPuntos}</div>;
+                      let claseColor = puntosReales === "-" ? "gray" : puntosReales < 7 ? "red" : puntosReales < 9 ? "orange" : "green";
+                      return <div className={`puntos-badge ${claseColor}`}>{puntosReales}</div>;
                     })()}
                   </div>
                   <p className="jugador-nombre">{jugador?.nombre || "Vacío"}</p>

@@ -74,6 +74,35 @@ function getBordeEstilo(jugador, index, formacion) {
   };
 }
 
+function calcularPuntosReales(jugador, index, formacion, idCapitan) {
+  if (!jugador || !jugador.puntosPorJornada || jugador.puntosPorJornada.length === 0) return "-";
+  
+  const ultimosPuntosBase = jugador.puntosPorJornada[jugador.puntosPorJornada.length - 1];
+  if (typeof ultimosPuntosBase !== 'number') return "-";
+
+  const esperado = MAPA_FORMACIONES[formacion]?.[index];
+  if (!esperado) return ultimosPuntosBase;
+
+  const orden = { "POR": 0, "DEF": 1, "MED": 2, "DEL": 3 };
+  const posReal = jugador.posicion;
+  let puntosFinales = ultimosPuntosBase;
+
+  // 1. Penalización
+  if (orden[posReal] !== undefined && orden[esperado] !== undefined) {
+    const distancia = Math.abs(orden[posReal] - orden[esperado]);
+    if (distancia === 1) puntosFinales *= 0.75;
+    else if (distancia >= 2) puntosFinales *= 0.25;
+  }
+
+  // 2. Capitán (x2)
+  if (jugador.id === idCapitan) {
+    puntosFinales *= 2;
+  }
+
+  // Redondear para no mostrar decimales feos si hay sanciones
+  return Math.round(puntosFinales);
+}
+
 export default function EquipoJugador({ usuario }) {
   const { jugadorId } = useParams()
   const [loadingJugador, setLoadingJugador] = useState(true)
@@ -227,36 +256,37 @@ export default function EquipoJugador({ usuario }) {
             <p><strong>Dinero:</strong> <small><span className="verde">{formatearDinero(jugadorData?.dinero || 0)}</span></small></p>
           </div>
           <div className="ultimas-jornadas-equipo-jugador">
-                {jugadorData?.puntuaciones && jugadorData?.puntuaciones.length > 0
-                  ? jugadorData?.puntuaciones.slice(-5).map((p, i, arr) => {
-                      const puntos = p != null ? p : "-";
-                      // Índice de jornada: siempre empezamos desde 1
-                      const jornadaIndex = arr.length < 5 ? i + 1 : jugadorData?.puntuaciones.length - 5 + i + 1;
+                          {jugadorData?.puntuaciones && jugadorData?.puntuaciones.length > 0
+                            ? jugadorData?.puntuaciones.slice(-5).map((p, i, arr) => {
+                                const puntos = p != null ? p : "-";
+                                // Índice de jornada: corregido para mostrar desde J1 correctamente
+                                const jornadaIndex = jugadorData.puntuaciones.length <= 5 
+                                    ? i + 1 
+                                    : jugadorData.puntuaciones.length - 5 + i + 1;
 
-                      // Determinar clase de color
-                      let claseColor = "";
-                      if (typeof p === "number") {
-                        if (p >= 36) claseColor = "verde";
-                        else if (p < 28) claseColor = "rojo";
-                        else claseColor = "naranja";
-                      }
+                                let claseColor = "";
+                                if (typeof p === "number") {
+                                  if (p >= 36) claseColor = "verde";
+                                  else if (p < 28) claseColor = "rojo";
+                                  else claseColor = "naranja";
+                                }
 
-                      return (
-                        <div key={i} className="jornada-item">
-                          <small className="jornada-nombre">J{jornadaIndex}</small>
-                          <div className={`jornada-cuadro ${claseColor}`}>
-                            {puntos}
-                          </div>
-                        </div>
-                      );
-                    })
-                  : [...Array(5)].map((_, i) => (
-                      <div key={i} className="jornada-item">
-                        <small className="jornada-nombre">J{i + 1}</small>
-                        <div className="jornada-cuadro">-</div>
-                      </div>
-                    ))
-                }
+                                return (
+                                  <div key={i} className="jornada-item">
+                                    <small className="jornada-nombre">J{jornadaIndex}</small>
+                                    <div className={`jornada-cuadro ${claseColor}`}>
+                                      {puntos}
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            : [...Array(5)].map((_, i) => (
+                                <div key={i} className="jornada-item">
+                                  <small className="jornada-nombre">J{i + 1}</small>
+                                  <div className="jornada-cuadro">-</div>
+                                </div>
+                              ))
+                          }
           </div>
           <div className="campo">
             {/* Jugadores según formación */}
@@ -305,26 +335,13 @@ export default function EquipoJugador({ usuario }) {
                       <div className="capitan-badge">C</div>
                     )}
 
-                    {/* Badge de últimos puntos (arriba derecha) */}
+                    {/* Badge de últimos puntos reales */}
                     {(() => {
-                      if (jugador?.puntosPorJornada.length === 0){
-                        return(
-                          <div className={`puntos-badge ${'gray'}`}>
-                            -
-                          </div>
-                        )
-                      }
-                      const ultimosPuntos = jugador?.puntosPorJornada?.length
-                        ? jugador?.puntosPorJornada[jugador?.puntosPorJornada.length - 1]
-                        : null;
+                      const puntosReales = calcularPuntosReales(jugador, index, formacionSeleccionada, capitan);
+                      if (puntosReales === null || puntosReales === undefined) return null;
 
-                      if (ultimosPuntos === null || ultimosPuntos === undefined) return null;
-                      let claseColor = ultimosPuntos === "-" ? "gray" : ultimosPuntos < 7 ? "red" : ultimosPuntos < 9 ? "orange" : "green";
-                      return (
-                        <div className={`puntos-badge ${claseColor}`}>
-                          {ultimosPuntos}
-                        </div>
-                      );
+                      let claseColor = puntosReales === "-" ? "gray" : puntosReales < 7 ? "red" : puntosReales < 9 ? "orange" : "green";
+                      return <div className={`puntos-badge ${claseColor}`}>{puntosReales}</div>;
                     })()}
                   </div>
                   <p className="jugador-nombre">{jugador?.nombre || "Vacío"}</p>

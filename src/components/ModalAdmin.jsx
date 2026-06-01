@@ -242,7 +242,7 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
                 let resumenResultados = "";
                 const PREMIO_POR_PUNTO = 10000; 
 
-                // 3. Evaluar usuario por usuario
+// 3. Evaluar usuario por usuario
                 for (const userId in snapshot) {
                   const userFoto = snapshot[userId];
                   const userData = datosUsuariosActivos[userId];
@@ -255,41 +255,65 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
                   const posicionesEsperadas = MAPA_FORMACIONES[formacion] || MAPA_FORMACIONES["2-1-1"];
                   const capitanId = userFoto.capitan; 
                   let puntosJornada = 0;
+                  
+                  // 🚨 REGLA FANTASY: ¿Tiene el equipo incompleto? (Algún hueco libre en los 4 titulares)
+                  let equipoIncompleto = false;
+                  for (let i = 0; i < 4; i++) {
+                    if (!userFoto.titulares[i] || !userFoto.titulares[i].jugadorId) {
+                      equipoIncompleto = true;
+                      break;
+                    }
+                  }
 
-                  // Evaluar solo a los 4 titulares
-                  userFoto.titulares.forEach((slot, index) => {
-                    if (slot && slot.jugadorId && index < 4) { 
-                      const jugador = mapaJugadores[slot.jugadorId];
-                      if (jugador && jugador.puntosPorJornada && jugador.puntosPorJornada.length > 0) {
-                        const ultimosPuntos = jugador.puntosPorJornada[jugador.puntosPorJornada.length - 1];
-                        
-                        if (typeof ultimosPuntos === 'number') {
-                          const posReal = jugador.posicion;
-                          const posEsperada = posicionesEsperadas[index];
+                  // Si el equipo está incompleto, se queda con 0 puntos. Si está completo, calculamos.
+                  if (!equipoIncompleto) {
+                    // Evaluar solo a los 4 titulares
+                    userFoto.titulares.forEach((slot, index) => {
+                      if (slot && slot.jugadorId && index < 4) { 
+                        const jugador = mapaJugadores[slot.jugadorId];
+                        if (jugador && jugador.puntosPorJornada && jugador.puntosPorJornada.length > 0) {
+                          const ultimosPuntos = jugador.puntosPorJornada[jugador.puntosPorJornada.length - 1];
                           
-                          // 1. Calculamos puntos base con penalización por posición
-                          const multiplicadorPos = calcularMultiplicador(posReal, posEsperada);
-                          let puntosJugador = ultimosPuntos * multiplicadorPos;
+                          if (typeof ultimosPuntos === 'number') {
+                            const posReal = jugador.posicion;
+                            const posEsperada = posicionesEsperadas[index];
+                            
+                            // 1. Calculamos puntos base con penalización por posición
+                            const multiplicadorPos = calcularMultiplicador(posReal, posEsperada);
+                            let puntosJugador = ultimosPuntos * multiplicadorPos;
 
-                          // 2. Aplicamos multiplicador de CAPITÁN (x2) si coincide el ID
-                          if (slot.jugadorId === capitanId) {
-                            puntosJugador *= 2;
+                            // 2. Aplicamos multiplicador de CAPITÁN (x2) si coincide el ID
+                            if (slot.jugadorId === capitanId) {
+                              puntosJugador *= 2;
+                            }
+
+                            puntosJornada += puntosJugador;
                           }
-
-                          puntosJornada += puntosJugador;
                         }
                       }
-                    }
-                  });
+                    });
+                    
+                    // 🧮 Redondear para no tener decimales en la clasificación final
+                    puntosJornada = Math.round(puntosJornada);
+                  }
 
                   const dineroGanado = puntosJornada * PREMIO_POR_PUNTO;
                   
+                  // 📈 Añadir los puntos de esta jornada al historial del usuario
+                  const historialPuntuaciones = userData.puntuaciones || [];
+                  const nuevasPuntuaciones = [...historialPuntuaciones, puntosJornada];
+                  
                   batch.update(doc(db, "usuarios", userId), {
                      dinero: (userData.dinero || 0) + dineroGanado,
-                     puntos: (userData.puntos || 0) + puntosJornada
+                     puntos: (userData.puntos || 0) + puntosJornada,
+                     puntuaciones: nuevasPuntuaciones // <-- ¡Guardamos el array actualizado!
                   });
 
-                  resumenResultados += `<b>${userFoto.nick}</b>: +${puntosJornada} pts (+${dineroGanado.toLocaleString('es-ES')}€)<br/>`;
+                  if (equipoIncompleto) {
+                     resumenResultados += `<b>${userFoto.nick}</b>: 0 pts <i>(Equipo incompleto)</i><br/>`;
+                  } else {
+                     resumenResultados += `<b>${userFoto.nick}</b>: +${puntosJornada} pts (+${dineroGanado.toLocaleString('es-ES')}€)<br/>`;
+                  }
                 }
 
                 // 4. Marcar la foto como pagada para no repetir el cobro
