@@ -113,6 +113,8 @@ export default function Home({ usuario }) {
     }, []);
 
   useEffect(() => {
+      // Solo sincronizamos con Firebase si NO estamos en medio de una edición
+      if (!cambiosPendientes) {
         // 1. Sincronizamos los jugadores
         setTitulares(usuario?.equipo?.titulares || []);
         setBanquillo(usuario?.equipo?.banquillo || []);
@@ -120,12 +122,9 @@ export default function Home({ usuario }) {
         // 2. Sincronizamos la formación en tiempo real asumiendo la 2-1-1 por defecto
         const formacionDB = usuario?.equipo?.formacion || "2-1-1";
         setFormacionActual(formacionDB);
-        
-        // Actualizamos el selector visual solo si el usuario no tiene cambios sin guardar
-        if (!cambiosPendientes) {
-          setFormacionSeleccionada(formacionDB);
-        }
-      }, [usuario, cambiosPendientes]);
+        setFormacionSeleccionada(formacionDB);
+      }
+    }, [usuario, cambiosPendientes]);
 
   const toggleModoEdicion = () => {
     setModoEdicion(!modoEdicion);
