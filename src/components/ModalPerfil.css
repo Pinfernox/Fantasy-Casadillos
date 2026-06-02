@@ -1,92 +1,51 @@
-/* capa semitransparente que bloquea todo */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.5);
+.custom-modal-perfil {
+  background: rgb(1, 1, 33, 0.9) !important; /* Cristal oscuro a juego con Solarized */
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(20, 47, 136, 0.519) !important; /* Borde sutil verde agua */
+  padding: 2rem !important;
+  max-width: 28rem !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Cabecera Estilizada */
+.perfil-header-top {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  /* animación de entrada */
-  animation: overlayFadeIn 0.3s ease-out;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
-@keyframes overlayFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-hr {
-  border: none;
-  height: 3px;
-  background-color: white;
-  margin: 1rem 0;
-}
-/* ventana centrada */
-.modal-perfil {
+.perfil-avatar-wrapper {
+  width: 85px !important;
+  height: 85px !important;
+  border: 3px solid #2aa198 !important; /* Brillo verde agua en la foto */
+  box-shadow: 0 4px 15px rgba(42, 161, 152, 0.3);
   position: relative;
-  background: rgb(1, 1, 33);
-  border-radius: 12px;
-  width: 90%;
-  max-width: 30rem;
-  padding: 1rem 0 1.5rem;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-  margin: 0 auto;
-  box-sizing: border-box; /* asegura que el padding no se sume al ancho */
-  /* animación */
-  animation: modalFadeIn 0.35s ease-out;
-  transform-origin: center;
-}
-
-.modal-perfil input {
-  padding-left: 0.4rem;
-}
-
-@keyframes modalFadeIn {
-  from { opacity: 0; transform: scale(0.85) translateY(20px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-/* cierre */
-.modal-close-btn {
-  position: absolute;
-  top: 8px; right: 12px;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: white;
-}
-
-/* cabecera: avatar + info */
-.modal-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0 1rem;
-}
-
-.modal-avatar {
-  position: relative;
-  width: 80px !important; height: 80px !important;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
-  display: inline-block;
 }
-.modal-avatar input {
+
+.perfil-avatar-wrapper input[type="file"] {
   position: absolute;
-  width: 100%; height: 100%;
-  top: 0; left: 0;
-  opacity: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0; /* Lo hacemos invisible pero sigue ahí */
   cursor: pointer;
+  z-index: 10; /* Lo ponemos en la capa más alta para que reciba el click */
 }
-.modal-avatar img {
+
+.perfil-avatar-wrapper img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  cursor: pointer;
 }
+
+/* 🚀 CORREGIDO: La capa de oscurecimiento */
 .modal-avatar-overlay {
   position: absolute;
   top: 0; left: 0;
@@ -101,217 +60,260 @@ hr {
   justify-content: center;
   opacity: 0;
   transition: opacity 0.25s ease-in-out;
-  pointer-events: none; /* para que el click siga pasando al input */
+  pointer-events: none; /* 🚀 CRÍTICO: Deja pasar el click a la capa de abajo (el input) */
+  z-index: 5; /* Por debajo del input, por encima de la imagen */
 }
 
-.modal-avatar:hover .modal-avatar-overlay {
+/* 🚀 CORREGIDO: Activar el overlay al hacer hover en el contenedor padre */
+.perfil-avatar-wrapper:hover .modal-avatar-overlay {
   opacity: 1;
 }
-/* nombre + correo */
-.modal-userinfo h2 {
-  margin: 0; 
-  font-size: 1.2rem;
-  color: white;
-  font-weight: bold;
-}
-.modal-userinfo small {
-  display: block;
-  color: lightgray;
-  margin-top: 4px;
 
-}
-
-.link-style {
-  background: none;
-  border: none;
-  color: lightblue;
-  cursor: pointer;
-  font-size: 1rem;
-  padding: 0;
-  font-weight: bolder;
-  margin-left: 0.3rem;
-  margin-top: 0;
-}
-
-.link-style:hover {
-  color: lightblue;
-  text-decoration: underline;
-}
-
-/* cuerpo con campos editables */
-.modal-body {
-  padding: 1rem;
-  display: grid;
-  gap: 1rem;
-  color: white;
-  padding-bottom: 0;
-}
-
-.field-group label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 4px;
-  width: 100%;
-}
-
-.field-group small{
-  font-weight: lighter;
-  font-size: 0.85rem;
-}
-
-.field-group input {
-  width: 100%;
-}
-
-.field-group input:disabled{
-  background-color: lightgray;
-}
-
-.field-with-icon {
-  position: relative;
-}
-.field-with-icon input {
-  width: 100%;
-  padding-right: 28px; /* espacio para el icono */
-}
-.icon-pencil {
-  position: absolute;
-  right: 8px; top: 50%;
-  transform: translateY(-50%);
-  font-size: 1rem;
-  cursor: pointer;
-  background: none;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  color: #555;
-
-}
-
-.dinero-verde {
-  color: lightgreen; /* verde tipo Bootstrap */
-  font-weight: bold;
-}
-.ultimas-jornadas {
-  flex-wrap: wrap;
+.perfil-user-meta {
+  text-align: left;
   display: flex;
-  gap: 8px;
-  justify-content: left !important;   /* centrado horizontal */
-  align-items: center;       /* opcional, centrado vertical */
+  flex-direction: column;
+  gap: 4px;
+  color: white;
 }
 
-.jornada-item {
+.perfil-user-meta h2 {
+  font-size: 1.4rem !important;
+  letter-spacing: 0.5px;
+  margin: 0 !important;
+}
+
+.perfil-email-sub {
+  font-size: 0.85rem;
+  color: #839496;
+}
+
+.perfil-saldo-pill {
+  display: inline-block;
+  background: rgba(40, 167, 69, 0.15);
+  border: 1px solid rgba(40, 167, 69, 0.3);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: #28a745;
+  margin-top: 6px;
+  width: fit-content;
+}
+
+/* --- HISTORIAL DE JORNADAS (ARREGLADO Y SIMÉTRICO) --- */
+.perfil-jornadas-section {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+.jornadas-section-title {
+  font-size: 0.8rem;
+  color: #839496;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin: 0 0 8px 0;
+  text-align: left;
+}
+
+.ultimas-jornadas-perfil {
+  display: flex;
+  justify-content: space-between; /* Distribuye las 5 cajas perfectamente */
+  align-items: center;
+  gap: 8px;
+}
+
+.jornada-item-perfil {
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex: 1; /* Forzamos a que todas las columnas midan lo mismo */
 }
 
-.jornada-nombre {
-  font-size: 10px;
-  margin-bottom: 2px;
-  color: white;
+.jornada-mini-name {
+  font-size: 0.7rem;
+  color: #aaa;
+  font-weight: bold;
+  margin-bottom: 4px;
 }
 
-.jornada-cuadro {
-  width: 30px;
-  height: 30px;
-  border-radius: 4px;
-  background: #f5f5f5;
-  border: 1px solid #ccc;
-  font-size: 12px;
+.jornada-mini-box {
+  width: 100%;
+  max-width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.85rem;
   font-weight: bold;
   display: flex;
   justify-content: center;
   align-items: center;
-  color: black;
-
+  color: white;
 }
 
-.jornada-cuadro.verde {
-  background: #4caf50;
-  color: #fff;
-  border-color: #388e3c;
+.jornada-mini-box.verde { background: #2aa198; border-color: #2aa198; }
+.jornada-mini-box.rojo { background: #dc322f; border-color: #dc322f; }
+.jornada-mini-box.naranja { background: #b58900; border-color: #b58900; }
+
+.perfil-separador {
+  border: none;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 1.5rem 0 !important;
 }
 
-.jornada-cuadro.rojo {
-  background: #f44336;
-  color: #fff;
-  border-color: #d32f2f;
-}
-.jornada-cuadro.naranja {
-  background: #ff9800;
-  color: #fff;
-  border-color: #b66f04;
+/* Formulario e Inputs */
+.perfil-body-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  padding: 0 !important;
 }
 
-/* footer con botón guardar */
-.modal-footer {
-  text-align: center;
-  padding-top: 0.5rem;
+.field-group-custom {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
 }
-.modal-save-btn {
-  background: #0069d9;
+
+.field-group-custom label {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #ccc;
+}
+
+.field-input-wrapper {
+  display: flex;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+
+.field-input-wrapper:focus-within {
+  border-color: #2aa198;
+}
+
+.field-input-wrapper input {
+  flex: 1;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  padding: 10px 14px !important;
+  color: white !important;
+  font-size: 0.95rem;
+}
+
+.field-input-wrapper input:disabled {
+  color: #657b83 !important;
+  cursor: not-allowed;
+}
+
+.btn-toggle-edit {
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  color: #2aa198;
+  padding: 0 15px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-toggle-edit:hover {
+  background: rgba(42, 161, 152, 0.1);
+}
+
+.btn-toggle-edit.editing {
+  background: #2aa198;
+  color: white;
+}
+
+/* Botones de acción inferiores */
+.perfil-links-container {
+  text-align: left;
+  margin-top: 5px;
+}
+
+.btn-link-pass {
+  background: none;
+  border: none;
+  color: #268bd2; /* Azul elegante */
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.btn-link-pass:hover {
+  color: #3ddc84;
+  text-decoration: underline;
+}
+
+.perfil-footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 2rem;
+}
+
+.btn-perfil-save {
+  background: linear-gradient(135deg, #2aa198, #23847c);
   color: white;
   border: none;
-  padding: 0.5rem 1.1rem;
-  border-radius: 4px;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: bold;
   cursor: pointer;
-  font-size: 1rem;
-  margin: 1rem;
-}
-.modal-save-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-.modal-delete-btn{
-  background: red;
-  color: white;
-  border: none;
-  padding: 0.5rem 1.1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-  margin: 1rem;
+  box-shadow: 0 4px 15px rgba(42, 161, 152, 0.3);
+  transition: transform 0.2s;
 }
 
+.btn-perfil-save:hover {
+  transform: translateY(-2px);
+}
+
+.btn-perfil-delete {
+  background: transparent;
+  border: 1px solid rgba(220, 53, 69, 0.4);
+  color: #dc3545;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-perfil-delete:hover {
+  background: rgba(220, 53, 69, 0.1);
+  border-color: #dc3545;
+}
+
+/* Ajustes Móvil */
 @media screen and (max-width: 500px) {
-
-  .field-group small{
-    font-size: 0.7rem;
+  .custom-modal-perfil {
+    padding: 1.5rem !important;
+    width: 95% !important;
   }
-  .modal-userinfo h2 {
-    margin: 0; 
-    font-size: 1rem;
-    color: white;
-    font-weight: bold;
+  .perfil-header-top {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
   }
-  .ultimas-jornadas {
-    justify-content: center !important;
-    flex-wrap: wrap;
-    gap: 4px;
+  .perfil-user-meta {
+    align-items: center;
   }
-
-  .jornada-item .jornada-nombre {
-    font-size: 9px;
-  }
-
-  .jornada-cuadro {
-    width: 25px !important;
-    height: 25px !important;
-    font-size: 11px;
-  }
-
-  .modal-save-btn , .modal-delete-btn{
-    padding: 0.5rem 0.6rem !important;
-    font-size: 0.9rem !important;
-    margin: 0.3rem !important;
-  }
-}
-
-@media screen and (max-width: 350px){
-  .modal-save-btn , .modal-delete-btn{
-    padding: 0.5rem 0.5rem !important;
-    font-size: 0.85rem !important;
-    margin: 0.3rem !important;
+  .jornada-mini-box {
+    max-width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
   }
 }

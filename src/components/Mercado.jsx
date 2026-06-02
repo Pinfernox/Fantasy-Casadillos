@@ -38,16 +38,18 @@ export default function Mercado({ usuario }) {
   const titulares = usuario?.equipo?.titulares || [];
   const [loadingMercado, setLoadingMercado] = useState(false);
   const banquillo = usuario?.equipo?.banquillo || [];
+  
   // Estados principales
-  const [sistemaEnr, setSistemaEnr] = useState([]); // mercado del sistema enriquecido
-  const [usuariosEnr, setUsuariosEnr] = useState([]); // mercado Usuarios enriquecido
-  const [jugadoresMercado, setJugadoresMercado] = useState([]); // lista combinada (render)
-  const [jugadoresUsuario, setJugadoresUsuario] = useState([]); // solo mis operaciones (listados que yo puse)
+  const [sistemaEnr, setSistemaEnr] = useState([]); 
+  const [usuariosEnr, setUsuariosEnr] = useState([]); 
+  const [jugadoresMercado, setJugadoresMercado] = useState([]); 
+  const [jugadoresUsuario, setJugadoresUsuario] = useState([]); 
   const [openModalJugadorMercado, setOpenModalJugadorMercado] = useState(false)
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)
   const [edicionActiva, setEdicionActiva] = useState(false);
   const [conteoOfertas, setConteoOfertas] = useState({});
   const [misOfertas, setMisOfertas] = useState([]);
+  
   // Nuevos estados para el Modal de Ofertas
   const [mostrarModalOfertas, setMostrarModalOfertas] = useState(false);
   const [ofertasRecibidas, setOfertasRecibidas] = useState([]);
@@ -72,8 +74,7 @@ export default function Mercado({ usuario }) {
   };
 
   // -------------------------------
-  // Suscripción: mercado del SISTEMA (mercado/actual)
-  // Enriquecemos con la data real de la colección 'jugadores'
+  // Suscripción: mercado del SISTEMA
   // -------------------------------
   useEffect(() => {
     const refSistema = doc(db, "mercado", "actual");
@@ -81,7 +82,6 @@ export default function Mercado({ usuario }) {
       const jugadores = snap.exists() ? (snap.data().jugadores || []) : [];
       try {
         const enriched = await Promise.all(jugadores.map(async (p) => {
-          // p.idJugador debe contener el doc id en 'jugadores'
           const jDocRef = doc(db, "jugadores", p.idJugador);
           const jSnap = await getDoc(jDocRef);
           const jData = jSnap.exists() ? jSnap.data() : {};
@@ -102,7 +102,6 @@ export default function Mercado({ usuario }) {
             valoracion: jData.valoracion,
             nota: jData.nota,
             puntosTotales: jData.puntosTotales,
-            // guardar original por si hace falta
             _raw: p,
           };
         }));
@@ -114,11 +113,10 @@ export default function Mercado({ usuario }) {
     });
 
     return () => unsub();
-  }, []); // se suscribe una vez
+  }, []);
 
   // -------------------------------
-  // Suscripción: mercado de USUARIOS (mercadoUsuarios/actual)
-  // Estructura esperada: documento "actual" con array jugadores: [{ jugadorId, precioVenta, vendedorNick, vendedorUid, fecha }, ...]
+  // Suscripción: mercado de USUARIOS
   // -------------------------------
   useEffect(() => {
     const refUsuarios = doc(db, "mercadoUsuarios", "actual");
@@ -131,9 +129,7 @@ export default function Mercado({ usuario }) {
           const jSnap = await getDoc(jDocRef);
           const jData = jSnap.exists() ? jSnap.data() : null;
 
-          // Si no existe el jugador en 'jugadores' devolvemos un fallback (o null para eliminarlo)
           if (!jData) {
-            // Puedes optar por devolver null para filtrar listados huérfanos
             return {
               source: 'user',
               idJugador: listing.jugadorId,
@@ -173,7 +169,7 @@ export default function Mercado({ usuario }) {
 
         const filtered = enriched.filter(Boolean);
         setUsuariosEnr(filtered);
-        // operaciones del usuario autenticado (listados que yo puse)
+        
         if (usuario && usuario.uid) {
           setJugadoresUsuario(filtered.filter(l => l.vendedorUid === usuario.uid));
         } else {
@@ -193,47 +189,43 @@ export default function Mercado({ usuario }) {
     if (!usuario?.uid) {
       setMisOfertas([]);
       return;
-  }
-
-  // Referencia a las ofertas hechas por este usuario
-  const qMisOfertas = query(
-    collection(db, "ofertas"),
-    where("compradorUid", "==", usuario.uid)
-  );
-
-  const unsub = onSnapshot(qMisOfertas, async (snap) => {
-    const ofertasData = [];
-    for (const d of snap.docs) {
-      const data = d.data();
-      if (!data.jugadorId) continue;
-
-      // Traemos la información del jugador
-      const jSnap = await getDoc(doc(db, "jugadores", data.jugadorId));
-      const jData = jSnap.exists() ? jSnap.data() : {};
-
-      ofertasData.push({
-        id: d.id,
-        idJugador: data.jugadorId,
-        nombre: jData.nombre || "Jugador no encontrado",
-        foto: jData.foto || ImagenProfile,
-        posicion: jData.posicion || "—",
-        precio: jData.precio || 0,
-        precioOferta: data.precioOferta ?? data.oferta ?? data.precio ?? data.monto ?? 0,
-        vendedorUid: data.vendedorUid,
-        vendedorNick: data.vendedorNick,
-        fecha: data.fecha || null,
-        puntosPorJornada: jData.puntosPorJornada || []
-      });
     }
-    setMisOfertas(ofertasData);
-  });
 
-  return () => unsub();
-}, [usuario]);
+    const qMisOfertas = query(
+      collection(db, "ofertas"),
+      where("compradorUid", "==", usuario.uid)
+    );
 
-  // Combinar sistema + usuarios en una sola lista que renderizamos
+    const unsub = onSnapshot(qMisOfertas, async (snap) => {
+      const ofertasData = [];
+      for (const d of snap.docs) {
+        const data = d.data();
+        if (!data.jugadorId) continue;
+
+        const jSnap = await getDoc(doc(db, "jugadores", data.jugadorId));
+        const jData = jSnap.exists() ? jSnap.data() : {};
+
+        ofertasData.push({
+          id: d.id,
+          idJugador: data.jugadorId,
+          nombre: jData.nombre || "Jugador no encontrado",
+          foto: jData.foto || ImagenProfile,
+          posicion: jData.posicion || "—",
+          precio: jData.precio || 0,
+          precioOferta: data.precioOferta ?? data.oferta ?? data.precio ?? data.monto ?? 0,
+          vendedorUid: data.vendedorUid,
+          vendedorNick: data.vendedorNick,
+          fecha: data.fecha || null,
+          puntosPorJornada: jData.puntosPorJornada || []
+        });
+      }
+      setMisOfertas(ofertasData);
+    });
+
+    return () => unsub();
+  }, [usuario]);
+
   useEffect(() => {
-    // podrías aplicar un orden: primero sistema, luego usuarios (ahora así)
     setJugadoresMercado([...sistemaEnr, ...usuariosEnr]);
   }, [sistemaEnr, usuariosEnr]);
   
@@ -250,19 +242,15 @@ export default function Mercado({ usuario }) {
         console.error("Error al obtener estado de edición:", error);
       }
     };
-
     cargarEstadoEdicion();
   }, []);
   
-
-// Mirar número de ofertas
   useEffect(() => {
     const q = query(collection(db, "ofertas"));
     const unsub = onSnapshot(q, (snapshot) => {
       const counts = {};
       snapshot.forEach(doc => {
         const data = doc.data();
-        // Clave unificada y simplificada
         const key = `${data.jugadorId}-${data.vendedorUid || 'system'}`;
         counts[key] = (counts[key] || 0) + 1;
       });
@@ -270,9 +258,7 @@ export default function Mercado({ usuario }) {
     });
     return () => unsub();
   }, []);
-  // -------------------------------
-  // Otras utilidades: compra (solo sistema)...
-  // -------------------------------
+
   const pujarJugador = async (jugador, precioOferta) => {
     const user = auth.currentUser;
     if (!user) {
@@ -294,11 +280,9 @@ export default function Mercado({ usuario }) {
           throw new Error("Saldo insuficiente para hacer esta oferta.");
         }
 
-        // restar dinero temporalmente
         const nuevoSaldo = dineroActual - precioOferta;
         transaction.update(userRef, { dinero: nuevoSaldo });
 
-        // crear la oferta
         const ofertasRef = collection(db, "ofertas");
         transaction.set(doc(ofertasRef), {
           jugadorId: jugador.idJugador,
@@ -307,7 +291,7 @@ export default function Mercado({ usuario }) {
           compradorUid: user.uid,
           precioOferta,
           fecha: serverTimestamp(),
-          estado: "pendiente", // puedes usar esto para saber si ya fue adjudicada o no
+          estado: "pendiente",
         });
       });
 
@@ -318,7 +302,6 @@ export default function Mercado({ usuario }) {
     }
   };
 
-  // Retirar venta (borra el jugador del mercadoUsuarios)
   const retirarVenta = async (jugador) => {
       try {
         const ref = doc(db, "mercadoUsuarios", "actual");
@@ -338,7 +321,6 @@ export default function Mercado({ usuario }) {
       }
     };
 
-// Ver ofertas (Abre el Modal interactivo y carga fotos)
   const verOfertar = async (jugador) => {
     const q = query(
       collection(db, "ofertas"), 
@@ -352,20 +334,18 @@ export default function Mercado({ usuario }) {
       return;
     }
 
-    // Mapear y enriquecer las ofertas con la foto y nick real
     const ofertas = await Promise.all(snapshot.docs.map(async (d) => {
       const data = d.data();
       const monto = Number(data.oferta ?? data.precioOferta ?? data.precio ?? 0) || 0;
       
       let compradorNick = data.comprador || "Usuario";
-      let compradorFoto = ImagenProfile; // Tu imagen por defecto
+      let compradorFoto = ImagenProfile;
 
       if (data.compradorUid === "system") {
         compradorNick = "Fantasy Casadillos";
-        compradorFoto = LogoLiga; // El logo de la liga
+        compradorFoto = LogoLiga; 
       } else {
         try {
-          // Buscar los datos frescos del usuario en Firestore
           const userSnap = await getDoc(doc(db, "usuarios", data.compradorUid));
           if (userSnap.exists()) {
             const userData = userSnap.data();
@@ -385,7 +365,6 @@ export default function Mercado({ usuario }) {
     setMostrarModalOfertas(true);
   };
 
-// Aceptar Oferta
   const aceptarOferta = async (oferta) => {
     try {
       const { isConfirmed } = await Swal.fire({
@@ -399,13 +378,11 @@ export default function Mercado({ usuario }) {
 
       if (!isConfirmed) return;
 
-      // 1. Obtener TODAS las ofertas por este jugador ANTES de la transacción
       const qTodas = query(collection(db, "ofertas"), where("jugadorId", "==", oferta.jugadorId));
       const snapTodas = await getDocs(qTodas);
       const todasLasOfertas = snapTodas.docs.map(d => ({ id: d.id, ...d.data() }));
 
       await runTransaction(db, async (tx) => {
-        // A. Pagar al Vendedor (Tú) y quitar jugador de tu equipo
         const vendedorRef = doc(db, "usuarios", usuario.uid);
         const vendedorSnap = await tx.get(vendedorRef);
         let equipo = vendedorSnap.data().equipo || { titulares: [], banquillo: [] };
@@ -417,7 +394,6 @@ export default function Mercado({ usuario }) {
 
         tx.update(vendedorRef, { dinero: nuevoDinero, equipo: equipo });
 
-        // B. Modificar el jugador y procesar al Comprador (Ganador)
         const jugadorRef = doc(db, "jugadores", oferta.jugadorId);
         if (oferta.compradorUid === "system") {
           tx.update(jugadorRef, {
@@ -425,7 +401,6 @@ export default function Mercado({ usuario }) {
             dueños: arrayRemove(usuario.uid)
           });
         } else {
-          // Lógica si compra otro usuario real
           const compradorRef = doc(db, "usuarios", oferta.compradorUid);
           const compradorSnap = await tx.get(compradorRef);
           let eqComprador = compradorSnap.data()?.equipo || { titulares: [], banquillo: [] };
@@ -445,11 +420,8 @@ export default function Mercado({ usuario }) {
           tx.update(jugadorRef, { dueños: arrayRemove(usuario.uid) });
         }
 
-        // C. Reembolsar a los PERDEDORES y borrar todas las pujas
         for (const ofe of todasLasOfertas) {
           const ofeRef = doc(db, "ofertas", ofe.id);
-          
-          // Si es un perdedor real, le devolvemos su dinero
           if (ofe.id !== oferta.id && ofe.compradorUid !== "system") {
             const perdedorRef = doc(db, "usuarios", ofe.compradorUid);
             const perdedorSnap = await tx.get(perdedorRef);
@@ -459,12 +431,9 @@ export default function Mercado({ usuario }) {
               tx.update(perdedorRef, { dinero: dineroActualPerdedor + montoDevolver });
             }
           }
-          
-          // Borrar la oferta evaluada (ganadora o perdedora)
           tx.delete(ofeRef);
         }
 
-        // D. Sacar al jugador de la vitrina de ventas activas
         const mercadoUsuariosRef = doc(db, "mercadoUsuarios", "actual");
         const muSnap = await tx.get(mercadoUsuariosRef);
         if (muSnap.exists()) {
@@ -481,7 +450,6 @@ export default function Mercado({ usuario }) {
     }
   };
 
-  // Rechazar Oferta
   const rechazarOferta = async (oferta) => {
     try {
       const { isConfirmed } = await Swal.fire({
@@ -501,13 +469,10 @@ export default function Mercado({ usuario }) {
       }
       
       await deleteDoc(doc(db, "ofertas", oferta.id));
-      
-      // Actualizar la lista visual sin recargar
       const nuevasOfertas = ofertasRecibidas.filter(o => o.id !== oferta.id);
       setOfertasRecibidas(nuevasOfertas);
       
       if (nuevasOfertas.length === 0) setMostrarModalOfertas(false);
-      
       Swal.fire("✅ Rechazada", "La oferta ha sido eliminada", "success");
     } catch (error) {
       console.error(error);
@@ -515,7 +480,6 @@ export default function Mercado({ usuario }) {
     }
   };
 
-// Hacer oferta nueva
   const hacerOferta = async (jugador) => {
     const { value: precioParsed } = await Swal.fire({
       title: `Oferta por ${jugador.nombre}`,
@@ -549,11 +513,9 @@ export default function Mercado({ usuario }) {
     });
 
     if (!precioParsed) return;
-
     await pujarJugador(jugador, precioParsed);
   };
 
-// Retirar / Cancelar oferta
   const retirarOferta = async (oferta) => {
     try {
       const { isConfirmed } = await Swal.fire({
@@ -569,11 +531,9 @@ export default function Mercado({ usuario }) {
 
       if (!isConfirmed) return;
 
-      // Identificar cuánto dinero hay que devolver (ignorando el valor de mercado)
       const montoADevolver = Number(oferta.precioOferta ?? oferta.oferta ?? oferta.monto ?? 0) || 0;
 
       await runTransaction(db, async (tx) => {
-        // 1. Devolver el dinero al usuario
         const userRef = doc(db, "usuarios", usuario.uid);
         const userSnap = await tx.get(userRef);
         
@@ -581,8 +541,6 @@ export default function Mercado({ usuario }) {
           const dineroActual = userSnap.data().dinero ?? 0;
           tx.update(userRef, { dinero: dineroActual + montoADevolver });
         }
-
-        // 2. Borrar la oferta
         const ofertaRef = doc(db, "ofertas", oferta.id);
         tx.delete(ofertaRef);
       });
@@ -594,12 +552,8 @@ export default function Mercado({ usuario }) {
     }
   };
 
-// Aumentar / Modificar oferta
   const aumentarOferta = async (oferta) => {
-    // 1. Separamos claramente el valor de mercado de lo que el usuario ha pujado
     const precioMercado = Number(oferta.precio) || 0; 
-    
-    // Quitamos 'oferta.precio' de esta lectura para que no coja el valor de mercado por error
     const montoAnterior = Number(oferta.precioOferta ?? oferta.oferta ?? oferta.monto ?? 0) || 0;
 
     const { value: nuevoMonto } = await Swal.fire({
@@ -625,19 +579,15 @@ export default function Mercado({ usuario }) {
           Swal.showValidationMessage("Introduce un precio válido");
           return false;
         }
-        
-        // 🛡️ NUEVA VALIDACIÓN: No permitir ofertas por debajo del valor de mercado
         if (parsed < precioMercado) {
           Swal.showValidationMessage("Debes introducir un precio superior o igual al valor de mercado");
           return false;
         }
-        
         return parsed;
       }
     });
 
-    if (!nuevoMonto) return;
-    if (nuevoMonto === montoAnterior) return;
+    if (!nuevoMonto || nuevoMonto === montoAnterior) return;
 
     try {
       await runTransaction(db, async (tx) => {
@@ -650,15 +600,11 @@ export default function Mercado({ usuario }) {
         const dineroActual = userData.dinero ?? 0;
         const diferencia = nuevoMonto - montoAnterior;
 
-        // Comprobar si tiene dinero suficiente para cubrir el aumento
         if (diferencia > 0 && dineroActual < diferencia) {
           throw new Error("Saldo insuficiente para aumentar la oferta.");
         }
 
-        // Actualizar el dinero del usuario
         tx.update(userRef, { dinero: dineroActual - diferencia });
-
-        // Actualizar el documento de la oferta
         const ofertaRef = doc(db, "ofertas", oferta.id);
         tx.update(ofertaRef, { 
           precioOferta: nuevoMonto,
@@ -675,11 +621,6 @@ export default function Mercado({ usuario }) {
     }
   };
 
-  // -------------------------------
-  // UI / Render
-  // -------------------------------
-
-  // Onboarding y leer dinero
   useEffect(() => {
     if (!usuario) return;
     if (window.particlesJS) {
@@ -698,7 +639,6 @@ export default function Mercado({ usuario }) {
       }, 500);
       return () => clearTimeout(timer);
     }
-
   }, [usuario]);
 
   return (
@@ -708,13 +648,15 @@ export default function Mercado({ usuario }) {
       <div className="login-hero-Cabecera-mercado" style={{ backgroundImage: `url(${Fondo})` }}>
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }} />
         {openModalJugadorMercado && jugadorSeleccionado && (<ModalJugadorMercado jugador={jugadorSeleccionado} openModal={openModalJugadorMercado} setOpenModal={setOpenModalJugadorMercado}/>)}
-        <div className="temporizador">
+        
+        <div className="temporizador-glass">
           <TemporizadorRefresco />
         </div>
+
         <div className="tabs-wrapper">
-          <div className="tabs-container">
-            <button className={`tab-btn ${tabActiva === "mercado" ? "active" : ""}`} onClick={() => setTabActiva("mercado")}>Mercado</button>
-            <button className={`tab-btn ${tabActiva === "operaciones" ? "active" : ""}`} onClick={() => setTabActiva("operaciones")}>Mis operaciones</button>
+          <div className="tabs-container-glass">
+            <button className={`tab-btn-glass ${tabActiva === "mercado" ? "active" : ""}`} onClick={() => setTabActiva("mercado")}>Mercado</button>
+            <button className={`tab-btn-glass ${tabActiva === "operaciones" ? "active" : ""}`} onClick={() => setTabActiva("operaciones")}>Mis operaciones</button>
           </div>
 
           {tabActiva === "mercado" && (
@@ -728,7 +670,7 @@ export default function Mercado({ usuario }) {
                     return (
                       <li key={key} className="jugador-card"
                         onClick={() => { setJugadorSeleccionado(j); setOpenModalJugadorMercado(true); }}>
-                        <div className="jugador-perfil">
+                        <div className="mercado-card-glass">
                           <div className="modal-header">
                             <label className="modal-avatar">
                               <img src={j.foto || ImagenProfile} alt={j.nombre} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ImagenProfile }} />
@@ -737,130 +679,115 @@ export default function Mercado({ usuario }) {
                               <h2>{j.nombre}</h2>
 
                               <div className='posicion-precio'>
-                                <div className={`posicion-texto ${j.posicion || ''}`}>
-                                  <small>{traducirPosicion(j.posicion)}</small>
-                                </div>
+                                <span className={`badge-posicion ${j.posicion || ''}`}>
+                                  {traducirPosicion(j.posicion)}
+                                </span>
 
-                                <div className='precio-container'>
-                                  <div className='precio'>
-                                    <small><span className='texto-blanco'>Valor:</span> {Number(j.precio) ? formatearDinero(Number(j.precio)) : "—"}</small>
+                                <div className='precio-grid-info'>
+                                  <div className='info-block info-block-full' >
+                                    <span className='info-label'>Valor M.</span>
+                                    <div className="valor-tendencia-container">
+                                      <span className='info-valor verde'>{Number(j.precio) ? formatearDinero(Number(j.precio)) : "—"}</span>
+                                      <span className="diferencia-precio">
+                                        {(() => {
+                                          const historial = j.historialPrecios || [];
+                                          if (historial.length === 0) return <span className="igual">(±0€)</span>;
+                                          const ultimoPrecio = historial[historial.length - 1]?.precio || 0;
+                                          const diferencia = (j.precio || 0) - ultimoPrecio;
+                                          const signo = diferencia > 0 ? "+" : diferencia < 0 ? "-" : "±";
+                                          return <span className={diferencia > 0 ? "subida" : diferencia < 0 ? "bajada" : "igual"}>({signo}{formatearDinero(Math.abs(diferencia))})</span>;
+                                        })()}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div className="diferencia-precio">
-                                    {(() => {
-                                      const historial = j.historialPrecios || [];
-                                      if (historial.length === 0) return <small>(±0€)</small>;
-                                      const ultimoPrecio = historial[historial.length - 1]?.precio || 0;
-                                      const diferencia = (j.precio || 0) - ultimoPrecio;
-                                      const signo = diferencia > 0 ? "+" : diferencia < 0 ? "-" : "±";
-                                      return <small className={diferencia > 0 ? "subida" : diferencia < 0 ? "bajada" : "igual"}>({signo}{formatearDinero(Math.abs(diferencia))})</small>;
-                                    })()}
+
+                                  <div className='info-block info-block-full'>
+                                    <span className='info-label'>Vendedor</span>
+                                    <span className='info-valor blanco'>{j.vendedor}</span>
                                   </div>
                                 </div>
-
-                                <small className="texto-vendedor">Vendedor:&nbsp;<span className="vendedor">{j.vendedor}</span></small>
-                                <small className="texto-vendedor">Media de puntos:&nbsp;<span className="media">{
-                                  j.puntosPorJornada && j.puntosPorJornada.length > 0
-                                    ? (j.puntosPorJornada.filter(p => typeof p === "number").reduce((acc, val, _, arr) => acc + val / arr.length, 0)).toFixed(2)
-                                    : "-"
-                                }</span></small>
                               </div>
-{/* últimas jornadas */}
-                                <div className="estadisticas-extra">
-                                  <div className="ultimas-jornadas">
-                                    {(() => {
-                                      // Cogemos el historial (sea j.puntosPorJornada o o.puntosPorJornada)
-                                      const jugadorData = j || o; 
-                                      const historial = jugadorData.puntosPorJornada || [];
-                                      const ultimas = historial.slice(-5);
-                                      const emptyCount = 5 - ultimas.length;
-                                      
-                                      // Construimos un array fijo de 5 elementos (rellenando con null si faltan)
-                                      const arrayToRender = [...ultimas, ...Array(emptyCount).fill(null)];
-                                      const offset = Math.max(0, historial.length - 5);
+                              
+                              {/* últimas jornadas */}
+                              <div className="estadisticas-extra mt-2">
+                                <div className="ultimas-jornadas">
+                                  {(() => {
+                                    const historial = j.puntosPorJornada || [];
+                                    const ultimas = historial.slice(-5);
+                                    const emptyCount = 5 - ultimas.length;
+                                    const arrayToRender = [...ultimas, ...Array(emptyCount).fill(null)];
+                                    const offset = Math.max(0, historial.length - 5);
 
-                                      return arrayToRender.map((p, idx) => {
-                                        const puntos = p != null ? p : "-";
-                                        const jornadaIndex = offset + idx + 1;
-                                        
-                                        let claseColor = "";
-                                        if (typeof p === "number") {
-                                          if (p >= 9) claseColor = "verde";
-                                          else if (p < 7) claseColor = "rojo";
-                                          else claseColor = "naranja"; // 👇 Ahora los 7 y 8 irán aquí
-                                        }
-                                        
-                                        return (
-                                          <div key={idx} className="jornada-item">
-                                            <small className="jornada-nombre">J{jornadaIndex}</small>
-                                            <div className={`jornada-cuadro ${claseColor}`}>{puntos}</div>
-                                          </div>
-                                        );
-                                      });
-                                    })()}
-                                  </div>
+                                    return arrayToRender.map((p, idx) => {
+                                      const puntos = p != null ? p : "-";
+                                      const jornadaIndex = offset + idx + 1;
+                                      
+                                      let claseColor = "";
+                                      if (typeof p === "number") {
+                                        if (p >= 9) claseColor = "verde";
+                                        else if (p < 7) claseColor = "rojo";
+                                        else claseColor = "naranja"; 
+                                      }
+                                      
+                                      return (
+                                        <div key={idx} className="jornada-item">
+                                          <small className="jornada-nombre">J{jornadaIndex}</small>
+                                          <div className={`jornada-cuadro ${claseColor}`}>{puntos}</div>
+                                        </div>
+                                      );
+                                    });
+                                  })()}
                                 </div>
+                              </div>
 
                             </div>
                           </div>
-                          <hr />
+                          <hr className="mercado-separador" />
                           <div className="modal-footer">
                             {(() => {
-                              // 1. Buscar si ya existe una oferta tuya por este jugador y vendedor
                               const ofertaExistente = misOfertas.find(o => 
                                 (o.idJugador === j.idJugador || o.jugadorId === j.idJugador) && 
                                 (o.vendedorUid === j.vendedorUid || (!o.vendedorUid && !j.vendedorUid))
                               );
 
-                              // 2. Si es tu propio jugador en venta
                               if (j.vendedorUid === auth.currentUser?.uid) {
                                 return (
-                                  <button className="btn-comprar" disabled={true}>
+                                  <button className="btn-mercado-disabled" disabled={true}>
                                     Es tu venta
                                   </button>
                                 );
                               }
 
-                              // 3. Si ya tienes una oferta, mostrar botones de modificar y cancelar
                               if (ofertaExistente) {
                                 return (
                                   <>
                                     <button
-                                      className="btn-comprar"
+                                      className="btn-mercado-modificar"
                                       disabled={!edicionActiva || !equipocreado}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        aumentarOferta(ofertaExistente);
-                                      }}
+                                      onClick={(e) => { e.stopPropagation(); aumentarOferta(ofertaExistente); }}
                                     >
                                       Modificar
                                     </button>
                                     <button
-                                      className="btn-cancelar"
+                                      className="btn-mercado-retirar"
                                       disabled={!edicionActiva || !equipocreado}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        retirarOferta(ofertaExistente);
-                                      }}
+                                      onClick={(e) => { e.stopPropagation(); retirarOferta(ofertaExistente); }}
                                     >
-                                      Cancelar Oferta
+                                      Cancelar
                                     </button>
                                   </>
                                 );
                               }
 
-// 4. Si no tienes oferta, mostrar botón para hacer una nueva
-  return (
-    <button
-      className="btn-comprar"
-      disabled={!edicionActiva || !equipocreado}
-      onClick={(e) => {
-        e.stopPropagation();
-        hacerOferta(j); // Llamamos a la función limpia que ya tiene el formateo
-      }}
-    >
-      {`Hacer oferta - (${conteoOfertas[`${j.idJugador}-${j.vendedorUid || 'system'}`] || 0})`}
-    </button>
-  );
+                              return (
+                                <button
+                                  className="btn-mercado-ofertar"
+                                  disabled={!edicionActiva || !equipocreado}
+                                  onClick={(e) => { e.stopPropagation(); hacerOferta(j); }}
+                                >
+                                  {`Hacer oferta (${conteoOfertas[`${j.idJugador}-${j.vendedorUid || 'system'}`] || 0})`}
+                                </button>
+                              );
                             })()}
                           </div>
                         </div>
@@ -874,7 +801,6 @@ export default function Mercado({ usuario }) {
 
           {tabActiva === "operaciones" && (
             <div className="mercado-jugadores">
-            <h3 className="titulo-seccion">Mis ventas activas</h3>
             {jugadoresUsuario.length === 0 && misOfertas.length === 0 ? (
               <div className="sin-mercado">
                 <p>No tienes operaciones activas.</p>
@@ -883,13 +809,13 @@ export default function Mercado({ usuario }) {
                   <ul className="lista-jugadores">
                   {jugadoresUsuario.map((j, i) => {
                     const key = `${j.idJugador}-${i}-${j.vendedorUid || 'yo'}`;
-                    const esMiVenta = j.vendedorUid === auth.currentUser?.uid; // soy el vendedor
-                    const miOferta = null; // aquí deberías buscar si ya hice una oferta sobre este jugador
+                    const esMiVenta = j.vendedorUid === auth.currentUser?.uid; 
+                    const miOferta = null; 
 
                     return (
                       <li key={key} className="jugador-card"
                         onClick={() => { setJugadorSeleccionado(j); setOpenModalJugadorMercado(true); }}>
-                          <div className="jugador-perfil">
+                          <div className="mercado-card-glass">
                             <div className="modal-header">
                               <label className="modal-avatar">
                                 <img
@@ -902,54 +828,40 @@ export default function Mercado({ usuario }) {
                                 <h2>{j.nombre}</h2>
 
                                 <div className='posicion-precio'>
-                                  <div className={`posicion-texto ${j.posicion || ''}`}>
-                                    <small>{traducirPosicion(j.posicion)}</small>
-                                  </div>
+                                  <span className={`badge-posicion ${j.posicion || ''}`}>
+                                    {traducirPosicion(j.posicion)}
+                                  </span>
 
-                                  <div className='precio-container'>
-                                    <div className='precio'>
-                                      <small><span className='texto-blanco'>Valor:</span> {Number(j.precio) ? formatearDinero(Number(j.precio)) : "—"}</small>
+                                  <div className='precio-grid-info'>
+                                    <div className='info-block'>
+                                      <span className='info-label'>Valor M.</span>
+                                      <div className="valor-tendencia-container">
+                                        <span className='info-valor verde'>{Number(j.precio) ? formatearDinero(Number(j.precio)) : "—"}</span>
+                                        <span className="diferencia-precio">
+                                          {(() => {
+                                            const historial = j.historialPrecios || [];
+                                            if (historial.length === 0) return <span className="igual">(±0€)</span>;
+                                            const ultimoPrecio = historial[historial.length - 1]?.precio || 0;
+                                            const diferencia = (j.precio || 0) - ultimoPrecio;
+                                            const signo = diferencia > 0 ? "+" : diferencia < 0 ? "-" : "±";
+                                            return <span className={diferencia > 0 ? "subida" : diferencia < 0 ? "bajada" : "igual"}>({signo}{formatearDinero(Math.abs(diferencia))})</span>;
+                                          })()}
+                                        </span>
+                                      </div>
                                     </div>
-                                    <div className="diferencia-precio">
-                                      {(() => {
-                                        const historial = j.historialPrecios || [];
-                                        if (historial.length === 0) return <small>(±0€)</small>;
-                                        const ultimoPrecio = historial[historial.length - 1]?.precio || 0;
-                                        const diferencia = (j.precio || 0) - ultimoPrecio;
-                                        const signo = diferencia > 0 ? "+" : diferencia < 0 ? "-" : "±";
-                                        return (
-                                          <small className={diferencia > 0 ? "subida" : diferencia < 0 ? "bajada" : "igual"}>
-                                            ({signo}{formatearDinero(Math.abs(diferencia))})
-                                          </small>
-                                        );
-                                      })()}
+                                    <div className='info-block'>
+                                      <span className='info-label'>Precio Venta</span>
+                                      <span className='info-valor oro'>{Number(j.precioVenta) ? formatearDinero(Number(j.precioVenta)) : "—"}</span>
                                     </div>
                                   </div>
-
-                                  <div className="precio-container">
-                                    <small className="precio"><span className='texto-blanco'>Precio Venta:</span> {Number(j.precioVenta) ? formatearDinero(Number(j.precioVenta)) : "—"} </small>
-                                  </div>      
-                                  <small className="texto-vendedor">
-                                    Media de puntos:&nbsp;<span className="media">{
-                                      j.puntosPorJornada && j.puntosPorJornada.length > 0
-                                        ? (j.puntosPorJornada.filter(p => typeof p === "number")
-                                            .reduce((acc, val, _, arr) => acc + val / arr.length, 0)).toFixed(2)
-                                        : "-"
-                                    }</span>
-                                  </small>
                                 </div>
 
-{/* últimas jornadas */}
-                                <div className="estadisticas-extra">
+                                <div className="estadisticas-extra mt-2">
                                   <div className="ultimas-jornadas">
                                     {(() => {
-                                      // Cogemos el historial (sea j.puntosPorJornada o o.puntosPorJornada)
-                                      const jugadorData = j || o; 
-                                      const historial = jugadorData.puntosPorJornada || [];
+                                      const historial = j.puntosPorJornada || [];
                                       const ultimas = historial.slice(-5);
                                       const emptyCount = 5 - ultimas.length;
-                                      
-                                      // Construimos un array fijo de 5 elementos (rellenando con null si faltan)
                                       const arrayToRender = [...ultimas, ...Array(emptyCount).fill(null)];
                                       const offset = Math.max(0, historial.length - 5);
 
@@ -961,7 +873,7 @@ export default function Mercado({ usuario }) {
                                         if (typeof p === "number") {
                                           if (p >= 9) claseColor = "verde";
                                           else if (p < 7) claseColor = "rojo";
-                                          else claseColor = "naranja"; // 👇 Ahora los 7 y 8 irán aquí
+                                          else claseColor = "naranja"; 
                                         }
                                         
                                         return (
@@ -977,28 +889,21 @@ export default function Mercado({ usuario }) {
 
                               </div>
                             </div>
-                            <hr />
+                            <hr className="mercado-separador" />
                             <div className="modal-footer">
                               {esMiVenta ? (
                                 <>
                                   <button
-                                    className="btn-comprar"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      verOfertar(j);
-                                    }}
+                                    className="btn-mercado-ofertar"
+                                    onClick={(e) => { e.stopPropagation(); verOfertar(j); }}
                                     disabled={!equipocreado}
                                   >
-                                    Ver ofertas - ({conteoOfertas[`${j.idJugador}-${j.vendedorUid || 'system'}`] || 0})
+                                    Ver ofertas ({conteoOfertas[`${j.idJugador}-${j.vendedorUid || 'system'}`] || 0})
                                   </button>
                                   <button
-                                    className="btn-cancelar"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      retirarVenta(j);
-                                    }}
+                                    className="btn-mercado-retirar"
+                                    onClick={(e) => { e.stopPropagation(); retirarVenta(j); }}
                                     disabled={!equipocreado}
-
                                   >
                                     Retirar venta
                                   </button>
@@ -1006,24 +911,16 @@ export default function Mercado({ usuario }) {
                               ) : miOferta ? (
                                 <>
                                   <button
-                                    className="btn-comprar"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      aumentarOferta(miOferta);
-                                    }}
+                                    className="btn-mercado-modificar"
+                                    onClick={(e) => { e.stopPropagation(); aumentarOferta(miOferta); }}
                                     disabled={!equipocreado}
-
                                   >
                                     Aumentar oferta
                                   </button>
                                   <button
-                                    className="btn-cancelar"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      retirarOferta(miOferta);
-                                    }}
+                                    className="btn-mercado-retirar"
+                                    onClick={(e) => { e.stopPropagation(); retirarOferta(miOferta); }}
                                     disabled={!equipocreado}
-
                                   >
                                     Retirar oferta
                                   </button>
@@ -1031,25 +928,18 @@ export default function Mercado({ usuario }) {
                               ) : (
                                 <>
                                   <button
-                                    className="btn-comprar"
+                                    className="btn-mercado-ofertar"
                                     disabled={!equipocreado}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      hacerOferta(j);
-                                    }}
-
+                                    onClick={(e) => { e.stopPropagation(); hacerOferta(j); }}
                                   >
                                     Hacer oferta
                                   </button>
                                   <button
-                                    className="btn-comprar"
+                                    className="btn-mercado-ofertar"
                                     disabled={!equipocreado}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      verOfertar(j);
-                                    }}
+                                    onClick={(e) => { e.stopPropagation(); verOfertar(j); }}
                                   >
-                                    Ver ofertas - ({conteoOfertas[`${j.idJugador}-${j.vendedorUid}`] || 0})
+                                    Ver ofertas ({conteoOfertas[`${j.idJugador}-${j.vendedorUid}`] || 0})
                                   </button>
                                 </>
                               )}
@@ -1060,14 +950,14 @@ export default function Mercado({ usuario }) {
                     })}
                   </ul>
               )}
-              {/* Mis ofertas */}
+              {/* Mis ofertas activas */}
               {misOfertas.length > 0 && (
                 <>
                   <h3 className="titulo-seccion">Mis ofertas activas</h3>
                   <ul className="lista-jugadores">
                     {misOfertas.map((o, i) => (
                       <li key={o.id} className="jugador-card">
-                        <div className="jugador-perfil">
+                        <div className="mercado-card-glass">
                           <div className="modal-header">
                             <label className="modal-avatar">
                               <img src={o.foto || ImagenProfile} alt={o.nombre} />
@@ -1076,54 +966,41 @@ export default function Mercado({ usuario }) {
                                 <h2>{o.nombre}</h2>
 
                                 <div className='posicion-precio'>
-                                  <div className={`posicion-texto ${o.posicion || ''}`}>
-                                    <small>{traducirPosicion(o.posicion)}</small>
-                                  </div>
+                                  <span className={`badge-posicion ${o.posicion || ''}`}>
+                                    {traducirPosicion(o.posicion)}
+                                  </span>
 
-                                  <div className='precio-container'>
-                                    <div className='precio'>
-                                      <small><span className='texto-blanco'>Valor:</span> {Number(o.precio) ? formatearDinero(Number(o.precio)) : "—"}</small>
+                                  <div className='precio-grid-info'>
+                                    <div className='info-block'>
+                                      <span className='info-label'>Valor M.</span>
+                                      <div className="valor-tendencia-container">
+                                        <span className='info-valor verde'>{Number(o.precio) ? formatearDinero(Number(o.precio)) : "—"}</span>
+                                        <span className="diferencia-precio">
+                                          {(() => {
+                                            const historial = o.historialPrecios || [];
+                                            if (historial.length === 0) return <span className="igual">(±0€)</span>;
+                                            const ultimoPrecio = historial[historial.length - 1]?.precio || 0;
+                                            const diferencia = (o.precio || 0) - ultimoPrecio;
+                                            const signo = diferencia > 0 ? "+" : diferencia < 0 ? "-" : "±";
+                                            return <span className={diferencia > 0 ? "subida" : diferencia < 0 ? "bajada" : "igual"}>({signo}{formatearDinero(Math.abs(diferencia))})</span>;
+                                          })()}
+                                        </span>
+                                      </div>
                                     </div>
-                                    <div className="diferencia-precio">
-                                      {(() => {
-                                        const historial = o.historialPrecios || [];
-                                        if (historial.length === 0) return <small>(±0€)</small>;
-                                        const ultimoPrecio = historial[historial.length - 1]?.precio || 0;
-                                        const diferencia = (o.precio || 0) - ultimoPrecio;
-                                        const signo = diferencia > 0 ? "+" : diferencia < 0 ? "-" : "±";
-                                        return (
-                                          <small className={diferencia > 0 ? "subida" : diferencia < 0 ? "bajada" : "igual"}>
-                                            ({signo}{formatearDinero(Math.abs(diferencia))})
-                                          </small>
-                                        );
-                                      })()}
+                                    <div className='info-block'>
+                                      <span className='info-label'>Tu Oferta</span>
+                                      {/* 🐛 BUG CORREGIDO AQUI: mostramos precioOferta en lugar de precioVenta */}
+                                      <span className='info-valor oro'>{Number(o.precioOferta) ? formatearDinero(Number(o.precioOferta)) : "—"}</span>
                                     </div>
                                   </div>
-
-                                  <div className="precio-container">
-                                    <small className="precio"><span className='texto-blanco'>Precio Venta:</span> {Number(o.precioVenta) ? formatearDinero(Number(j.precioVenta)) : "—"} </small>
-                                  </div>      
-                                  <small className="texto-vendedor">
-                                    Media de puntos:&nbsp;<span className="media">{
-                                      o.puntosPorJornada && o.puntosPorJornada.length > 0
-                                        ? (o.puntosPorJornada.filter(p => typeof p === "number")
-                                            .reduce((acc, val, _, arr) => acc + val / arr.length, 0)).toFixed(2)
-                                        : "-"
-                                    }</span>
-                                  </small>
                                 </div>
 
-{/* últimas jornadas */}
-                                <div className="estadisticas-extra">
+                                <div className="estadisticas-extra mt-2">
                                   <div className="ultimas-jornadas">
                                     {(() => {
-                                      // Cogemos el historial (sea j.puntosPorJornada o o.puntosPorJornada)
-                                      const jugadorData = j || o; 
-                                      const historial = jugadorData.puntosPorJornada || [];
+                                      const historial = o.puntosPorJornada || [];
                                       const ultimas = historial.slice(-5);
                                       const emptyCount = 5 - ultimas.length;
-                                      
-                                      // Construimos un array fijo de 5 elementos (rellenando con null si faltan)
                                       const arrayToRender = [...ultimas, ...Array(emptyCount).fill(null)];
                                       const offset = Math.max(0, historial.length - 5);
 
@@ -1135,7 +1012,7 @@ export default function Mercado({ usuario }) {
                                         if (typeof p === "number") {
                                           if (p >= 9) claseColor = "verde";
                                           else if (p < 7) claseColor = "rojo";
-                                          else claseColor = "naranja"; // 👇 Ahora los 7 y 8 irán aquí
+                                          else claseColor = "naranja"; 
                                         }
                                         
                                         return (
@@ -1151,10 +1028,10 @@ export default function Mercado({ usuario }) {
 
                               </div>
                           </div>
-                          <hr />
+                          <hr className="mercado-separador" />
                           <div className="modal-footer">
                             <button
-                              className="btn-cancelar"
+                              className="btn-mercado-retirar full-width"
                               disabled={!equipocreado}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1195,24 +1072,21 @@ export default function Mercado({ usuario }) {
               <p style={{textAlign: "center", padding: "20px"}}>No quedan ofertas pendientes.</p>
             ) : (
               <ul className="lista-ofertas-recibidas">
-                              {ofertasRecibidas.map((oferta) => (
-                                <li key={oferta.id} className="fila-oferta-item">
-                                  <div className="info-oferta-monto">
-                                    
-                                    {/* --- NUEVO CONTENEDOR DE FOTO Y NOMBRE --- */}
-                                    <div className="oferta-comprador-container">
-                                      <img src={oferta.compradorFoto} alt="Avatar" className="oferta-avatar" />
-                                      <span className="oferta-comprador">De: <strong>{oferta.compradorNick}</strong></span>
-                                    </div>
-                                    
-                                    <span className="oferta-dinero">{formatearDinero(oferta.monto)}</span>
-                                  </div>
-                                  <div className="acciones-oferta-btn">
-                                    <button onClick={() => aceptarOferta(oferta)} className="btn-aceptar-oferta">✅ Aceptar</button>
-                                    <button onClick={() => rechazarOferta(oferta)} className="btn-rechazar-oferta">❌ Rechazar</button>
-                                  </div>
-                                </li>
-                              ))}
+                  {ofertasRecibidas.map((oferta) => (
+                    <li key={oferta.id} className="fila-oferta-item">
+                      <div className="info-oferta-monto">
+                        <div className="oferta-comprador-container">
+                          <img src={oferta.compradorFoto} alt="Avatar" className="oferta-avatar" />
+                          <span className="oferta-comprador">De: <strong>{oferta.compradorNick}</strong></span>
+                        </div>
+                        <span className="oferta-dinero">{formatearDinero(oferta.monto)}</span>
+                      </div>
+                      <div className="acciones-oferta-btn">
+                        <button onClick={() => aceptarOferta(oferta)} className="btn-aceptar-oferta">✅ Aceptar</button>
+                        <button onClick={() => rechazarOferta(oferta)} className="btn-rechazar-oferta">❌ Rechazar</button>
+                      </div>
+                    </li>
+                  ))}
               </ul>
             )}
           </div>
@@ -1221,5 +1095,3 @@ export default function Mercado({ usuario }) {
     </div>
   );
 }
-
-

@@ -29,7 +29,7 @@ function TemporizadorRefresco() {
 
   return (
     <div className="temporizador">
-      <p>Refrescar Mercado - {tiempoRestante}</p>
+      <p>Actuilización de Mercado - {tiempoRestante}</p>
     </div>
   );
 }

@@ -1,52 +1,40 @@
 html, body {
   margin: 0;
   padding: 0;
-  background-color: black; /* asegura fondo uniforme */
+  background-color: black;
   height: 100%;
-  overflow-x: hidden; /* por si hay scroll horizontal */
+  overflow-x: hidden;
 }
-
 
 .login-hero-Cabecera-mercado {
   position: relative;
   inset: 0;
   margin: 0;
-  background-color: black;
-  /* Permite que la sección crezca más allá de la altura de la pantalla */
   min-height: 100vh;
-  height: 100%;    
-
-  /* Empuja el contenido hacia abajo para no quedar bajo el header */
-  padding-top: 1.4rem;    /* O la altura real de tu header */
+  height: 100%; /* 🚀 CLAVE 1: Restaurado para que las partículas ocupen todo el espacio como en Home */
+  padding-top: 1.4rem;
   padding-bottom: 4rem;
   background-color: black;
-  background-size: contain;
+  background-size: contain; /* 🚀 CLAVE 2: Volvemos a contain para mantener la proporción de la imagen igual que en Home */
+  /* Se elimina background-attachment: fixed; ya que rompe el comportamiento del fondo */
   background-position: center;
   background-repeat: no-repeat;
-
-  /* Si necesitas centrar en horizontal, deja solo justify-content */
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-
 a {
   color: inherit;
   text-decoration: none;
-  
 }
-
-
 
 /* Pantalla de carga onboarding */
 .onboarding-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.9); /* fondo negro transparente */
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,791 +43,348 @@ a {
   font-size: 1.5rem;
   font-weight: bold;
 }
+.loader { animation: blink 1s infinite; }
 
-.loader {
-  animation: blink 1s infinite;
-}
-
-/* Pagina de Equipo */
+/* Contenedor principal de listas */
+/* Contenedor principal de listas */
 .mercado-jugadores {
-  background-color: rgb(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 0px 0px 15px 15px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
   width: 100%;
   max-width: 420px;
-  border: 0; /* por si Bootstrap agrega borde */
   text-align: center;
   color: white;
   position: relative;
   z-index: 1;
-  height: auto;
-  max-height: 80vh; /* altura máxima visible */
-  min-height: 70vh;
-  overflow-y:hidden; /* permite scroll interno */
+  
+  /* 🚀 LA SOLUCIÓN: Limita el alto y crea un scroll interno */
+  max-height: 72vh; 
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 2rem; /* Espacio extra al final para que no se pegue abajo */
+}
+
+.titulo-seccion {
+  margin: 1.5rem 0 0.5rem 0;
+  color: #2aa198;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .lista-jugadores {
   display: flex;
-  flex-direction: column; /* apila verticalmente */
-  gap: 0.8rem;
-  padding: 1rem;
+  flex-direction: column;
+  gap: 1.2rem;
+  padding: 5px; /* Padding sutil para no cortar las sombras de las tarjetas */
+  margin: 0;
   list-style: none;
-  overflow-y: auto; /* permite scroll vertical */
-  max-height: 70vh; /* ajusta según tu diseño */
-  transition: all 0.3s ease;
 }
+
+/* 🚀 Movemos el estilo de la barra de scroll al nuevo contenedor padre */
+.mercado-jugadores::-webkit-scrollbar { width: 4px; }
+.mercado-jugadores::-webkit-scrollbar-thumb { 
+  background-color: rgba(255, 255, 255, 0.2); 
+  border-radius: 3px; 
+}
+
 .sin-mercado {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 200px; /* o 100% según quieras */
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #ccc;
-}
-
-@keyframes overlayFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-hr {
-  border: none;
-  height: 3px;
-  background-color: white;
-  margin-bottom: 0;
-}
-/* ventana centrada */
-.jugador-perfil {
-  position: relative;
-  background-color: rgba(0, 0, 0, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.1);  border-radius: 12px;
-  width: 100%;
-  max-width: 40rem;
-  padding: 1rem 0 1.5rem;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-  margin: 0 auto;
-  box-sizing: border-box; /* asegura que el padding no se sume al ancho */
-  /* animación */
-  animation: modalFadeIn 0.35s ease-out;
-  transform-origin: center;
-}
-
-.jugador-perfil input {
-  padding-left: 0.4rem;
-}
-
-@keyframes modalFadeIn {
-  from { opacity: 0; transform: scale(0.85) translateY(20px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-
-/* cabecera: avatar + info */
-.modal-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0 1rem;
-}
-
-.modal-avatar {
-  position: relative;
-  width: 75px; height: 75px;
-  border-radius: 50%;
-  overflow: hidden;
-  display: inline-block;
-}
-
-.modal-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.modal-jugadorinfo h2 {
-  margin: 0; 
-  font-size: 1.2rem;
-  color: white;
-  font-weight: bold;
-  margin-top: 0.3rem;
-  text-align: left;
-}
-
-.modal-jugadorinfo{
-  background-color: transparent;
-}
-
-.posicion-precio{
-  display: flex;
-  flex-direction: column;       /* elementos en fila */
-  justify-content: space-between; /* separa a los extremos */
-  margin-bottom: 0.5rem;
-  text-align: left;          /* mejor para lectura horizontal */
-}
-.precio-container {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.precio{
-  color: lightgreen;
-  font-weight: bold;
-}
-.precio-clausula{
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
-}
-.precio-clausula small{
-  color: lightgreen;
-  font-weight: bold;
-}
-.texto-blanco{
-  color: white;
-}
-.posicion-texto{
-  font-weight: bold;
-  display: flex;
-  margin-top: 0.3rem;
-}
-.posicion-texto.DEF {
-  color: orange; /* azul para defensa */
-}
-
-.posicion-texto.MED {
-  color: #1e90ff; /* verde para mediocampo */
-}
-
-.posicion-texto.DEL {
-  color: #dc3545; /* rojo para delantero */
-}
-
-.posicion-texto.POR {
-  color: darkgreen; /* amarillo para portero */
-}
-
-.texto-vendedor{
-  font-weight: bold;
-  display: flex;
-}
-.vendedor{
-  font-weight: lighter;
-}
-.media{
-  color: lightgreen;
-}
-
-.estadisticas-extra {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.ultimas-jornadas {
-  flex-wrap: wrap;
-  display: flex;
-  gap: 8px;
-  justify-content: center;   /* centrado horizontal */
-  align-items: center;       /* opcional, centrado vertical */
-}
-
-.jornada-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.jornada-nombre {
-  font-size: 10px;
-  margin-bottom: 2px;
-  color: white;
-}
-
-.jornada-cuadro {
-  width: 26px;
-  height: 26px;
-  border-radius: 4px;
-  background: #f5f5f5;
-  border: 1px solid #ccc;
-  font-size: 12px;
-  font-weight: bold;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: black;
-}
-
-.jornada-cuadro.verde {
-  background: #4caf50;
-  color: #fff;
-  border-color: #388e3c;
-}
-
-.jornada-cuadro.rojo {
-  background: #f44336;
-  color: #fff;
-  border-color: #d32f2f;
-}
-
-.jornada-cuadro.naranja {
-  background: #ff9800;
-  color: #fff;
-  border-color: #f57c00;
-}
-
-.diferencia-precio {
-  font-weight: bold;
-  color: white;
-}
-
-.diferencia-precio .subida {
-  color: green;
-}
-
-.diferencia-precio .bajada {
-  color: red;
-}
-
-.modal-jugadorbody {
-  padding: 1rem;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
-  color: white;
-}
-
-.stat-card {
-  background: rgba(255,255,255,0.05);
-  border-radius: 10px;
-  padding: 0.75rem;
-  text-align: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-  transition: transform 0.2s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-3px);
-}
-
-.stat-card h4 {
+  height: 150px;
   font-size: 1.1rem;
-  margin: 0;
-}
-
-.stat-card small {
-  font-size: 0.9rem;
-  color: white;
-}
-
-/* footer con botón guardar */
-.modal-footer {
-  text-align: center;
-  padding-top: 0.5rem;
-}
-
-.modal-save-btn {
-  background: #0069d9;
-  color: white;
-  border: none;
-  padding: 0.5rem 1.1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
+  font-weight: bold;
+  color: #839496;
+  /* Aspecto de cristal aplicado al mensaje de vacío */
+  background: rgba(0, 24, 32, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   margin: 1rem;
 }
 
-.modal-save-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.modal-delete-btn{
-  background: red;
-  color: white;
-  border: none;
-  padding: 0.5rem 1.1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-  margin: 1rem;
-}
-
+/* --- TARJETA DE CRISTAL (GLASSMORPHISM) --- */
 .jugador-card {
   transition: transform 0.3s ease;
   cursor: pointer;
   list-style: none;
-  padding-left: 0; /* opcional: elimina sangrado izquierdo */
-  margin-left: 0;  /* opcional: elimina margen izquierdo */
-  width: auto;
+  width: 100%;
+}
+.jugador-card:hover .mercado-card-glass {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5), 0 0 12px rgba(42, 161, 152, 0.2);
+  border-color: rgba(42, 161, 152, 0.5);
 }
 
-.jugador-card:hover {
-  transform: scale(1.03);
-}
-.jugador-info {
-  text-align: center;
-}
-
-.jugador-nombre {
-  font-size: 1.1rem;
-  margin: 0.3rem 0;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: center; /* o space-between si quieres que se separen más */
-  gap: 3.5rem; /* espacio entre botones */
-  margin-top: 0.5rem;
-}
-
-.btn-comprar {
-  padding: 0.4rem 0.8rem;
-  background: linear-gradient(
-    145deg,
-    #1c7c35,   /* verde más oscuro */
-    #28a745,   /* verde base */
-    #3ddc84,   /* verde brillante */
-    #1c7c35    /* repetimos para dar efecto metal */
-  );  border: 1px solid rgba(255, 255, 255, 0.2);           /* borde sutil */
-  box-shadow: 
-    inset 0 1px 3px rgba(255, 255, 255, 0.3), /* brillo interior */
-    0 4px 15px rgba(40, 167, 69, 0.4);        /* sombra exterior *  background-size: 300% 300%; /* más suave la transición */
-  border: 1px solid #1f5c2d; /* borde verde oscuro sólido */  border-radius: 4px;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.btn-comprar:hover{
-    transform: translateY(-4px) scale(1.03);
-  box-shadow:
-    inset 0 1px 3px rgba(255, 255, 255, 0.4),
-    0 6px 20px rgba(40, 167, 69, 0.7);
-}
-.btn-comprar:disabled {
-  background: linear-gradient(145deg, #444, #666) !important;
-  color: #ddd !important;
-  box-shadow: inset 0 1px 2px rgba(255,255,255,0.1);
-  cursor: not-allowed !important;
-  transform: none !important;
-  opacity: 0.7;
-  border-color: black;
-}
-
-.btn-cancelar {
-  padding: 0.4rem 0.8rem;
-  background: linear-gradient(
-    145deg,
-    #7c1c1c,   /* rojo más oscuro */
-    #dc3545,   /* rojo base */
-    #ff6b6b,   /* rojo brillante */
-    #7c1c1c    /* repetimos para dar efecto metal */
-  );
-  border: 1px solid rgba(255, 255, 255, 0.2); /* borde sutil */
-  box-shadow: 
-    inset 0 1px 3px rgba(255, 255, 255, 0.3), /* brillo interior */
-    0 4px 15px rgba(220, 53, 69, 0.4);        /* sombra exterior */
-  border: 1px solid #5c1f1f; /* borde rojo oscuro sólido */
-  border-radius: 4px;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.btn-cancelar:hover {
-  transform: translateY(-4px) scale(1.03);
-  box-shadow:
-    inset 0 1px 3px rgba(255, 255, 255, 0.4),
-    0 6px 20px rgba(220, 53, 69, 0.7);
-}
-
-.btn-cancelar:disabled {
-  background: linear-gradient(145deg, #444, #666) !important;
-  color: #ddd !important;
-  box-shadow: inset 0 1px 2px rgba(255,255,255,0.1);
-  cursor: not-allowed !important;
-  transform: none !important;
-  opacity: 0.7;
-  border-color: black;
-}
-
-.precio-compra {
-  color: white; 
-  font-weight: bold;
-  font-size: 0.8rem;
-}
-
-
-.lista-jugadores::-webkit-scrollbar {
-  width: 6px;
-}
-
-.lista-jugadores::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
-}
-
-.tabs-wrapper {
-  width: 100%;         /* ocupa todo el ancho disponible */
-  max-width: 420px;
-  margin: 0 auto;      /* centrado */
-  z-index: 2 !important;
-  margin-bottom: 0;
-}
-
-.tabs-container {
-  display: flex;
-  justify-content: flex-start;
-  background-color: rgb(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);  padding: 0.5rem;
-  border-radius: 8px 8px 0 0;
-  
-}
-
-.tab-btn {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: white;
-  font-weight: bold;
-  padding: 0.75rem;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.tab-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.tab-btn.active {
-  border-bottom: 3px solid gold;
-}
-
-.operaciones-container{
-  background-color: rgb(255, 255, 255, 0.2);
+.mercado-card-glass {
+  background: rgba(0, 24, 32, 0.85);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border-radius: 0px 0px 15px 15px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-  width: 100%;
-  max-width: 420px;
-  border: 0; /* por si Bootstrap agrega borde */
-  text-align: center;
-  color: white;
-  position: relative;
-  z-index: 1;
-  height: auto;
-  max-height: 80vh; /* altura máxima visible */
-  min-height: 70vh;
-  overflow-y:hidden; /* permite scroll interno */
-}
-
-.operaciones-animacion {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1.2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
 }
 
-.temporizador {
-  font-weight: bold;
-  text-align: center;
-  color: #fff;
-  background-color: #2c3e50;
-  padding: 6px;
-  padding-bottom: 0;
-  border-radius: 6px;
-  display: inline-block;
-  margin-bottom: 6px;
-  width: 100%;
-  max-width: 422px;
-  z-index: 5;
-}
-
-/* --- OVERLAY DEL MODAL DE OFERTAS --- */
-/* Igualamos a .modal-overlay de ModalJugador.css */
-.modal-ofertas-overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.5); /* Fondo menos opaco para no asfixiar */
+/* Header Avatar + Info */
+.modal-header {
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
-  animation: overlayFadeIn 0.3s ease-out; /* Misma animación de entrada */
+  gap: 1.2rem;
 }
 
-/* --- CONTENIDO DEL MODAL --- */
-/* Igualamos a .modal-perfil de ModalJugador.css */
-.modal-ofertas-content {
-  position: relative;
-  background: rgb(1, 1, 33); /* Tu azul/negro característico */
-  border-radius: 12px;
-  width: 90%;
-  max-width: 30rem; /* Mismo tamaño máximo que ModalJugador */
-  padding: 1.5rem;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-  margin: 0 auto;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-sizing: border-box;
-  animation: modalFadeIn 0.35s ease-out; /* Misma animación de pop-up */
-  color: white; /* Letra blanca por defecto */
+.modal-avatar {
+  width: 70px; height: 70px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(255,255,255,0.2);
+  flex-shrink: 0;
+}
+.modal-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.modal-jugadorinfo {
+  flex: 1;
+  text-align: left;
 }
 
-/* Scroll elegante */
-.modal-ofertas-content::-webkit-scrollbar { width: 6px; }
-.modal-ofertas-content::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
-}
-
-/* --- CABECERA DEL MODAL --- */
-.modal-ofertas-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 3px solid white; /* Simulamos el <hr> que usas de separador */
-  padding-bottom: 10px;
-  margin-bottom: 15px;
-}
-
-.modal-ofertas-header h3 {
-  margin: 0;
+.modal-jugadorinfo h2 {
+  margin: 0 0 1.2rem 0; /* Aumentado el margen inferior para separar el nombre */
   font-size: 1.2rem;
-  font-weight: bold;
-}
-
-/* Botón de cerrar igual al tuyo */
-.btn-close-modal {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
   color: white;
 }
 
-/* --- LISTA Y FILAS --- */
-.lista-ofertas-recibidas {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.fila-oferta-item {
+/* --- BADGES Y CUADRÍCULA DE INFO --- */
+.posicion-precio {
   display: flex;
   flex-direction: column;
-  background: rgba(255,255,255,0.05); /* Mismo fondo de tus stat-cards */
-  padding: 1rem;
-  border-radius: 10px;
-  margin-bottom: 10px;
-  gap: 15px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  gap: 0.8rem;
+  margin-top: 0.4rem;
 }
 
-.info-oferta-monto {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 1.1rem;
-}
-
-.oferta-comprador {
-  font-weight: lighter; /* Igualamos a la clase .vendedor */
-}
-
-/* El dinero en verde claro como en .precio */
-.oferta-dinero {
+.badge-posicion {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
   font-weight: bold;
-  color: lightgreen; 
-}
-
-/* --- BOTONES DE ACEPTAR / RECHAZAR --- */
-.acciones-oferta-btn {
-  display: flex;
-  gap: 15px;
-}
-
-/* Base de los botones (similar a .btn-accion pero adaptados) */
-.btn-aceptar-oferta, .btn-rechazar-oferta {
-  flex: 1;
-  padding: 0.6rem;
-  border: none;
-  border-radius: 4px;
   color: white;
+  width: fit-content;
+  text-transform: uppercase;
+}
+.badge-posicion.DEF { background: #b58900; }
+.badge-posicion.MED { background: #268bd2; }
+.badge-posicion.DEL { background: #dc322f; }
+.badge-posicion.POR { background: #2aa198; }
+
+.precio-grid-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.info-block {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255,255,255,0.05);
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+/* Regla para que el vendedor ocupe todo el ancho */
+.info-block-full {
+  grid-column: 1 / -1;
+}
+
+.info-label {
+  font-size: 0.65rem;
+  color: #839496;
+  text-transform: uppercase;
+}
+
+.info-valor {
+  font-size: 0.95rem;
   font-weight: bold;
-  cursor: pointer;
+}
+.info-valor.verde { color: #2ecc71; }
+.info-valor.oro { color: #f1c40f; }
+.info-valor.blanco { color: white; font-weight: normal; font-size: 0.85rem;}
+
+.mt-2 { margin-top: 0.8rem; }
+
+/* Control Precios y Tendencia unificada */
+.valor-tendencia-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.diferencia-precio .subida { color: #2ecc71 !important; font-weight: bold; font-size: 0.8rem;}
+.diferencia-precio .bajada { color: #1e90ff !important; font-weight: bold; font-size: 0.8rem;}
+.diferencia-precio .igual { color: #aaa !important; font-weight: normal; font-size: 0.8rem;}
+
+/* Jornadas */
+.ultimas-jornadas {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.jornada-item { display: flex; flex-direction: column; align-items: center; }
+.jornada-nombre { font-size: 0.65rem; color: #839496; margin-bottom: 2px; }
+.jornada-cuadro {
+  width: 24px; height: 24px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  display: flex; justify-content: center; align-items: center;
+  color: white; border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.1);
+}
+.jornada-cuadro.verde { background: #2aa198; border-color: #2aa198; }
+.jornada-cuadro.rojo { background: #dc322f; border-color: #dc322f; }
+.jornada-cuadro.naranja { background: #b58900; border-color: #b58900; }
+
+.mercado-separador {
+  border: none;
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+  margin: 1.2rem 0;
+}
+
+/* --- BOTONERA MODERNA --- */
+.modal-footer {
   display: flex;
   justify-content: center;
-  align-items: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  gap: 15px;
 }
 
-/* Estilo Aceptar (Tu botón verde metalizado) */
-.btn-aceptar-oferta {
-  background: linear-gradient(145deg, #1c7c35, #28a745, #3ddc84, #1c7c35);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.3), 0 4px 15px rgba(40, 167, 69, 0.4);
-}
-
-.btn-aceptar-oferta:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.4), 0 6px 20px rgba(40, 167, 69, 0.7);
-}
-
-/* Estilo Rechazar (Rojo basado en tu rojo de jornadas) */
-.btn-rechazar-oferta {
-  background: linear-gradient(145deg, #b71c1c, #d32f2f, #f44336, #b71c1c);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.3), 0 4px 15px rgba(211, 47, 47, 0.4);
-}
-
-.btn-rechazar-oferta:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.4), 0 6px 20px rgba(211, 47, 47, 0.7);
-}
-
-.info-oferta-monto {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 1.1rem;
-  width: 100%;
-}
-
-/* Nuevo contenedor para alinear la foto y el texto */
-.oferta-comprador-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* Estilo para la foto de perfil en miniatura */
-.oferta-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background-color: white; /* Por si el logo tiene transparencias */
-}
-
-.oferta-comprador {
-  color: white;
-  font-weight: normal; /* El 'De:' se queda fino */
-}
-
-/* Forzamos que el nombre dentro de la etiqueta strong esté en negrita */
-.oferta-comprador strong {
+.modal-footer button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
   font-weight: bold;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(5px);
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.btn-mercado-ofertar {
+  background: rgba(42, 161, 152, 0.15);
+  border: 1px solid #2aa198;
+  color: #2aa198;
+}
+.btn-mercado-ofertar:hover:not(:disabled) {
+  background: #2aa198; color: white; transform: translateY(-2px);
 }
 
-@media screen and (max-width: 500px) {
-
-  .modal-header {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 0.5rem;
-  }
-
-  .modal-avatar {
-    width: 80px;
-    height: 80px;
-  }
-
-  .modal-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .modal-jugadorinfo h2 {
-    margin: 0; 
-    text-align: center;
-  }
-
-  .modal-jugadorinfo {
-    width: 100%;
-  }
-
-  .precio-container {
-    justify-content: center;
-  }
-  .precio-clausula{
-    justify-content: center;
-  }
-  .posicion-precio {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  .posicion-texto{
-      justify-content: center;
-  }
-  .texto-vendedor{
-    justify-content: center;
-  }
-  .estadisticas-extra {
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .ultimas-jornadas {
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
-  .jornada-item .jornada-nombre {
-    font-size: 9px;
-  }
-
-  .jornada-cuadro {
-    width: 22px;
-    height: 22px;
-    font-size: 11px;
-  }
-
-  .operaciones-container{
-    min-height: 71vh;
-  }
-  .mercado-jugadores {
-    min-height: 71vh;
-
-  }
+.btn-mercado-modificar {
+  background: rgba(241, 196, 15, 0.15);
+  border: 1px solid #f1c40f;
+  color: #f1c40f;
+}
+.btn-mercado-modificar:hover:not(:disabled) {
+  background: #f1c40f; color: black; transform: translateY(-2px);
 }
 
-@media screen and (max-width: 350px) {
-  .modal-footer {
-    gap: 2rem; /* espacio entre botones */
-  }
+.btn-mercado-retirar {
+  background: rgba(220, 53, 69, 0.15);
+  border: 1px solid #dc3545;
+  color: #dc3545;
+}
+.btn-mercado-retirar:hover:not(:disabled) {
+  background: #dc3545; color: white; transform: translateY(-2px);
+}
 
-  .operaciones-container{
-    min-height: 73vh;
-  }
-  .mercado-jugadores {
-    min-height: 73vh;
+.btn-mercado-disabled {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #666; cursor: not-allowed !important;
+}
+.full-width { flex: unset; width: 100%; }
 
-  }
+/* --- PESTAÑAS (TABS PÍLDORA) --- */
+.tabs-wrapper {
+  width: 95%; max-width: 420px; margin: 0 auto; z-index: 2;
+}
+.tabs-container-glass {
+  display: flex;
+  background: rgba(0, 43, 54, 0.6);
+  border-radius: 30px;
+  padding: 5px;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.tab-btn-glass {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 25px;
+  color: #839496;
+  font-weight: bold;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.tab-btn-glass:hover { color: white; }
+.tab-btn-glass.active { background: #2aa198; color: white; box-shadow: 0 4px 10px rgba(42,161,152,0.3); }
 
+/* Temporizador integrado */
+.temporizador-glass {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 20px;
+  padding: 4px 15px;
+  margin-bottom: 1rem;
+  color: #2aa198;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+/* Scroll list */
+.lista-jugadores::-webkit-scrollbar { width: 4px; }
+.lista-jugadores::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.2); border-radius: 3px; }
+
+/* --- MODAL DE OFERTAS --- */
+.modal-ofertas-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(3px);
+  display: flex; justify-content: center; align-items: center; z-index: 1000;
+}
+.modal-ofertas-content {
+  background: rgba(0, 24, 32, 0.95);
+  border: 1px solid rgba(42, 161, 152, 0.4);
+  border-radius: 16px; width: 90%; max-width: 28rem;
+  padding: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); color: white;
+}
+.modal-ofertas-header {
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;
+}
+.modal-ofertas-header h3 { margin: 0; font-size: 1.1rem; color: #2aa198; }
+.btn-close-modal { background: none; border: none; font-size: 1.5rem; color: #839496; cursor: pointer; }
+
+.lista-ofertas-recibidas { list-style: none; padding: 0; margin: 0; }
+.fila-oferta-item {
+  background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; margin-bottom: 10px;
+}
+.info-oferta-monto { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;}
+.oferta-comprador-container { display: flex; align-items: center; gap: 10px; }
+.oferta-avatar { width: 35px; height: 35px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); }
+.oferta-dinero { font-weight: bold; color: #2ecc71; font-size: 1.1rem;}
+
+.acciones-oferta-btn { display: flex; gap: 10px; }
+.btn-aceptar-oferta, .btn-rechazar-oferta {
+  flex: 1; padding: 8px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer;
+}
+.btn-aceptar-oferta { background: rgba(46, 204, 113, 0.2); color: #2ecc71; border: 1px solid #2ecc71; }
+.btn-rechazar-oferta { background: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid #e74c3c; }
+
+@media screen and (max-width: 400px) {
+  .precio-grid-info { grid-template-columns: 1fr; }
+  .modal-avatar { width: 60px; height: 60px; }
+  .modal-footer button { padding: 8px; font-size: 0.8rem; }
+  .mercado-card-glass { padding: 1rem; }
 }
