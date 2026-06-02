@@ -195,18 +195,20 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
 
                 // 3. Abrir mercado y limpiar la fecha del partido pasado
                 const refControles = doc(db, "admin", "controles");
-                const ahoraMs = new Date().getTime();
-                const fechasFuturas = fechasPartidos.filter(f => new Date(f).getTime() > ahoraMs);
+                
+                const fechasFuturas = fechasPartidos.length > 0 ? fechasPartidos.slice(1) : [];
 
                 await updateDoc(refControles, { 
                   edicionActiva: true, 
                   clausulaPermitida: true,
                   fechasPartidos: fechasFuturas 
                 });
+                
+                // 🚀 Actualizamos también el estado de la pantalla para que la fecha desaparezca visualmente
+                setFechasPartidos(fechasFuturas); 
 
                 await Swal.fire({ title: "¡Foto tomada y mercado abierto!", text: "Ya puedes poner las notas tranquilamente y la familia ya puede fichar.", icon: "success" });
                 setOpenModal(false);
-                //window.location.reload();
               } catch (err) {
                 Swal.fire({ title: "Error", text: "No se pudo guardar la foto", icon: "error" });
               }

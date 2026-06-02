@@ -9,10 +9,14 @@ async function resetearTodo() {
     console.log("⚠️ Iniciando reseteo...");
     const batch = db.batch();
 
-    // 1. Resetear puntos y dinero de todos los usuarios
+    // 1. Resetear puntos, dinero y el historial de jornadas de todos los usuarios
     const users = await db.collection("usuarios").get();
     users.docs.forEach(doc => {
-      batch.update(doc.ref, { puntos: 0, dinero: 50000000 }); // Ajusta el dinero inicial si quieres
+      batch.update(doc.ref, { 
+        puntos: 0, 
+        dinero: 50000000, // Ajusta el dinero inicial si quieres
+        puntuaciones: []  // 🚀 AÑADIDO: Vaciamos las jornadas jugadas
+      }); 
     });
 
     // 2. Resetear puntos de todos los jugadores
