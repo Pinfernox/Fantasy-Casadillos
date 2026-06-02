@@ -242,9 +242,12 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
 
                 const batch = writeBatch(db);
                 let resumenResultados = "";
-                const PREMIO_POR_PUNTO = 10000; 
+                
+                // 🚀 EL MODELO HÍBRIDO (OPCIÓN A + OPCIÓN B)
+                const PREMIO_POR_PUNTO = 40000; // Multiplicador agresivo
+                const SUELDO_BASE = 1000000;    // Colchón fijo semanal
 
-// 3. Evaluar usuario por usuario
+                // 3. Evaluar usuario por usuario
                 for (const userId in snapshot) {
                   const userFoto = snapshot[userId];
                   const userData = datosUsuariosActivos[userId];
@@ -258,7 +261,7 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
                   const capitanId = userFoto.capitan; 
                   let puntosJornada = 0;
                   
-                  // 🚨 REGLA FANTASY: ¿Tiene el equipo incompleto? (Algún hueco libre en los 4 titulares)
+                  // 🚨 REGLA FANTASY: ¿Tiene el equipo incompleto?
                   let equipoIncompleto = false;
                   for (let i = 0; i < 4; i++) {
                     if (!userFoto.titulares[i] || !userFoto.titulares[i].jugadorId) {
@@ -267,9 +270,7 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
                     }
                   }
 
-                  // Si el equipo está incompleto, se queda con 0 puntos. Si está completo, calculamos.
                   if (!equipoIncompleto) {
-                    // Evaluar solo a los 4 titulares
                     userFoto.titulares.forEach((slot, index) => {
                       if (slot && slot.jugadorId && index < 4) { 
                         const jugador = mapaJugadores[slot.jugadorId];
@@ -284,7 +285,7 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
                             const multiplicadorPos = calcularMultiplicador(posReal, posEsperada);
                             let puntosJugador = ultimosPuntos * multiplicadorPos;
 
-                            // 2. Aplicamos multiplicador de CAPITÁN (x2) si coincide el ID
+                            // 2. Aplicamos multiplicador de CAPITÁN (x2)
                             if (slot.jugadorId === capitanId) {
                               puntosJugador *= 2;
                             }
@@ -295,11 +296,14 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
                       }
                     });
                     
-                    // 🧮 Redondear para no tener decimales en la clasificación final
                     puntosJornada = Math.round(puntosJornada);
                   }
 
-                  const dineroGanado = puntosJornada * PREMIO_POR_PUNTO;
+                  // 🚀 CÁLCULO DE DINERO HÍBRIDO CON CASTIGO POR INCOMPLETO
+                  let dineroGanado = 0;
+                  if (!equipoIncompleto) {
+                    dineroGanado = SUELDO_BASE + (puntosJornada * PREMIO_POR_PUNTO);
+                  }
                   
                   // 📈 Añadir los puntos de esta jornada al historial del usuario
                   const historialPuntuaciones = userData.puntuaciones || [];
@@ -308,28 +312,27 @@ export default function ModalAdmin({ user, openModal, setOpenModal }) {
                   batch.update(doc(db, "usuarios", userId), {
                      dinero: (userData.dinero || 0) + dineroGanado,
                      puntos: (userData.puntos || 0) + puntosJornada,
-                     puntuaciones: nuevasPuntuaciones // <-- ¡Guardamos el array actualizado!
+                     puntuaciones: nuevasPuntuaciones
                   });
 
                   if (equipoIncompleto) {
-                     resumenResultados += `<b>${userFoto.nick}</b>: 0 pts <i>(Equipo incompleto)</i><br/>`;
+                     resumenResultados += `<b>${userFoto.nick}</b>: 0 pts y 0€ <i>(Sanción: Equipo incompleto)</i><br/>`;
                   } else {
                      resumenResultados += `<b>${userFoto.nick}</b>: +${puntosJornada} pts (+${dineroGanado.toLocaleString('es-ES')}€)<br/>`;
                   }
                 }
 
-                // 4. Marcar la foto como pagada para no repetir el cobro
+                // 4. Marcar la foto como pagada
                 batch.update(doc(db, "admin", "snapshot_jornada"), { pagado: true });
                 await batch.commit();
 
                 await Swal.fire({ 
                   title: "¡Jornada Pagada!", 
-                  html: `Se han repartido las recompensas teniendo en cuenta las posiciones:<br/><br/><div style="text-align:left; font-size: 0.9em; background: #1a1a1a; padding: 10px; border-radius: 8px;">${resumenResultados}</div>`, 
+                  html: `<p style="font-size:0.9rem; color:#aaa;">Incluye Sueldo Fijo (1M€) + Premios (40k/pto).</p><div style="text-align:left; font-size: 0.9em; background: #1a1a1a; padding: 10px; border-radius: 8px;">${resumenResultados}</div>`, 
                   icon: "success", 
                   background: "#1e1e1e", color: "#fff",
                 });
                 setOpenModal(false);
-                //window.location.reload();
               } catch (err) {
                 console.error(err);
                 Swal.fire({ title: "Error", text: "No se pudo repartir los puntos.", icon: "error" });
