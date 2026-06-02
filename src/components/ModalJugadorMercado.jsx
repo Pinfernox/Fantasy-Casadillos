@@ -115,13 +115,18 @@ export default function ModalJugadorMercado({ jugador, openModal, setOpenModal }
                 </div>
 
               </div>      
-              <small className="texto-vendedor">Vendedor:&nbsp;<span className="vendedor">{jugador?.vendedor}</span></small>
-              <small className="texto-vendedor">Media de puntos:&nbsp;<span className="media"> {
-                jugador.puntosPorJornada && jugador.puntosPorJornada.length > 0
-                  ? (
-                  jugador.puntosPorJornada.filter(p => typeof p === "number").reduce((acc, val, _, arr) => acc + val / arr.length, 0).toFixed(2))
-                  : "-"
-              }</span></small>
+              <div className="precio-clausula">
+                <small>
+                  <span className="texto-blanco">Vendedor:</span> 
+                  <span style={{ color: 'lightgreen', fontWeight: 'bold', marginLeft: '4px' }}>{jugador?.vendedor}</span>
+                </small>
+              </div>              <div className='precio-clausula'>
+                <small><span className='texto-blanco'>Media de puntos:</span> {
+                  jugador.puntosPorJornada && jugador.puntosPorJornada.length > 0
+                    ? (jugador.puntosPorJornada.filter(p => typeof p === "number").reduce((acc, val, _, arr) => acc + val / arr.length, 0).toFixed(2))
+                    : "-"
+                }</small>
+              </div>
             </div>
 
             {/* Nuevo bloque debajo */}

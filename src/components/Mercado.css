@@ -173,10 +173,10 @@ a {
   width: fit-content;
   text-transform: uppercase;
 }
-.badge-posicion.DEF { background: #b58900; }
-.badge-posicion.MED { background: #268bd2; }
+.badge-posicion.DEF { background: orange; }
+.badge-posicion.MED { background: #1e90ff; }
 .badge-posicion.DEL { background: #dc322f; }
-.badge-posicion.POR { background: #2aa198; }
+.badge-posicion.POR { background: darkgreen; }
 
 .precio-grid-info {
   display: grid;
@@ -222,7 +222,7 @@ a {
 }
 
 .diferencia-precio .subida { color: #2ecc71 !important; font-weight: bold; font-size: 0.8rem;}
-.diferencia-precio .bajada { color: #1e90ff !important; font-weight: bold; font-size: 0.8rem;}
+.diferencia-precio .bajada { color: #d00606 !important; font-weight: bold; font-size: 0.8rem;}
 .diferencia-precio .igual { color: #aaa !important; font-weight: normal; font-size: 0.8rem;}
 
 /* Jornadas */
@@ -302,6 +302,14 @@ a {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
   color: #666; cursor: not-allowed !important;
+}
+
+.btn-mercado-locked {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px dashed rgba(220, 53, 69, 0.6);
+  color: #e74c3c;
+  cursor: not-allowed !important;
+  font-weight: bold;
 }
 .full-width { flex: unset; width: 100%; }
 

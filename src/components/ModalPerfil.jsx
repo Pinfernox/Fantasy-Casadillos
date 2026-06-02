@@ -262,7 +262,7 @@ export default function ModalPerfil({ usuario, openModal, setOpenModal }) {
                 onClick={() => setEditable(!editable)}
                 title="Editar nick"
               >
-                {editable ? "🔒 Bloquear" : "✏️ Cambiar"}
+                {editable ? "💾 Guardar" : "✏️ Editar"}
               </button>
             </div>
           </div>

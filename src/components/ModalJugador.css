@@ -278,6 +278,8 @@ hr {
   justify-content: center; /* o space-between si quieres que se separen más */
   gap: 3rem !important; /* espacio entre botones */
   margin-top: 0.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
 .btn-capitan{

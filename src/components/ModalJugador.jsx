@@ -164,7 +164,7 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
       title: "¿Cómo quieres vender?",
       showDenyButton: true,
       confirmButtonText: "💰 Poner en el Mercado",
-      denyButtonText: `Venta Directa\n(<span style="color:#2ecc71">+${ventaInmediata.toLocaleString("es-ES")}€</span>)`,
+      denyButtonText: `Venta Rápida\n(<span style="color:#2ecc71">+${ventaInmediata.toLocaleString("es-ES")}€</span>)`,
       confirmButtonColor: "#28a745",
       denyButtonColor: "#4878a4ff",
       background: "#1e1e1e",
@@ -347,10 +347,14 @@ export default function ModalPerfilJugador({ jugador, clausulaPersonal, openModa
           <div className="stat-card"><h4>{jugador.asistencias}</h4><small>Asistencias</small></div>
         </div>
         <hr/>
-        <div className="modal-footer">
+        <div className="modal-footer" style={{ gap: '10px' }}>
           {!edicionActiva ? (
-            <button className="btn-accion" disabled>
-              🔒 Jornada empezada
+            <button 
+              className="btn-accion" 
+              style={{ width: '100%', border: '1px dashed rgba(220, 53, 69, 0.6)', color: '#e74c3c', cursor: 'not-allowed', fontWeight: 'bold' }} 
+              disabled={true}
+            >
+              🔒 Jornada Empezada
             </button>
           ) : (
             <>

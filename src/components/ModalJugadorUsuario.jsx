@@ -3,15 +3,17 @@ import './ModalJugador.css'
 import { getAuth } from 'firebase/auth'
 import Swal from 'sweetalert2';
 import { 
-  getFirestore, doc, getDoc, collection, arrayUnion, arrayRemove, addDoc, runTransaction 
+  getFirestore, doc, onSnapshot, collection, arrayUnion, arrayRemove, addDoc, runTransaction 
 } from "firebase/firestore";
 import ImagenProfile from '/SinPerfil.jpg'
 
-export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, openModal, setOpenModal, idUsuario }) {
+// 🚀 AÑADIDO: Recibimos edicionActiva correctamente en las props
+export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, openModal, setOpenModal, idUsuario, edicionActiva }) {
   const auth = getAuth()
   const db = getFirestore()
   const fotoURL = jugador?.foto || ImagenProfile
-  const [edicionActiva, setEdicionActiva] = useState(false);
+  
+  // 🚀 ELIMINADO: const [edicionActiva, setEdicionActiva] = useState(false); porque ahora nos lo pasa el padre
   const [clausulaPermitida, setClausulaPermitida] = useState(false);
 
   const pagarClausula = async () => {
@@ -132,7 +134,8 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
     }
 
     const userRef = doc(db, "usuarios", user.uid);
-    const snapUser = await getDoc(userRef);
+    // Cambiado getDoc por onSnapshot si fuera necesario, pero getDoc para la transacción rápida está bien
+    const snapUser = await getDoc(userRef); 
     if (!snapUser.exists()) return;
     const dataUser = snapUser.data();
 
@@ -199,20 +202,16 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
   };
 
   useEffect(() => {
-    const cargarEstadoEdicionClausula = async () => {
-      try {
-        const ref = doc(db, "admin", "controles");
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          const data = snap.data();
-          setEdicionActiva(data.edicionActiva === true);
-          setClausulaPermitida(data.clausulaPermitida === true);
-        }
-      } catch (error) {
-        console.error("Error al obtener controles:", error);
+    // 🚀 AÑADIDO: Escuchamos en vivo si las cláusulas están permitidas. 
+    // La edicionActiva ya viene del reloj inteligente del padre (EquipoJugador.jsx)
+    const ref = doc(db, "admin", "controles");
+    const unsubscribe = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setClausulaPermitida(data.clausulaPermitida === true);
       }
-    };
-    cargarEstadoEdicionClausula();
+    });
+    return () => unsubscribe();
   }, []);
 
   const traducirPosicion = (pos) => {
@@ -332,23 +331,35 @@ export default function ModalPerfilJugadorUsuario({ jugador, clausulaPersonal, o
         <hr/>
         
         <div className="modal-footer" style={{ gap: '10px' }}>
-          <button
-            className="btn-accion"
-            disabled={!clausulaPermitida || !edicionActiva}
-            onClick={() => pagarClausula()}
-          >
-            Pagar Cláusula
-            <small className="precio-compra">(-{formatearDinero(jugador.precioClausula)})</small>
-          </button>
+          {/* 🚀 LÓGICA DE BLOQUEO VISUAL Y DE CÓDIGO */}
+          {!edicionActiva ? (
+            <button 
+              className="btn-accion" 
+              style={{ width: '100%', background: 'rgba(0, 0, 0, 0.5)', border: '1px dashed rgba(220, 53, 69, 0.6)', color: '#e74c3c', cursor: 'not-allowed', fontWeight: 'bold' }} 
+              disabled={true}
+            >
+              🔒 Jornada Empezada
+            </button>
+          ) : (
+            <>
+              <button
+                className="btn-accion"
+                disabled={!clausulaPermitida}
+                onClick={() => pagarClausula()}
+              >
+                Pagar Cláusula
+                <small className="precio-compra">(-{formatearDinero(jugador.precioClausula)})</small>
+              </button>
 
-          <button
-            className="btn-accion"
-            style={{ background: 'linear-gradient(135deg, #1e3c72, #2a5298)' }}
-            disabled={!edicionActiva}
-            onClick={() => enviarOferta()}
-          >
-            Hacer Oferta Libre
-          </button>
+              <button
+                className="btn-accion"
+                style={{ background: 'linear-gradient(135deg, #1e3c72, #2a5298)' }}
+                onClick={() => enviarOferta()}
+              >
+                Hacer Oferta Libre
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

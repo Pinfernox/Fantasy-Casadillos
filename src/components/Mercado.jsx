@@ -229,20 +229,57 @@ export default function Mercado({ usuario }) {
     setJugadoresMercado([...sistemaEnr, ...usuariosEnr]);
   }, [sistemaEnr, usuariosEnr]);
   
-  useEffect(() => {
-    const cargarEstadoEdicion = async () => {
-      try {
-        const ref = doc(db, "admin", "controles");
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          const data = snap.data();
-          setEdicionActiva(data.edicionActiva === true);
-        }
-      } catch (error) {
-        console.error("Error al obtener estado de edición:", error);
+useEffect(() => {
+    let intervalId;
+    const ref = doc(db, "admin", "controles");
+    
+    // Escuchamos los cambios en la base de datos en tiempo real
+    const unsubscribe = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        
+        // Función interna que calcula si debemos bloquear basado en el reloj
+        const verificarBloqueo = () => {
+          let modoActivo = data.edicionActiva === true; // Empieza asumiendo el estado manual
+
+          // 1. Verificamos si hay partidos programados
+          if (modoActivo && data.fechasPartidos && data.fechasPartidos.length > 0) {
+            const ahora = new Date().getTime();
+            const UN_DIA_EN_MS = 24 * 60 * 60 * 1000;
+
+            for (const fechaStr of data.fechasPartidos) {
+              const fechaPartido = new Date(fechaStr).getTime();
+              const tiempoRestante = fechaPartido - ahora;
+
+              // 2. Si el partido es en menos de 24 horas o ya ha pasado (y no se ha borrado)
+              if (tiempoRestante <= UN_DIA_EN_MS) {
+                modoActivo = false;
+                break; // Con que un partido cumpla la condición, bloqueamos todo
+              }
+            }
+          }
+
+          setEdicionActiva(modoActivo);
+        };
+
+        // Ejecutamos la verificación inmediatamente
+        verificarBloqueo();
+
+        // Limpiamos el intervalo anterior si existe
+        if (intervalId) clearInterval(intervalId);
+
+        // 3. Magia: Creamos un reloj que verifique automáticamente cada minuto
+        // Así, si son las 4:55 del día anterior y la app está abierta, a las 4:56 se bloqueará sola.
+        intervalId = setInterval(verificarBloqueo, 60000);
       }
+    }, (error) => {
+      console.error("Error al obtener estado de edición:", error);
+    });
+
+    return () => {
+      unsubscribe();
+      if (intervalId) clearInterval(intervalId);
     };
-    cargarEstadoEdicion();
   }, []);
   
   useEffect(() => {
@@ -685,7 +722,7 @@ export default function Mercado({ usuario }) {
 
                                 <div className='precio-grid-info'>
                                   <div className='info-block info-block-full' >
-                                    <span className='info-label'>Valor M.</span>
+                                    <span className='info-label'>Valor Mercado</span>
                                     <div className="valor-tendencia-container">
                                       <span className='info-valor verde'>{Number(j.precio) ? formatearDinero(Number(j.precio)) : "—"}</span>
                                       <span className="diferencia-precio">
@@ -745,6 +782,15 @@ export default function Mercado({ usuario }) {
                           <hr className="mercado-separador" />
                           <div className="modal-footer">
                             {(() => {
+                              // 🚀 1. COMPROBACIÓN MAESTRA DE JORNADA INICIADA
+                              if (!edicionActiva) {
+                                return (
+                                  <button className="btn-mercado-locked full-width" disabled={true}>
+                                    🔒 Jornada Empezada
+                                  </button>
+                                );
+                              }
+
                               const ofertaExistente = misOfertas.find(o => 
                                 (o.idJugador === j.idJugador || o.jugadorId === j.idJugador) && 
                                 (o.vendedorUid === j.vendedorUid || (!o.vendedorUid && !j.vendedorUid))
@@ -763,14 +809,14 @@ export default function Mercado({ usuario }) {
                                   <>
                                     <button
                                       className="btn-mercado-modificar"
-                                      disabled={!edicionActiva || !equipocreado}
+                                      disabled={!equipocreado}
                                       onClick={(e) => { e.stopPropagation(); aumentarOferta(ofertaExistente); }}
                                     >
                                       Modificar
                                     </button>
                                     <button
                                       className="btn-mercado-retirar"
-                                      disabled={!edicionActiva || !equipocreado}
+                                      disabled={!equipocreado}
                                       onClick={(e) => { e.stopPropagation(); retirarOferta(ofertaExistente); }}
                                     >
                                       Cancelar
@@ -781,8 +827,8 @@ export default function Mercado({ usuario }) {
 
                               return (
                                 <button
-                                  className="btn-mercado-ofertar"
-                                  disabled={!edicionActiva || !equipocreado}
+                                  className="btn-mercado-ofertar full-width"
+                                  disabled={!equipocreado}
                                   onClick={(e) => { e.stopPropagation(); hacerOferta(j); }}
                                 >
                                   {`Hacer oferta (${conteoOfertas[`${j.idJugador}-${j.vendedorUid || 'system'}`] || 0})`}
@@ -891,7 +937,12 @@ export default function Mercado({ usuario }) {
                             </div>
                             <hr className="mercado-separador" />
                             <div className="modal-footer">
-                              {esMiVenta ? (
+                              {/* 🚀 2. COMPROBACIÓN MAESTRA DE JORNADA INICIADA EN MIS VENTAS */}
+                              {!edicionActiva ? (
+                                <button className="btn-mercado-locked full-width" disabled={true}>
+                                  🔒 Jornada Empezada
+                                </button>
+                              ) : esMiVenta ? (
                                 <>
                                   <button
                                     className="btn-mercado-ofertar"
@@ -989,7 +1040,6 @@ export default function Mercado({ usuario }) {
                                     </div>
                                     <div className='info-block'>
                                       <span className='info-label'>Tu Oferta</span>
-                                      {/* 🐛 BUG CORREGIDO AQUI: mostramos precioOferta en lugar de precioVenta */}
                                       <span className='info-valor oro'>{Number(o.precioOferta) ? formatearDinero(Number(o.precioOferta)) : "—"}</span>
                                     </div>
                                   </div>
@@ -1030,16 +1080,23 @@ export default function Mercado({ usuario }) {
                           </div>
                           <hr className="mercado-separador" />
                           <div className="modal-footer">
-                            <button
-                              className="btn-mercado-retirar full-width"
-                              disabled={!equipocreado}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                retirarOferta(o);
-                              }}
-                            >
-                              Retirar oferta
-                            </button>
+                            {/* 🚀 3. COMPROBACIÓN MAESTRA DE JORNADA INICIADA EN MIS OFERTAS */}
+                            {!edicionActiva ? (
+                              <button className="btn-mercado-locked full-width" disabled={true}>
+                                🔒 Jornada Empezada
+                              </button>
+                            ) : (
+                              <button
+                                className="btn-mercado-retirar full-width"
+                                disabled={!equipocreado}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  retirarOferta(o);
+                                }}
+                              >
+                                Retirar oferta
+                              </button>
+                            )}
                           </div>
                         </div>
                       </li>
@@ -1082,8 +1139,17 @@ export default function Mercado({ usuario }) {
                         <span className="oferta-dinero">{formatearDinero(oferta.monto)}</span>
                       </div>
                       <div className="acciones-oferta-btn">
-                        <button onClick={() => aceptarOferta(oferta)} className="btn-aceptar-oferta">✅ Aceptar</button>
-                        <button onClick={() => rechazarOferta(oferta)} className="btn-rechazar-oferta">❌ Rechazar</button>
+                        {/* 🚀 4. BLOQUEAMOS TAMBIÉN EL MODAL INTERNO DE OFERTAS */}
+                        {!edicionActiva ? (
+                          <span style={{color: '#e74c3c', fontSize: '0.9rem', fontWeight: 'bold', width: '100%', textAlign: 'center'}}>
+                            Operación bloqueada por jornada en curso
+                          </span>
+                        ) : (
+                          <>
+                            <button onClick={() => aceptarOferta(oferta)} className="btn-aceptar-oferta">✅ Aceptar</button>
+                            <button onClick={() => rechazarOferta(oferta)} className="btn-rechazar-oferta">❌ Rechazar</button>
+                          </>
+                        )}
                       </div>
                     </li>
                   ))}

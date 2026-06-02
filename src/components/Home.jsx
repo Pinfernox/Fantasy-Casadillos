@@ -98,19 +98,50 @@ export default function Home({ usuario }) {
   const [menuFormacionAbierto, setMenuFormacionAbierto] = useState(false);
 
   useEffect(() => {
-      // 🎙️ Escuchamos en tiempo real si el admin bloquea/desbloquea la jornada
-      const ref = doc(db, "admin", "controles");
-      const unsubscribe = onSnapshot(ref, (snap) => {
-        if (snap.exists()) {
-          const data = snap.data();
-          setEdicionActiva(data.edicionActiva === true);
-        }
-      }, (error) => {
-        console.error("Error escuchando estado de edición:", error);
-      });
+    let intervalId;
+    const ref = doc(db, "admin", "controles");
+    
+    const unsubscribe = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        
+        const verificarBloqueo = () => {
+          let modoActivo = data.edicionActiva === true; 
 
-      return () => unsubscribe();
-    }, []);
+          // Verificamos si hay partidos programados
+          if (modoActivo && data.fechasPartidos && data.fechasPartidos.length > 0) {
+            const ahora = new Date().getTime();
+            const UN_DIA_EN_MS = 24 * 60 * 60 * 1000;
+
+            for (const fechaStr of data.fechasPartidos) {
+              const fechaPartido = new Date(fechaStr).getTime();
+              const tiempoRestante = fechaPartido - ahora;
+
+              // Si faltan 24h o menos, bloqueamos
+              if (tiempoRestante <= UN_DIA_EN_MS) {
+                modoActivo = false;
+                break; 
+              }
+            }
+          }
+
+          setEdicionActiva(modoActivo);
+        };
+
+        verificarBloqueo();
+
+        if (intervalId) clearInterval(intervalId);
+        intervalId = setInterval(verificarBloqueo, 60000);
+      }
+    }, (error) => {
+      console.error("Error escuchando estado de edición:", error);
+    });
+
+    return () => {
+      unsubscribe();
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
 
   useEffect(() => {
       // Solo sincronizamos con Firebase si NO estamos en medio de una edición
@@ -126,7 +157,7 @@ export default function Home({ usuario }) {
       }
     }, [usuario, cambiosPendientes]);
 
-const toggleModoEdicion = () => {
+  const toggleModoEdicion = () => {
     if (modoEdicion) {
       // Si le damos a "Hecho" y hay cambios pendientes, guardamos
       if (formacionSeleccionada !== formacionActual || cambiosPendientes) {

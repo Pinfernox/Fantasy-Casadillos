@@ -91,6 +91,54 @@ export default function EquipoJugador({ usuario }) {
   const [openModalJugadorUsuario, setOpenModalJugadorUsuario] = useState(false)
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null)
   
+  // 🚀 AÑADIDO: Estado para controlar si el mercado está abierto o bloqueado por jornada
+  const [edicionActiva, setEdicionActiva] = useState(false);
+
+  // 🚀 AÑADIDO: El reloj inteligente para verificar el tiempo restante del partido
+  useEffect(() => {
+    let intervalId;
+    const ref = doc(db, "admin", "controles");
+    
+    const unsubscribe = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        
+        const verificarBloqueo = () => {
+          let modoActivo = data.edicionActiva === true; 
+
+          if (modoActivo && data.fechasPartidos && data.fechasPartidos.length > 0) {
+            const ahora = new Date().getTime();
+            const UN_DIA_EN_MS = 24 * 60 * 60 * 1000;
+
+            for (const fechaStr of data.fechasPartidos) {
+              const fechaPartido = new Date(fechaStr).getTime();
+              const tiempoRestante = fechaPartido - ahora;
+
+              // Bloquea 24 horas antes
+              if (tiempoRestante <= UN_DIA_EN_MS) {
+                modoActivo = false;
+                break; 
+              }
+            }
+          }
+
+          setEdicionActiva(modoActivo);
+        };
+
+        verificarBloqueo();
+
+        if (intervalId) clearInterval(intervalId);
+        intervalId = setInterval(verificarBloqueo, 60000);
+      }
+    }, (error) => {
+      console.error("Error al obtener estado de edición:", error);
+    });
+
+    return () => {
+      unsubscribe();
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
 
   useEffect(() => {
     if (window.particlesJS && document.getElementById("particles-js")) {
@@ -110,7 +158,7 @@ export default function EquipoJugador({ usuario }) {
         window.pJSDom = []; // Vaciamos la memoria global
       }
     };
-  }, []); // 🚨 MUY IMPORTANTE: Dejar los corchetes vacíos []
+  }, []); 
 
   // 1. Cargar jugador clicado en la clasificación
   useEffect(() => {
@@ -145,7 +193,6 @@ export default function EquipoJugador({ usuario }) {
           ...(jugadorData.equipo.banquillo || []).map(s => s?.jugadorId).filter(Boolean),
         ];
 
-
         if (ids.length === 0) {
           setJugadores([]);
           return;
@@ -178,17 +225,15 @@ export default function EquipoJugador({ usuario }) {
     let corte;
 
     if (firstSpace !== -1 && firstSpace <= maxLength) {
-      corte = firstSpace; // cortar en el espacio si está antes de 9
+      corte = firstSpace; 
       return nick.slice(0, corte) + "...";
       
     } else if (nick.length > maxLength) {
-      corte = maxLength-3; // cortar en 9 si es más largo
-
+      corte = maxLength-3; 
       return nick.slice(0, corte) + "...";
     } else {
-      return nick; // no hace falta cortar
+      return nick; 
     }
-
   };
 
   return (
@@ -198,12 +243,17 @@ export default function EquipoJugador({ usuario }) {
       <div className="login-hero-Cabecera" style={{backgroundImage: `url(${Fondo})`,}}>
         <div id="particles-js" style={{ position: 'absolute', inset: 0 }}></div>
         {openModalJugadorUsuario && jugadorSeleccionado &&           
-        (<ModalPerfilJugadorUsuario jugador={jugadorSeleccionado} 
+        (<ModalPerfilJugadorUsuario 
+          jugador={jugadorSeleccionado} 
           clausulaPersonal={
             jugadorData?.equipo?.titulares?.find(j => j.jugadorId === jugadorSeleccionado.id)?.clausulaPersonal ??
             jugadorData?.equipo?.banquillo?.find(j => j.jugadorId === jugadorSeleccionado.id)?.clausulaPersonal
           } 
-          openModal= {openModalJugadorUsuario} setOpenModal={setOpenModalJugadorUsuario} idUsuario={jugadorData?.id}/>)}
+          openModal={openModalJugadorUsuario} 
+          setOpenModal={setOpenModalJugadorUsuario} 
+          idUsuario={jugadorData?.id}
+          edicionActiva={edicionActiva} /* 🚀 AÑADIDO: Pasamos la variable al modal */
+        />)}
         <div className="container-campo" style={{ textAlign: 'center', position: 'relative', zIndex: 1 , marginTop: '0rem'}}>
           <div className="datos-equipo">
             <p><strong>Formación:</strong> <small>{formacionSeleccionada}</small> </p>
@@ -309,7 +359,7 @@ export default function EquipoJugador({ usuario }) {
               {banquillo.map((slot, idx) => {
                 const jugador = jugadores.find(j => j.id === slot?.jugadorId);
                 return (
-                  <div className="banquillo-slot">
+                  <div className="banquillo-slot" key={idx}>
                     {jugador ? (
                       <>
                         <div className="jugador-wrapper">
@@ -349,7 +399,7 @@ export default function EquipoJugador({ usuario }) {
                         <p className="jugador-nombre-banquillo">{jugador?.nombre}</p>
                       </>
                     ) : (
-                      <Link className="banquillo-add">+</Link>
+                      <div className="banquillo-add">+</div>
                     )}
                   </div>
 
