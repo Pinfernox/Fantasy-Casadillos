@@ -436,6 +436,66 @@ hr {
   border-radius: 3px;
 }
 
+
+/* --- PESTAÑAS Y CABECERA (TABS PÍLDORA) --- */
+.tabs-wrapper {
+  width: 95%; 
+  max-width: 420px; 
+  margin: 0 auto; 
+  z-index: 2;
+}
+
+/* 🚀 REDISEÑADO: Ahora es una cápsula flotante de cristal */
+.tabs-container {
+  display: flex;
+  background: rgba(0, 43, 54, 0.6);
+  border-radius: 10px;
+  padding: 5px;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: #839496;
+  font-weight: bold;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tab-btn:hover { 
+  color: white; 
+}
+
+/* 🚀 REDISEÑADO: El estado "activo" ahora es un botón verde iluminado, no un subrayado dorado */
+.tab-btn.active { 
+  background: #2aa198; 
+  color: white; 
+  box-shadow: 0 4px 10px rgba(42,161,152,0.3); 
+}
+
+/* 🚀 MODIFICADO: Eliminamos el fondo blanco de la caja principal porque ya lo tienen las tarjetas individuales */
+.historial-container {
+  background-color: transparent; /* Antes era rgba(255, 255, 255, 0.2) */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none; /* Quitamos la sombra de la caja grande */
+  width: 100%;
+  max-width: 420px;
+  border: 0; 
+  text-align: center;
+  color: white;
+  position: relative;
+  z-index: 1;
+  height: auto;
+  max-height: 72vh; 
+  min-height: auto; /* Dejamos que mida solo lo necesario */
+  overflow-y: hidden; 
+}
 /* Responsivo (Móviles) */
 @media screen and (max-width: 500px) {
   .modal-header {
